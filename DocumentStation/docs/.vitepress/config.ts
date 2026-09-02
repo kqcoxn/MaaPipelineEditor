@@ -7,13 +7,34 @@ const description = [
   "欢迎来到 MaaPipelineEditor 使用文档",
   "MaaPipelineEditor (MPE) 是基于一款 Web 前端相关开发框架、运用 YAMaaPE 开发经验去芜存菁、资源开发者充分微调、完全重写的 MaaFramework Pipeline 工作流式可视化编辑器。",
   "“由您设计，由我们支持。” 如您所需皆已存在：添加、配置、连接，只需稍作思考，想法之外尽在其中！",
-].toString();
+].join(" ");
+
+const siteUrl = "https://mpe.codax.site";
+const docsUrl = `${siteUrl}/docs/`;
+const keywords = [
+  "MaaPipelineEditor",
+  "MPE",
+  "MaaFramework",
+  "Pipeline",
+  "工作流编辑器",
+  "可视化编辑器",
+].join(",");
 
 const teekConfig = defineTeekConfig({
   sidebarTrigger: true,
+  anchorScroll: true,
+  viewTransition: {
+    enabled: true,
+    mode: "out-in",
+    duration: 400,
+  },
   author: { name: "kqcoxn", link: "https://github.com/kqcoxn" },
   backTop: {
-    content: "icon",
+    content: "progress",
+  },
+  breadcrumb: {
+    enabled: true,
+    showCurrentName: true,
   },
   footerInfo: {
     theme: {
@@ -25,19 +46,26 @@ const teekConfig = defineTeekConfig({
     },
   },
   codeBlock: {
+    collapseHeight: 700,
+    overlay: true,
+    overlayHeight: 420,
     copiedDone: (TkMessage) => TkMessage.success("复制成功！"),
   },
   themeEnhance: {
     themeColor: {
-      customize: {
-        elementPlusTheme: false,
-      },
+      customize: false,
+      defaultColorName: "vp-primary",
+      defaultSpread: true,
     },
   },
   post: {
     showCapture: true,
   },
-  articleShare: { enabled: true },
+  articleShare: {
+    enabled: true,
+    text: "分享此页",
+    copiedText: "链接已复制",
+  },
   vitePlugins: {
     sidebarOption: {
       initItems: false,
@@ -45,12 +73,20 @@ const teekConfig = defineTeekConfig({
   },
   markdown: {
     demo: {
-      githubUrl: "https://github.com/kqcoxn/MaaPipelineEditor/DocumentStation",
+      githubUrl:
+        "https://github.com/kqcoxn/MaaPipelineEditor/tree/main/DocumentStation",
     },
   },
   articleAnalyze: {
     dateFormat: "yyyy-MM-dd",
     showCreateDate: false,
+    showUpdateDate: true,
+    imageViewer: {
+      enabled: true,
+      hideOnClickModal: true,
+      teleported: true,
+      showProgress: true,
+    },
   },
   articleUpdate: {
     enabled: false,
@@ -71,19 +107,13 @@ export default defineConfig({
     ["meta", { property: "og:locale", content: "zh-CN" }],
     ["meta", { property: "og:title", content: "MaaPipelineEditor - 文档站" }],
     ["meta", { property: "og:site_name", content: "MaaPipelineEditor" }],
-    ["meta", { property: "og:image", content: "" }],
-    ["meta", { property: "og:url", content: "" }],
-    ["meta", { property: "og:description", description }],
-    ["meta", { name: "description", description }],
+    ["meta", { property: "og:image", content: `${siteUrl}/docs/logo.png` }],
+    ["meta", { property: "og:url", content: docsUrl }],
+    ["meta", { property: "og:description", content: description }],
+    ["meta", { name: "description", content: description }],
     ["meta", { name: "author", content: "kqcoxn" }],
-    // [
-    //   "meta",
-    //   {
-    //     name: "viewport",
-    //     content: "width=device-width,initial-scale=1,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no",
-    //   },
-    // ],
-    ["meta", { name: "keywords", description }],
+    ["meta", { name: "keywords", content: keywords }],
+    ["meta", { name: "robots", content: "index,follow" }],
   ],
   markdown: {
     lineNumbers: true,
@@ -99,15 +129,18 @@ export default defineConfig({
     },
   },
   sitemap: {
-    hostname: "https://mpe.codax.site",
+    hostname: docsUrl,
     transformItems: (items) => {
       const permalinkItemBak: typeof items = [];
       const permalinks = (globalThis as any).VITEPRESS_CONFIG.site.themeConfig
         .permalinks;
       items.forEach((item) => {
-        const permalink = permalinks?.map[item.url];
+        const permalink = permalinks?.map[item.url.replace(".html", "")];
         if (permalink)
-          permalinkItemBak.push({ url: permalink, lastmod: item.lastmod });
+          permalinkItemBak.push({
+            url: permalink.replace(/^\/+/, ""),
+            lastmod: item.lastmod,
+          });
       });
       return [...items, ...permalinkItemBak];
     },
@@ -185,14 +218,50 @@ export default defineConfig({
     ],
     search: {
       provider: "local",
+      options: {
+        detailedView: true,
+        translations: {
+          button: {
+            buttonText: "搜索文档",
+            buttonAriaLabel: "搜索文档",
+          },
+          modal: {
+            displayDetails: "显示详细列表",
+            resetButtonTitle: "清除查询条件",
+            backButtonTitle: "关闭搜索",
+            noResultsText: "未找到相关结果",
+            footer: {
+              selectText: "选择",
+              selectKeyAriaLabel: "回车",
+              navigateText: "切换",
+              navigateUpKeyAriaLabel: "上方向键",
+              navigateDownKeyAriaLabel: "下方向键",
+              closeText: "关闭",
+              closeKeyAriaLabel: "Esc",
+            },
+          },
+        },
+        miniSearch: {
+          options: {
+            tokenize: (text) =>
+              Array.from(
+                new Intl.Segmenter("zh-CN", { granularity: "word" }).segment(
+                  text,
+                ),
+              )
+                .filter(({ isWordLike }) => isWordLike)
+                .map(({ segment }) => segment),
+          },
+        },
+      },
     },
     editLink: {
       text: "在 GitHub 上编辑此页",
       pattern:
-        "https://github.com/kqcoxn/MaaPipelineEditor/tree/main/DocumentStation/docs/:path",
+        "https://github.com/kqcoxn/MaaPipelineEditor/edit/main/DocumentStation/docs/:path",
     },
   },
   vite: {
-    plugins: [llmstxt() as any],
+    plugins: [llmstxt({ domain: siteUrl }) as any],
   },
 });

@@ -10,12 +10,12 @@
     "preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "sass": "^1.89.1",
-    "vitepress": "^1.5.0",
-    "vitepress-plugin-llms": "^1.7.3"
+    "sass": "^1.103.1",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-llms": "^1.13.5"
   },
   "dependencies": {
-    "vitepress-theme-teek": "^1.4.4",
-    "vue": "^3.5.16"
+    "vitepress-theme-teek": "^1.6.2",
+    "vue": "^3.5.42"
   }
 }
