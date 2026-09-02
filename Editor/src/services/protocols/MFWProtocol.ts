@@ -53,6 +53,7 @@ function readLastController(): ControllerConnectionRequest | null {
  */
 export class MFWProtocol extends BaseProtocol {
   private screencapRequests = new ScreencapRequestManager();
+  private statusUnsubscribe: (() => void) | null = null;
   // OCR结果回调函数
   private ocrCallbacks: Array<(data: any) => void> = [];
   // 模板匹配结果回调函数
@@ -93,19 +94,11 @@ export class MFWProtocol extends BaseProtocol {
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
 
-    // 监听 WebSocket 连接状态变化
-    this.wsClient.onStatus((connected) => {
-      const mfwStore = useMFWStore.getState();
-      // 清除控制器状态
+    this.statusUnsubscribe?.();
+    this.statusUnsubscribe = this.wsClient.onStatus((connected) => {
       if (!connected) {
         this.screencapRequests.rejectAll("LocalBridge 连接已断开");
-        mfwStore.clearConnection();
-        // 清除待连接设备信息
         this.lastConnectionDevice = null;
-      } else {
-        if (mfwStore.controllerId) {
-          mfwStore.clearConnection();
-        }
       }
     });
 
@@ -182,6 +175,8 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   override unregister(): void {
+    this.statusUnsubscribe?.();
+    this.statusUnsubscribe = null;
     this.screencapRequests.rejectAll("MaaFramework 协议已注销");
     super.unregister();
   }

@@ -25,6 +25,7 @@ import UpdateLog from "./modals/UpdateLog";
 import { ConnectionPanel } from "./panels/main/ConnectionPanel";
 import { localServer } from "../services/server";
 import { useMFWStore, type DeviceInfo } from "@/stores/connection/mfwStore";
+import { useWSStore } from "@/stores/connection/wsStore";
 
 import { globalConfig } from "@/stores/app/configStore";
 import { useTheme } from "../contexts/ThemeContext";
@@ -69,44 +70,13 @@ type ConnectionStatus = "connected" | "disconnected" | "connecting";
 
 const ConnectionButton: React.FC = () => {
   const { isEmbed } = useEmbedMode();
-  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
-
-  useEffect(() => {
-    if (isEmbed) return;
-
-    // 初始化状态
-    const updateStatus = () => {
-      if (localServer.isConnected()) {
-        setStatus("connected");
-      } else if (localServer.getIsConnecting()) {
-        setStatus("connecting");
-      } else {
-        setStatus("disconnected");
-      }
-    };
-
-    updateStatus();
-
-    // 注册状态变化回调
-    localServer.onStatus((connected) => {
-      setStatus(connected ? "connected" : "disconnected");
-    });
-
-    localServer.onConnecting((isConnecting) => {
-      if (isConnecting) {
-        setStatus("connecting");
-      }
-    });
-
-    // 定期检查状态
-    const interval = setInterval(() => {
-      updateStatus();
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [isEmbed]);
+  const connected = useWSStore((state) => state.connected);
+  const connecting = useWSStore((state) => state.connecting);
+  const status: ConnectionStatus = connected
+    ? "connected"
+    : connecting
+      ? "connecting"
+      : "disconnected";
 
   // 嵌入模式下显示 EmbedBridge，并说明本地服务能力边界
   if (isEmbed) {
@@ -206,7 +176,9 @@ function getDeviceDisplayName(deviceInfo: NonNullable<DeviceInfo>) {
 const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
   onOpenPanel,
 }) => {
-  const { connectionStatus, controllerType, deviceInfo } = useMFWStore();
+  const connectionStatus = useMFWStore((state) => state.connectionStatus);
+  const controllerType = useMFWStore((state) => state.controllerType);
+  const deviceInfo = useMFWStore((state) => state.deviceInfo);
 
   // 获取设备名称
   const getDeviceName = () => {
@@ -286,31 +258,8 @@ function Header() {
     deactivate: closeConnectionPanel,
   } = usePanelOccupancy("connection");
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const [wsConnected, setWsConnected] = useState(false);
+  const wsConnected = useWSStore((state) => state.connected);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-
-  // 检测WebSocket连接状态
-  useEffect(() => {
-    const updateWsStatus = () => {
-      setWsConnected(localServer.isConnected());
-    };
-
-    updateWsStatus();
-
-    // 注册状态变化回调
-    localServer.onStatus((connected) => {
-      setWsConnected(connected);
-    });
-
-    // 定期检查状态
-    const interval = setInterval(() => {
-      updateWsStatus();
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
 
   // 检测页面宽度
   useEffect(() => {

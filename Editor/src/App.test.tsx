@@ -13,6 +13,8 @@ const embedMocks = vi.hoisted(() => ({
 const startupMocks = vi.hoisted(() => ({
   restoreFileCache: vi.fn<() => Promise<boolean>>(),
   initializeFileCachePersistence: vi.fn(() => vi.fn()),
+  disposeLocalBridgeConnection: vi.fn(),
+  initializeLocalBridgeConnectionState: vi.fn(),
   updateBootScreen: vi.fn(),
   finishBootScreenWhenReady: vi.fn(() => Promise.resolve()),
 }));
@@ -30,6 +32,10 @@ vi.mock("./components/async/bootScreen", () => ({
   updateBootScreen: startupMocks.updateBootScreen,
   finishBootScreenWhenReady: startupMocks.finishBootScreenWhenReady,
 }));
+vi.mock("./services/localBridgeConnection", () => ({
+  initializeLocalBridgeConnectionState:
+    startupMocks.initializeLocalBridgeConnectionState,
+}));
 vi.mock("./hooks/useEmbedMode", () => ({
   useEmbedMode: () => ({
     isEmbed: true,
@@ -44,8 +50,8 @@ vi.mock("./hooks/useGlobalShortcuts", () => ({
 vi.mock("./hooks/useEmbedChangeNotifier", () => ({
   useEmbedChangeNotifier: () => undefined,
 }));
-vi.mock("./hooks/useEmbedStarReminder", () => ({
-  useEmbedStarReminder: () => undefined,
+vi.mock("./hooks/useStarReminder", () => ({
+  useStarReminder: () => undefined,
 }));
 vi.mock("./features/embed/protocols/registerEmbedProtocol", () => ({
   registerEmbedProtocol: embedMocks.register,
@@ -110,6 +116,11 @@ describe("App startup", () => {
     startupMocks.restoreFileCache.mockReset();
     startupMocks.restoreFileCache.mockResolvedValue(false);
     startupMocks.initializeFileCachePersistence.mockClear();
+    startupMocks.disposeLocalBridgeConnection.mockClear();
+    startupMocks.initializeLocalBridgeConnectionState.mockReset();
+    startupMocks.initializeLocalBridgeConnectionState.mockReturnValue(
+      startupMocks.disposeLocalBridgeConnection,
+    );
     startupMocks.updateBootScreen.mockClear();
     startupMocks.finishBootScreenWhenReady.mockClear();
     startupMocks.finishBootScreenWhenReady.mockResolvedValue();
@@ -163,6 +174,10 @@ describe("App startup", () => {
 
     const view = render(<App />);
 
+    expect(
+      startupMocks.initializeLocalBridgeConnectionState,
+    ).toHaveBeenCalledOnce();
+
     expect(startupMocks.updateBootScreen).toHaveBeenCalledWith({
       detail: "正在恢复上次编辑内容",
       progress: 72,
@@ -178,5 +193,6 @@ describe("App startup", () => {
       detail: "正在呈现上次编辑画布",
     });
     view.unmount();
+    expect(startupMocks.disposeLocalBridgeConnection).toHaveBeenCalledOnce();
   });
 });

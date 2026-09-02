@@ -1,15 +1,7 @@
 import style from "./styles/layout/App.module.less";
 
-import { memo, useCallback, useEffect } from "react";
-import {
-  Flex,
-  Layout,
-  message,
-  notification,
-  Button,
-  Space,
-  Modal,
-} from "antd";
+import { useCallback, useEffect } from "react";
+import { Flex, Layout, message, Modal } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
 import {
@@ -20,11 +12,9 @@ import {
   initializeConfigCache,
   useConfigStore,
 } from "@/stores/app/configStore";
-import { useWSStore } from "@/stores/connection/wsStore";
-import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
-import { localServer, mfwProtocol } from "./services/server";
-import { resetDebugProtocolStateForConnectionLoss } from "./features/debug/protocols/registerProtocolListeners";
+import { initializeLocalBridgeConnectionState } from "./services/localBridgeConnection";
+import { localServer } from "./services/server";
 
 import Header from "./components/Header";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -62,8 +52,7 @@ import {
 import { NewcomerGuideModal } from "./components/modals/NewcomerGuideModal";
 import { useTermsStore, isTermsAccepted } from "@/stores/ui/termsStore";
 import { TermsAgreementModal } from "./components/modals/TermsAgreementModal";
-import { useEmbedStarReminder } from "./hooks/useEmbedStarReminder";
-import { openExternalUrl } from "./features/embed/navigation/externalNavigation";
+import { useStarReminder } from "./hooks/useStarReminder";
 import { LazyFeature } from "./components/async/LazyFeature";
 import { OptionalFeatureHosts } from "./components/async/OptionalFeatureHosts";
 import { GlobalProcessOverlay } from "./components/async/GlobalProcessOverlay";
@@ -76,59 +65,6 @@ import { DebugRuntimeHost } from "./components/debug/DebugRuntimeHost";
 const isPreviewMode = import.meta.env.MODE === "preview";
 
 const loadJsonViewer = () => import("./components/JsonViewer");
-
-// 轮询提醒
-let isShowStarRemind = false;
-function starRemind() {
-  isShowStarRemind = true;
-  const key = `open${Date.now()}`;
-  const operations = (
-    <Space>
-      <Button
-        type="primary"
-        onClick={() => {
-          openExternalUrl("https://github.com/kqcoxn/MaaPipelineEditor");
-          localStorage.setItem("mpe_stared", "true");
-          notification.destroy();
-        }}
-      >
-        这就去点！
-      </Button>
-      <Button
-        onClick={() => {
-          isShowStarRemind = false;
-          notification.destroy();
-        }}
-      >
-        稍后提醒
-      </Button>
-      <Button
-        style={{ color: "gray" }}
-        type="dashed"
-        onClick={() => {
-          localStorage.setItem("_mpe_stared", "true");
-          notification.destroy();
-        }}
-      >
-        不再提醒
-      </Button>
-    </Space>
-  );
-  notification.open({
-    title: "来点 Star，秋梨膏！",
-    description:
-      "如果 MaaPipelineEditor 对您有帮助，可以为项目点一个免费的 Star⭐ 吗 QAQ",
-    actions: operations,
-    key,
-    duration: 0,
-    closeIcon: false,
-  });
-}
-
-// 全局监听
-const GlobalListener = memo(() => {
-  return null;
-});
 
 /**主程序 */
 function App() {
@@ -175,12 +111,13 @@ function App() {
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
-  useEmbedStarReminder();
+  useStarReminder(isEmbed);
 
   // onMounted
   useEffect(() => {
     let disposed = false;
     let disposeFileCache = () => undefined;
+    let disposeLocalBridgeConnection = () => undefined;
     const fileCacheRestoreController = new AbortController();
     // 检查是否为嵌入模式（最高优先级）
     const embedEnvironment = isEmbedEnvironment();
@@ -305,24 +242,7 @@ function App() {
     // 加载自定义模板
     useCustomTemplateStore.getState().loadTemplates();
 
-    // 注册WebSocket状态同步回调
-    const setConnected = useWSStore.getState().setConnected;
-    const setConnecting = useWSStore.getState().setConnecting;
-    const clearMFWConnection = useMFWStore.getState().clearConnection;
-    localServer.onStatus((connected) => {
-      setConnected(connected);
-      // WebSocket 断开时清除设备连接状态，确保实时画面等 UI 正确隐藏
-      if (!connected) {
-        clearMFWConnection();
-        // 调试会话只存在于当前 LocalBridge 进程，断线/重启后必须丢弃旧 ID。
-        resetDebugProtocolStateForConnectionLoss();
-      } else {
-        mfwProtocol.autoConnectLastController();
-      }
-    });
-    localServer.onConnecting((isConnecting) => {
-      setConnecting(isConnecting);
-    });
+    disposeLocalBridgeConnection = initializeLocalBridgeConnectionState();
 
     // WebSocket自动连接
     const wsAutoConnect = useConfigStore.getState().configs.wsAutoConnect;
@@ -357,21 +277,6 @@ function App() {
     };
     window.addEventListener("mpe:terms-accepted", handleTermsAccepted);
 
-    // Star定时提醒（需通过新手测试后才启动）
-    if (
-      localStorage.getItem("_mpe_stared") !== "true" &&
-      isNewcomerPassed()
-    ) {
-      setInterval(
-        () => {
-          if (!isShowStarRemind) {
-            starRemind();
-          }
-        },
-        5 * 60 * 1000,
-      );
-    }
-
     // 文件拖拽监听
     document.addEventListener("drop", handleFileDrop);
     document.addEventListener("dragover", handleDragOver);
@@ -381,6 +286,7 @@ function App() {
       disposed = true;
       fileCacheRestoreController.abort();
       disposeFileCache();
+      disposeLocalBridgeConnection();
       unsubscribeConfigCache();
       window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);
@@ -438,7 +344,6 @@ function App() {
       <GlobalProcessOverlay />
       {!isEmbed && <TermsAgreementModal />}
       {!shouldSkipNewcomerGuide && <NewcomerGuideModal />}
-      <GlobalListener />
     </ThemeProvider>
   );
 }
