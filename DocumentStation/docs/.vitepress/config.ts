@@ -134,6 +134,11 @@ export default defineConfig({
         activeMatch: "/01.指南/",
       },
       {
+        text: "资料",
+        link: "/resources/reports/performance-engineering",
+        activeMatch: "/02.资料/",
+      },
+      {
         text: "相关链接",
         items: [
           {
