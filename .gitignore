@@ -27,6 +27,9 @@ test-results
 # Auto-generated assets
 /Editor/public/monaco-editor
 
+# Performance measurement results
+/dev/performance/editor/results/
+
 # Editor directories and files
 !.vscode/extensions.json
 .idea

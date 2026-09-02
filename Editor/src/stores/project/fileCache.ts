@@ -329,7 +329,10 @@ async function flushPending(): Promise<void> {
 
 export function scheduleFileCache(files: FileType[], currentFileName: string): void {
   const collected = collectPending(files, currentFileName);
-  for (const write of collected.writes) pendingWrites.set(write.fileName, write);
+  for (const write of collected.writes) {
+    pendingDeletes.delete(write.fileName);
+    pendingWrites.set(write.fileName, write);
+  }
   for (const fileName of collected.deletes) {
     pendingWrites.delete(fileName);
     pendingDeletes.add(fileName);

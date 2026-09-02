@@ -88,6 +88,23 @@ describe("file cache", () => {
     });
   });
 
+  it("preserves a file renamed back before the pending cache is flushed", async () => {
+    const original = createFile("first", "original");
+    scheduleFileCache([original], original.fileName);
+    await flushFileCache();
+
+    const renamed = createFile("first-edit", "renamed");
+    scheduleFileCache([renamed], renamed.fileName);
+    const restoredName = createFile("first", "restored");
+    scheduleFileCache([restoredName], restoredName.fileName);
+    await flushFileCache();
+
+    await expect(readCachedFiles()).resolves.toMatchObject({
+      currentFileName: "first",
+      files: [{ fileName: "first", config: { prefix: "restored" } }],
+    });
+  });
+
   it("reports a fallback storage failure", async () => {
     const onError = vi.fn();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
