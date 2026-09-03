@@ -96,7 +96,7 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "1.9.3",
-    date: "2026-9-2",
+    date: "2026-9-4",
     type: "perf",
     updates: {
       features: [
@@ -105,6 +105,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "大幅优化操作画布时的渲染性能",
         "添加高复杂度功能的过渡动画，提升操作体验",
+        "mpeh 工具使用可配置调用上限（默认 50），并补充若干批量工具",
       ],
       fixes: [
         "修复部分情况下调试节点时开始节点错误的问题",

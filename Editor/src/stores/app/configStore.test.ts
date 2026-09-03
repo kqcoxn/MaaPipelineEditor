@@ -3,6 +3,7 @@ import {
   configDefaults,
   DEFAULT_LIVE_SCREEN_FRAME_RATE,
   DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
+  DEFAULT_AI_TOOL_CALL_BUDGET,
   DEFAULT_AI_TOKEN_BUDGET,
   getExportableConfigs,
   getLiveScreenFrameInterval,
@@ -54,6 +55,11 @@ describe("config cache", () => {
   it("defaults the Harness Token budget to 200k", () => {
     expect(configDefaults.aiTokenBudget).toBe(DEFAULT_AI_TOKEN_BUDGET);
     expect(useConfigStore.getState().configs.aiTokenBudget).toBe(200_000);
+  });
+
+  it("defaults the Harness tool call budget to 50", () => {
+    expect(configDefaults.aiToolCallBudget).toBe(DEFAULT_AI_TOOL_CALL_BUDGET);
+    expect(useConfigStore.getState().configs.aiToolCallBudget).toBe(50);
   });
 
   it("defaults each AI request timeout to 10 minutes", () => {

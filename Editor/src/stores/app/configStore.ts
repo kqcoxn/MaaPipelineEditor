@@ -8,6 +8,9 @@ let apiKeyWriteVersion = 0;
 export const DEFAULT_AI_TOKEN_BUDGET = 200_000;
 export const MIN_AI_TOKEN_BUDGET = 1_000;
 export const MAX_AI_TOKEN_BUDGET = 2_000_000;
+export const DEFAULT_AI_TOOL_CALL_BUDGET = 50;
+export const MIN_AI_TOOL_CALL_BUDGET = 1;
+export const MAX_AI_TOOL_CALL_BUDGET = 200;
 export const DEFAULT_AI_REQUEST_TIMEOUT_MINUTES = 10;
 export const MIN_AI_REQUEST_TIMEOUT_MINUTES = 1;
 export const MAX_AI_REQUEST_TIMEOUT_MINUTES = 120;
@@ -38,6 +41,14 @@ export function normalizeAIRequestTimeoutMs(value: number): number {
       )
     : DEFAULT_AI_REQUEST_TIMEOUT_MINUTES;
   return minutes * 60_000;
+}
+
+export function normalizeAIToolCallBudget(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_AI_TOOL_CALL_BUDGET;
+  return Math.min(
+    MAX_AI_TOOL_CALL_BUDGET,
+    Math.max(MIN_AI_TOOL_CALL_BUDGET, Math.trunc(value)),
+  );
 }
 
 /**固有配置 */
@@ -121,6 +132,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   aiModel: "ai",
   aiTemperature: "ai",
   aiTokenBudget: "ai",
+  aiToolCallBudget: "ai",
   aiRequestTimeoutMinutes: "ai",
   aiProviderType: "ai",
   aiUseProxy: "ai",
@@ -232,6 +244,7 @@ const defaultConfigs = {
   aiModel: "",
   aiTemperature: 0.7,
   aiTokenBudget: DEFAULT_AI_TOKEN_BUDGET,
+  aiToolCallBudget: DEFAULT_AI_TOOL_CALL_BUDGET,
   aiRequestTimeoutMinutes: DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
   aiProviderType: "custom" as const,
   aiUseProxy: true,
@@ -308,6 +321,7 @@ export type ConfigState = {
     aiModel: string;
     aiTemperature: number;
     aiTokenBudget: number;
+    aiToolCallBudget: number;
     aiRequestTimeoutMinutes: number;
     aiProviderType: string;
     aiUseProxy: boolean;

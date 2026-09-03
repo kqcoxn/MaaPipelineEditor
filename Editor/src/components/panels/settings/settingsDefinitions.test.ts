@@ -50,6 +50,7 @@ describe("AI settings", () => {
       "aiTemperature",
       "aiUseProxy",
       "aiTokenBudget",
+      "aiToolCallBudget",
       "aiRequestTimeoutMinutes",
       "__testConnection",
     ]);
@@ -66,6 +67,17 @@ describe("AI settings", () => {
       max: 2_000_000,
       step: 10_000,
       addonAfter: "tokens",
+    });
+
+    const toolCallBudgetItem = aiItems.find(
+      (item) => item.key === "aiToolCallBudget",
+    );
+    expect(toolCallBudgetItem).toMatchObject({
+      type: "inputNumber",
+      min: 1,
+      max: 200,
+      step: 1,
+      addonAfter: "次",
     });
 
     const requestTimeoutItem = aiItems.find(

@@ -4,7 +4,7 @@ export const CANVAS_CAPABILITY_PACK_ID = "canvas";
 
 export const canvasChatProfile: BusinessProfile = {
   id: "canvas-chat",
-  version: "1.0.0",
+  version: "1.1.0",
   name: "画布对话",
   description: "查询并受控修改当前文件的 Pipeline 画布",
   capabilityPackId: CANVAS_CAPABILITY_PACK_ID,

@@ -21,12 +21,13 @@ const skillInstructions = `
 - timeout 控制当前节点的 next 列表识别超时。要控制某节点 recognition 的等待时间，应修改其父节点的 timeout。
 - roi 表示识别范围，box 表示识别结果，target 表示动作目标；字符串可引用节点名或 [Anchor]锚点名。
 - 修改画布前先读取当前节点与状态版本，写操作携带最新 expectedStateVersion，完成后校验画布。
+- 复杂任务涉及多个节点时，优先使用当前能力包提供的批量读取和批量变更能力，避免逐个调用。
 - 需要确认具体字段、默认值或类型时，调用 ${READ_MFW_PIPELINE_REFERENCE_TOOL_NAME}。不传 section 返回内置目录，传完整路径读取章节，例如 属性字段/Pipeline v2、算法类型/OCR、动作类型/Click。
 `;
 
 export const mfwPipelineSkill: HarnessSkill = {
   id: MFW_PIPELINE_SKILL_ID,
-  version: "1.0.0",
+  version: "1.1.0",
   name: "MaaFramework Pipeline",
   description: "MaaFramework Pipeline 节点、字段、识别算法和动作协议",
   instructions: skillInstructions.trim(),

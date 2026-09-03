@@ -15,7 +15,7 @@ import { registerHarnessModules } from "./registerModules";
 
 export const canvasCapabilityPack: CapabilityPack = {
   id: CANVAS_CAPABILITY_PACK_ID,
-  version: "1.0.0",
+  version: "1.1.0",
   description: "MaaFW Pipeline 协议及当前文件画布、节点和连接的完整受控操作",
   skillIds: [mfwPipelineSkill.id],
   toolNames: [

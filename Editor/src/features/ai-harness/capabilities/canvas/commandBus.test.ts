@@ -177,6 +177,20 @@ describe("CanvasCommandBus", () => {
     ).toBe("permission_denied");
   });
 
+  it("一次读取多个节点并报告不存在的节点", () => {
+    const { bus } = createHarness();
+
+    const result = bus.readNodes(["1", "missing"], context());
+
+    expect(result).toMatchObject({ ok: true, stateVersion: 1 });
+    expect(result.data).toMatchObject({
+      nodes: [
+        expect.objectContaining({ id: "1", name: "开始", pipeline: expect.anything() }),
+      ],
+      missingNodeIds: ["missing"],
+    });
+  });
+
   it("受控位置提交只修改指定节点并保留撤销能力", () => {
     const { bus, commit, getGraph } = createHarness();
 

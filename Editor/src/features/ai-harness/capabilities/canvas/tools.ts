@@ -136,11 +136,30 @@ export const canvasToolDefinitions: ToolDefinition[] = [
   },
   {
     name: "read_node",
-    description: "按节点 ID 读取节点完整 Pipeline JSON",
+    description: "按单个节点 ID 读取完整 Pipeline JSON；多个节点必须使用 read_nodes",
     inputSchema: {
       type: "object",
       properties: { nodeId: { type: "string", minLength: 1 } },
       required: ["nodeId"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "read_nodes",
+    description:
+      "一次按多个节点 ID 读取完整 Pipeline JSON；复杂任务优先使用此工具，避免逐个读取节点",
+    inputSchema: {
+      type: "object",
+      properties: {
+        nodeIds: {
+          type: "array",
+          minItems: 1,
+          maxItems: 256,
+          uniqueItems: true,
+          items: { type: "string", minLength: 1 },
+        },
+      },
+      required: ["nodeIds"],
       additionalProperties: false,
     },
   },
@@ -249,7 +268,8 @@ export const canvasToolDefinitions: ToolDefinition[] = [
   },
   {
     name: "apply_canvas_changes",
-    description: "原子应用一组节点和连接变更，任一失败则全部不提交",
+    description:
+      "原子应用一组节点和连接变更，任一失败则全部不提交；多个变更必须优先合并到一次调用",
     destructive: true,
     inputSchema: writeSchema(
       {
@@ -269,6 +289,8 @@ export const canvasToolHandlers: Record<string, ToolHandler> = {
     canvasCommandBus.readSummary(context),
   read_node: (argumentsValue, context) =>
     canvasCommandBus.readNode(argumentsValue.nodeId as string, context),
+  read_nodes: (argumentsValue, context) =>
+    canvasCommandBus.readNodes(argumentsValue.nodeIds as string[], context),
   read_selection: (_argumentsValue, context) =>
     canvasCommandBus.readSelection(context),
   validate_canvas: (_argumentsValue, context) =>

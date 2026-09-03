@@ -31,6 +31,11 @@ const canvasMock = vi.hoisted(() => ({
   })),
   getStateVersion: vi.fn(() => 1),
   readNode: vi.fn(() => ({ ok: true, stateVersion: 1, data: { id: "1" } })),
+  readNodes: vi.fn((nodeIds: string[]) => ({
+    ok: true,
+    stateVersion: 1,
+    data: { nodes: nodeIds.map((id) => ({ id })), missingNodeIds: [] },
+  })),
   readSelection: vi.fn(() => ({ ok: true, stateVersion: 1, data: {} })),
   readSummary: vi.fn(() => ({
     ok: true,
@@ -160,10 +165,42 @@ describe("HarnessRunner", () => {
         message.content.includes("必须使用 fenced ```mermaid 代码块"),
       ),
     ).toBe(true);
+    expect(
+      modelMock.complete.mock.calls[0][0].some((message) =>
+        message.content.includes("read_nodes 批量读取"),
+      ),
+    ).toBe(true);
     expect(useAIHarnessStore.getState().sessions[0].messages.at(-1)).toMatchObject({
       role: "assistant",
       content: "读取完成",
     });
+  });
+
+  it("批量读取多个节点只消耗一次工具调用", async () => {
+    modelMock.complete
+      .mockResolvedValueOnce({
+        success: true,
+        content: "",
+        toolCalls: [
+          {
+            id: "batch-read",
+            name: "read_nodes",
+            arguments: { nodeIds: ["1", "2", "3"] },
+          },
+        ],
+        finishReason: "tool_calls",
+      })
+      .mockResolvedValueOnce(finalResponse("批量读取完成"));
+    const runner = createRunner();
+
+    const run = await waitForRun(await runner.start("读取多个节点"));
+
+    expect(run.status).toBe("succeeded");
+    expect(run.toolCallCount).toBe(1);
+    expect(canvasMock.readNodes).toHaveBeenCalledWith(
+      ["1", "2", "3"],
+      expect.objectContaining({ runId: run.id }),
+    );
   });
 
   it("将模型思考保存为独立事件但不写入会话上下文", async () => {
@@ -272,6 +309,7 @@ describe("HarnessRunner", () => {
         arguments: { nodeId: String(index) },
       })),
     });
+    useConfigStore.getState().setConfig("aiToolCallBudget", 24);
     runner = createRunner();
     run = await waitForRun(await runner.start("超出工具预算"));
     expect(run.error).toContain("工具调用");
@@ -287,6 +325,18 @@ describe("HarnessRunner", () => {
 
     const run = await waitForRun(runId);
     expect(run.policySnapshot.maxTokens).toBe(DEFAULT_AI_TOKEN_BUDGET);
+  });
+
+  it("使用用户配置的工具调用预算并冻结到 Run 快照", async () => {
+    useConfigStore.getState().setConfig("aiToolCallBudget", 80);
+    modelMock.complete.mockResolvedValueOnce(finalResponse());
+    const runner = createRunner();
+
+    const runId = await runner.start("检查工具调用预算");
+    useConfigStore.getState().setConfig("aiToolCallBudget", 120);
+    const run = await waitForRun(runId);
+
+    expect(run.policySnapshot.maxToolCalls).toBe(80);
   });
 
   it("允许用户显式取消运行", async () => {
@@ -395,5 +445,6 @@ describe("HarnessRunner", () => {
     expect(run.profileSnapshot.id).toBe(SEMANTIC_LAYOUT_PROFILE_ID);
     expect(layoutRequest).toContain("AI 语义重排当前画布");
     expect(layoutRequest).not.toContain("此前的普通对话");
+    expect(layoutRequest).not.toContain("read_nodes 批量读取");
   });
 });

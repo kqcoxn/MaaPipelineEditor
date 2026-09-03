@@ -1,9 +1,11 @@
 import {
   MAX_AI_TOKEN_BUDGET,
   MAX_AI_REQUEST_TIMEOUT_MINUTES,
+  MAX_AI_TOOL_CALL_BUDGET,
   MAX_LIVE_SCREEN_FRAME_RATE,
   MIN_AI_TOKEN_BUDGET,
   MIN_AI_REQUEST_TIMEOUT_MINUTES,
+  MIN_AI_TOOL_CALL_BUDGET,
   MIN_LIVE_SCREEN_FRAME_RATE,
   type ConfigCategory,
   type ConfigState,
@@ -760,6 +762,21 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 7,
   },
   {
+    key: "aiToolCallBudget",
+    category: "ai",
+    label: "工具调用预算",
+    tipTitle: "单次 Harness Run 工具调用预算",
+    tipContent:
+      "限制一次 Harness Run 内最多执行的工具调用次数。默认 50 次，可根据任务复杂度调整；Run 启动后会固定本次预算。",
+    type: "inputNumber",
+    min: MIN_AI_TOOL_CALL_BUDGET,
+    max: MAX_AI_TOOL_CALL_BUDGET,
+    step: 1,
+    addonAfter: "次",
+    controlWidth: 120,
+    order: 8,
+  },
+  {
     key: "aiRequestTimeoutMinutes",
     category: "ai",
     label: "请求超时",
@@ -772,7 +789,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     step: 1,
     addonAfter: "分钟",
     controlWidth: 100,
-    order: 8,
+    order: 9,
   },
   {
     key: "__testConnection",
@@ -782,7 +799,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     tipContent: "使用当前配置发送一条最小请求，检查 API 配置和传输链路。",
     type: "custom",
     customRender: "testConnection",
-    order: 9,
+    order: 10,
   },
 
   // ==================== 管理 (management) ====================

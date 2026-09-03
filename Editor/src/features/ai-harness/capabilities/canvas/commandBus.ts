@@ -172,19 +172,66 @@ export class CanvasCommandBus {
       config: { prefix: graph.prefix },
       forceExportConfig: false,
     });
-    const fullName = graph.prefix
-      ? `${graph.prefix}_${node.data.label}`
-      : node.data.label;
+    return {
+      ok: true,
+      stateVersion,
+      data: this.toNodeDetail(graph, node, pipeline),
+    };
+  }
+
+  readNodes(
+    nodeIds: string[],
+    context?: ToolExecutionContext,
+  ): ToolExecutionResult {
+    const graph = this.adapter.read();
+    const stateVersion = this.getStateVersion();
+    const scopeError = this.validateReadContext(context, graph, stateVersion);
+    if (scopeError) return scopeError;
+    const requestedIds = [...new Set(nodeIds)];
+    if (requestedIds.length === 0) {
+      return commandError(
+        "invalid_arguments",
+        "批量读取节点列表不能为空",
+        stateVersion,
+      );
+    }
+
+    const pipeline = flowToPipeline({
+      nodes: graph.nodes,
+      edges: graph.edges,
+      fileName: graph.fileName,
+      config: { prefix: graph.prefix },
+      forceExportConfig: false,
+    });
+    const nodeMap = new Map(graph.nodes.map((node) => [node.id, node]));
+    const nodes = requestedIds.flatMap((requestedId) => {
+      const node = nodeMap.get(requestedId);
+      return node ? [this.toNodeDetail(graph, node, pipeline)] : [];
+    });
     return {
       ok: true,
       stateVersion,
       data: {
-        id: node.id,
-        name: node.data.label,
-        type: node.type,
-        position: node.position,
-        pipeline: pipeline[fullName] ?? null,
+        nodes,
+        missingNodeIds: requestedIds.filter((requestedId) => !nodeMap.has(requestedId)),
       },
+    };
+  }
+
+  private toNodeDetail(
+    graph: CanvasGraphState,
+    node: NodeType,
+    pipeline: ReturnType<typeof flowToPipeline>,
+  ) {
+    const fullName = graph.prefix
+      ? `${graph.prefix}_${node.data.label}`
+      : node.data.label;
+    return {
+      id: node.id,
+      name: node.data.label,
+      type: node.type,
+      position: node.position,
+      pipeline: pipeline[fullName] ?? null,
     };
   }
 
