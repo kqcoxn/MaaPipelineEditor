@@ -5,9 +5,9 @@ import { encryptApiKey, isEncryptedKey } from "@/utils/ai/crypto";
 
 let apiKeyWriteVersion = 0;
 
-export const DEFAULT_AI_TOKEN_BUDGET = 200_000;
-export const MIN_AI_TOKEN_BUDGET = 1_000;
-export const MAX_AI_TOKEN_BUDGET = 2_000_000;
+export const DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD = 200_000;
+export const MIN_AI_CONTEXT_COMPACTION_THRESHOLD = 1_000;
+export const MAX_AI_CONTEXT_COMPACTION_THRESHOLD = 2_000_000;
 export const DEFAULT_AI_TOOL_CALL_BUDGET = 50;
 export const MIN_AI_TOOL_CALL_BUDGET = 1;
 export const MAX_AI_TOOL_CALL_BUDGET = 200;
@@ -51,11 +51,19 @@ export function normalizeAIToolCallBudget(value: number): number {
   );
 }
 
+export function normalizeAIContextCompactionThreshold(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD;
+  return Math.min(
+    MAX_AI_CONTEXT_COMPACTION_THRESHOLD,
+    Math.max(MIN_AI_CONTEXT_COMPACTION_THRESHOLD, Math.trunc(value)),
+  );
+}
+
 /**固有配置 */
 export const globalConfig = {
   dev: true,
   version: `1.9.3`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.12.3",
   protocolVersion: "1.4.6",
 };
@@ -131,7 +139,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   aiApiKey: "ai",
   aiModel: "ai",
   aiTemperature: "ai",
-  aiTokenBudget: "ai",
+  aiContextCompactionThreshold: "ai",
   aiToolCallBudget: "ai",
   aiRequestTimeoutMinutes: "ai",
   aiProviderType: "ai",
@@ -243,7 +251,7 @@ const defaultConfigs = {
   aiApiKey: "",
   aiModel: "",
   aiTemperature: 0.7,
-  aiTokenBudget: DEFAULT_AI_TOKEN_BUDGET,
+  aiContextCompactionThreshold: DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
   aiToolCallBudget: DEFAULT_AI_TOOL_CALL_BUDGET,
   aiRequestTimeoutMinutes: DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
   aiProviderType: "custom" as const,
@@ -320,7 +328,7 @@ export type ConfigState = {
     aiApiKey: string;
     aiModel: string;
     aiTemperature: number;
-    aiTokenBudget: number;
+    aiContextCompactionThreshold: number;
     aiToolCallBudget: number;
     aiRequestTimeoutMinutes: number;
     aiProviderType: string;

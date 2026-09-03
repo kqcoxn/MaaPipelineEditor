@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UnifiedMessage, UnifiedResponse } from "@/utils/ai/providers";
 import {
-  DEFAULT_AI_TOKEN_BUDGET,
+  DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
   useConfigStore,
 } from "@/stores/app/configStore";
 
@@ -278,21 +278,9 @@ describe("HarnessRunner", () => {
     ).toHaveLength(1);
   });
 
-  it("达到 Token、Turn 和工具次数预算后终止", async () => {
-    useConfigStore.getState().setConfig("aiTokenBudget", 40_000);
-    modelMock.complete.mockResolvedValueOnce({
-      ...finalResponse(),
-      usage: {
-        promptTokens: 40_001,
-        completionTokens: 1,
-        totalTokens: 40_002,
-        isEstimated: false,
-      },
-    });
+  it("达到 Turn 和工具次数预算后终止", async () => {
     let runner = createRunner();
-    let run = await waitForRun(await runner.start("超出 Token"));
-    expect(run.error).toContain("Token");
-
+    let run: Awaited<ReturnType<typeof waitForRun>>;
     modelMock.complete.mockImplementation(async () =>
       readToolResponse(String(modelMock.complete.mock.calls.length)),
     );
@@ -316,15 +304,108 @@ describe("HarnessRunner", () => {
     expect(run.toolCallCount).toBe(24);
   });
 
-  it("使用用户配置的 Token 预算并冻结到 Run 快照", async () => {
+  it("使用用户配置的压缩阈值并冻结到 Run 快照", async () => {
     modelMock.complete.mockResolvedValueOnce(finalResponse());
     const runner = createRunner();
     const runId = await runner.start("检查预算");
 
-    useConfigStore.getState().setConfig("aiTokenBudget", 80_000);
+    useConfigStore.getState().setConfig("aiContextCompactionThreshold", 80_000);
 
     const run = await waitForRun(runId);
-    expect(run.policySnapshot.maxTokens).toBe(DEFAULT_AI_TOKEN_BUDGET);
+    expect(run.policySnapshot.compactionThresholdTokens).toBe(
+      DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
+    );
+  });
+
+  it("达到上下文压缩阈值后先压缩再继续 Run", async () => {
+    const sessionId = useAIHarnessStore.getState().activeSessionId;
+    const oldContent = "旧上下文 ".repeat(900);
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "old-user",
+      runId: "old-run",
+      role: "user",
+      content: oldContent,
+      createdAt: 1,
+    });
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "old-assistant",
+      runId: "old-run",
+      role: "assistant",
+      content: oldContent,
+      createdAt: 2,
+    });
+    useConfigStore
+      .getState()
+      .setConfig("aiContextCompactionThreshold", 1_000);
+    modelMock.complete
+      .mockResolvedValueOnce(finalResponse("压缩摘要"))
+      .mockResolvedValueOnce(finalResponse("继续完成"));
+    const runner = createRunner();
+
+    const run = await waitForRun(await runner.start("继续处理"));
+
+    expect(run.status).toBe("succeeded");
+    expect(modelMock.complete).toHaveBeenCalledTimes(2);
+    expect(modelMock.complete.mock.calls[1][0]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          content: expect.stringContaining("[MPE_CONTEXT_SUMMARY]"),
+        }),
+      ]),
+    );
+    expect(useAIHarnessStore.getState().sessions[0].contextSummary).toBe(
+      "压缩摘要",
+    );
+    expect(useAIHarnessStore.getState().sessions[0].messages).toHaveLength(2);
+    expect(useAIHarnessStore.getState().sessions[0].messages[0]?.content).toBe(
+      "继续处理",
+    );
+  });
+
+  it("手动 compact 会压缩当前 Session 并保留摘要", async () => {
+    const sessionId = useAIHarnessStore.getState().activeSessionId;
+    const oldContent = "需要保留的历史事实 ".repeat(900);
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "manual-user",
+      runId: "manual-run",
+      role: "user",
+      content: oldContent,
+      createdAt: 1,
+    });
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "manual-assistant",
+      runId: "manual-run",
+      role: "assistant",
+      content: oldContent,
+      createdAt: 2,
+    });
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "manual-user-2",
+      runId: "manual-run",
+      role: "user",
+      content: "当前进度",
+      createdAt: 3,
+    });
+    useAIHarnessStore.getState().appendMessage(sessionId, {
+      id: "manual-assistant-2",
+      runId: "manual-run",
+      role: "assistant",
+      content: "等待继续",
+      createdAt: 4,
+    });
+    useConfigStore
+      .getState()
+      .setConfig("aiContextCompactionThreshold", 1_000);
+    modelMock.complete.mockResolvedValueOnce(finalResponse("手动摘要"));
+    const runner = createRunner();
+
+    const result = await runner.compact(sessionId, "关注已完成事项");
+
+    expect(result.compacted).toBe(true);
+    expect(useAIHarnessStore.getState().sessions[0].contextSummary).toBe(
+      "手动摘要",
+    );
+    expect(useAIHarnessStore.getState().sessions[0].messages).toHaveLength(2);
   });
 
   it("使用用户配置的工具调用预算并冻结到 Run 快照", async () => {

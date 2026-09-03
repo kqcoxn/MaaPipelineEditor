@@ -17,7 +17,7 @@ const run: HarnessRun = {
   capabilitySnapshot: canvasCapabilityPack,
   policySnapshot: {
     ...canvasChatProfile.defaultPolicy,
-    maxTokens: 200_000,
+    compactionThresholdTokens: 200_000,
   },
   modelSnapshot: {
     type: "openai",

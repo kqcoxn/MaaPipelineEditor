@@ -36,6 +36,12 @@ interface AIHarnessActions {
   updateRun: (runId: string, patch: Partial<HarnessRun>) => void;
   appendEvent: (event: RunEvent) => void;
   appendMessage: (sessionId: string, message: HarnessSessionMessage) => void;
+  setSessionContextSummary: (sessionId: string, contextSummary: string) => boolean;
+  replaceSessionContext: (
+    sessionId: string,
+    messages: HarnessSessionMessage[],
+    contextSummary: string,
+  ) => boolean;
   setStreamingText: (text: string) => void;
   appendStreamingText: (delta: string) => void;
   setStreamingReasoning: (text: string) => void;
@@ -118,7 +124,13 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
       set((state) => ({
         sessions: state.sessions.map((item) =>
           item.id === sessionId
-            ? { ...item, runIds: [], messages: [], updatedAt: Date.now() }
+            ? {
+                ...item,
+                runIds: [],
+                messages: [],
+                contextSummary: undefined,
+                updatedAt: Date.now(),
+              }
             : item,
         ),
         runs: Object.fromEntries(
@@ -282,6 +294,39 @@ export const useAIHarnessStore = create<AIHarnessStore>()(
           };
         }),
       }));
+    },
+
+    setSessionContextSummary(sessionId, contextSummary) {
+      let updated = false;
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          updated = true;
+          return {
+            ...session,
+            contextSummary: contextSummary.trim() || undefined,
+            updatedAt: Date.now(),
+          };
+        }),
+      }));
+      return updated;
+    },
+
+    replaceSessionContext(sessionId, messages, contextSummary) {
+      let replaced = false;
+      set((state) => ({
+        sessions: state.sessions.map((session) => {
+          if (session.id !== sessionId) return session;
+          replaced = true;
+          return {
+            ...session,
+            messages: messages.slice(-MAX_MESSAGES_PER_SESSION),
+            contextSummary: contextSummary.trim() || undefined,
+            updatedAt: Date.now(),
+          };
+        }),
+      }));
+      return replaced;
     },
 
     setStreamingText(streamingText) {

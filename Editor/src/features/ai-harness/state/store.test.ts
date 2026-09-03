@@ -21,7 +21,7 @@ function createRun(id: string, sessionId: string): HarnessRun {
     },
     policySnapshot: {
       ...canvasChatProfile.defaultPolicy,
-      maxTokens: 200_000,
+      compactionThresholdTokens: 200_000,
     },
     modelSnapshot: {
       type: "openai",

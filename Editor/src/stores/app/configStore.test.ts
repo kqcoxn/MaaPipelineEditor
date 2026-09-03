@@ -4,7 +4,7 @@ import {
   DEFAULT_LIVE_SCREEN_FRAME_RATE,
   DEFAULT_AI_REQUEST_TIMEOUT_MINUTES,
   DEFAULT_AI_TOOL_CALL_BUDGET,
-  DEFAULT_AI_TOKEN_BUDGET,
+  DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
   getExportableConfigs,
   getLiveScreenFrameInterval,
   initializeConfigCache,
@@ -52,9 +52,13 @@ describe("config cache", () => {
     unsubscribe();
   });
 
-  it("defaults the Harness Token budget to 200k", () => {
-    expect(configDefaults.aiTokenBudget).toBe(DEFAULT_AI_TOKEN_BUDGET);
-    expect(useConfigStore.getState().configs.aiTokenBudget).toBe(200_000);
+  it("defaults the Harness context compaction threshold to 200k", () => {
+    expect(configDefaults.aiContextCompactionThreshold).toBe(
+      DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
+    );
+    expect(
+      useConfigStore.getState().configs.aiContextCompactionThreshold,
+    ).toBe(200_000);
   });
 
   it("defaults the Harness tool call budget to 50", () => {

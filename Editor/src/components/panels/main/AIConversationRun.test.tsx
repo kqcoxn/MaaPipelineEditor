@@ -35,7 +35,7 @@ function createRun(status: HarnessRun["status"] = "succeeded"): HarnessRun {
     },
     policySnapshot: {
       ...canvasChatProfile.defaultPolicy,
-      maxTokens: 200_000,
+      compactionThresholdTokens: 200_000,
     },
     modelSnapshot: {
       type: "openai",

@@ -43,7 +43,7 @@ describe("AIHistoryPanel", () => {
       },
       policySnapshot: {
         ...canvasChatProfile.defaultPolicy,
-        maxTokens: 200_000,
+        compactionThresholdTokens: 200_000,
       },
       modelSnapshot: {
         type: "openai",
@@ -116,6 +116,30 @@ describe("AIHistoryPanel", () => {
       expect(start).toHaveBeenCalledWith(
         "读取当前画布",
         { sessionId: useAIHarnessStore.getState().activeSessionId },
+      ),
+    );
+  });
+
+  it("通过模糊命令菜单执行 /compact", async () => {
+    const compact = vi.spyOn(harnessRunner, "compact").mockResolvedValue({
+      compacted: false,
+      tokensBefore: 10,
+      tokensAfter: 10,
+    });
+    renderPanel();
+
+    const sender = await screen.findByPlaceholderText("输入目标或问题");
+    fireEvent.change(sender, { target: { value: "/cmp" } });
+    expect(screen.getByRole("listbox", { name: "Harness 命令" })).toBeInTheDocument();
+    fireEvent.keyDown(sender, { key: "Enter", code: "Enter" });
+    expect(sender).toHaveValue("/compact ");
+    fireEvent.change(sender, { target: { value: "/compact" } });
+    fireEvent.keyDown(sender, { key: "Enter", code: "Enter" });
+
+    await waitFor(() =>
+      expect(compact).toHaveBeenCalledWith(
+        useAIHarnessStore.getState().activeSessionId,
+        "",
       ),
     );
   });

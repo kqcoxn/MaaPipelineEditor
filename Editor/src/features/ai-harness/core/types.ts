@@ -20,7 +20,7 @@ export type ToolErrorCode =
 export interface RuntimePolicy {
   maxTurns: number;
   maxToolCalls: number;
-  maxTokens: number;
+  compactionThresholdTokens: number;
   maxRetriesPerToolError: number;
   serialRunsPerSession: boolean;
   autoApproveTools: boolean;
@@ -28,7 +28,7 @@ export interface RuntimePolicy {
 
 export type ProfileRuntimePolicy = Omit<
   RuntimePolicy,
-  "maxTokens"
+  "compactionThresholdTokens"
 >;
 
 export interface ToolDefinition {
@@ -172,4 +172,5 @@ export interface HarnessSession {
   updatedAt: number;
   runIds: string[];
   messages: HarnessSessionMessage[];
+  contextSummary?: string;
 }

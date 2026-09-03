@@ -49,7 +49,7 @@ describe("AI settings", () => {
       "aiModel",
       "aiTemperature",
       "aiUseProxy",
-      "aiTokenBudget",
+      "aiContextCompactionThreshold",
       "aiToolCallBudget",
       "aiRequestTimeoutMinutes",
       "__testConnection",
@@ -58,10 +58,10 @@ describe("AI settings", () => {
     const providerItem = aiItems.find((item) => item.key === "aiProviderType");
     expect(providerItem?.options).toEqual(getProviderOptions());
 
-    const tokenBudgetItem = aiItems.find(
-      (item) => item.key === "aiTokenBudget",
+    const compactionThresholdItem = aiItems.find(
+      (item) => item.key === "aiContextCompactionThreshold",
     );
-    expect(tokenBudgetItem).toMatchObject({
+    expect(compactionThresholdItem).toMatchObject({
       type: "inputNumber",
       min: 1_000,
       max: 2_000_000,

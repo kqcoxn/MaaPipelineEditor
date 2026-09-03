@@ -21,6 +21,11 @@ import {
   type HarnessRun,
   useAIHarnessStore,
 } from "@/features/ai-harness";
+import {
+  getHarnessCommandQuery,
+  parseHarnessCommand,
+  searchHarnessCommands,
+} from "@/features/ai-harness/commands";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "@/stores/flow";
 import { useControlledPanelOccupancy } from "../../../hooks/useControlledPanelOccupancy";
@@ -108,6 +113,7 @@ function AIHistoryPanelContent({
   const { modal, message } = AntdApp.useApp();
   const mobile = useMobileDrawer();
   const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false);
+  const [activeCommandIndex, setActiveCommandIndex] = useState(0);
   const panelOpen = true;
   const sessions = useAIHarnessStore((state) => state.sessions);
   const activeSessionId = useAIHarnessStore((state) => state.activeSessionId);
@@ -140,6 +146,16 @@ function AIHistoryPanelContent({
     currentRun && currentRun.sessionId === activeSessionId,
   );
   const isAnyRunRunning = Boolean(currentRun || pendingRunSessionId);
+  const commandQuery = getHarnessCommandQuery(draft);
+  const commandOptions = useMemo(
+    () => (commandQuery === null ? [] : searchHarnessCommands(commandQuery)),
+    [commandQuery],
+  );
+  const commandMenuOpen = commandQuery !== null && commandOptions.length > 0;
+
+  useEffect(() => {
+    setActiveCommandIndex(0);
+  }, [commandQuery]);
 
   const conversationItems = useMemo(
     () =>
@@ -161,6 +177,26 @@ function AIHistoryPanelContent({
     const goal = messageText.trim();
     if (!goal || isAnyRunRunning) return;
     setDraft("");
+    const parsedCommand = parseHarnessCommand(goal);
+    if (parsedCommand?.command.name === "compact") {
+      try {
+        const result = await harnessRunner.compact(
+          activeSessionId,
+          parsedCommand.instructions,
+        );
+        if (result.compacted) {
+          message.success(
+            `上下文已压缩（${result.tokensBefore} → ${result.tokensAfter} tokens）`,
+          );
+        } else {
+          message.info("当前 Session 没有达到可压缩的上下文长度");
+        }
+      } catch (error) {
+        setDraft(goal);
+        message.error(error instanceof Error ? error.message : "上下文压缩失败");
+      }
+      return;
+    }
     try {
       await harnessRunner.start(goal, { sessionId: activeSessionId });
     } catch (error) {
@@ -168,6 +204,38 @@ function AIHistoryPanelContent({
       message.error(error instanceof Error ? error.message : "无法启动 AI Run");
     }
   }, [activeSessionId, isAnyRunRunning, message, setDraft]);
+
+  const handleCommandKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (!commandMenuOpen) return;
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setActiveCommandIndex((index) =>
+          Math.min(index + 1, commandOptions.length - 1),
+        );
+        return;
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setActiveCommandIndex((index) => Math.max(index - 1, 0));
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setDraft("");
+        return;
+      }
+      if (event.key === "Enter") {
+        const selected = commandOptions[activeCommandIndex];
+        if (selected && draft.trim() !== `/${selected.name}`) {
+          event.preventDefault();
+          setDraft(`/${selected.name} `);
+          return false;
+        }
+      }
+    },
+    [activeCommandIndex, commandMenuOpen, commandOptions, draft, setDraft],
+  );
 
   const handleSemanticLayout = useCallback(async () => {
     if (isAnyRunRunning) return;
@@ -399,6 +467,37 @@ function AIHistoryPanelContent({
           </div>
 
           <div className={style.composerShell} data-testid="ai-composer-shell">
+            {commandMenuOpen ? (
+              <div
+                className={style.commandMenu}
+                role="listbox"
+                aria-label="Harness 命令"
+              >
+                {commandOptions.map((command, index) => (
+                  <button
+                    key={command.name}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeCommandIndex}
+                    className={`${style.commandItem} ${
+                      index === activeCommandIndex
+                        ? style.commandItemActive
+                        : ""
+                    }`}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => setDraft(`/${command.name} `)}
+                  >
+                    <span className={style.commandIcon}>/</span>
+                    <span className={style.commandText}>
+                      <strong>/{command.name}</strong>
+                      <span>
+                        {command.label} · {command.description}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className={style.composerActions}>
               <Button
                 size="small"
@@ -424,6 +523,7 @@ function AIHistoryPanelContent({
               value={draft}
               onChange={setDraft}
               onSubmit={(value) => void handleSend(value)}
+              onKeyDown={handleCommandKeyDown}
               loading={isCurrentSessionRunning}
               onCancel={() => {
                 if (activeRunId) harnessRunner.stop(activeRunId);
