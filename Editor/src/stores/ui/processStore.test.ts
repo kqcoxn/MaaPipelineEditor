@@ -66,7 +66,7 @@ describe("processStore", () => {
       completeHoldMs: 0,
     });
     expect(getProcessTiming(false)).toEqual({
-      minimumVisibleMs: 2_000,
+      minimumVisibleMs: 1_500,
       completeHoldMs: 240,
     });
     expect(shouldShowBulkProcess(100)).toBe(false);
