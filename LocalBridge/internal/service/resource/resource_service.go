@@ -8,6 +8,7 @@ import (
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
@@ -19,6 +20,8 @@ type Service struct {
 	maxDepth  int      // 资源包扫描最大深度，0 表示无限制
 	mu        sync.RWMutex
 	eventBus  *eventbus.EventBus
+	watcher   *fileService.Watcher
+	watcherMu sync.Mutex
 }
 
 // NewService 创建资源服务。maxDepth 与文件服务的扫描深度保持一致；使用可选参数
@@ -43,6 +46,9 @@ func (s *Service) Start() error {
 	if err := s.Scan(); err != nil {
 		return err
 	}
+	if err := s.startImageWatcher(); err != nil {
+		return err
+	}
 
 	logger.Info("ResourceService", "资源扫描完成，发现 %d 个资源包，%d 个 image 目录", len(s.bundles), len(s.imageDirs))
 
@@ -50,6 +56,11 @@ func (s *Service) Start() error {
 	s.eventBus.Publish(eventbus.EventResourceScanCompleted, s.GetBundleList())
 
 	return nil
+}
+
+// Stop 停止资源图片监听。
+func (s *Service) Stop() {
+	s.stopImageWatcher()
 }
 
 // 扫描资源目录
@@ -344,16 +355,23 @@ func (s *Service) scanImageDir(imageDir, bundleName string) []models.ImageFileIn
 // Reload 重新扫描资源目录
 func (s *Service) Reload(newRoot string) error {
 	logger.Info("ResourceService", "开始重载资源扫描服务...")
+	s.stopImageWatcher()
 
 	// 如果根目录变化，更新根目录
+	s.mu.Lock()
 	if newRoot != "" && newRoot != s.root {
 		logger.Info("ResourceService", "根目录变化: %s -> %s", s.root, newRoot)
 		s.root = newRoot
 	}
+	s.mu.Unlock()
 
 	// 重新扫描
 	if err := s.Scan(); err != nil {
 		logger.Error("ResourceService", "重新扫描失败: %v", err)
+		return err
+	}
+	if err := s.startImageWatcher(); err != nil {
+		logger.Error("ResourceService", "重启图片监听失败: %v", err)
 		return err
 	}
 

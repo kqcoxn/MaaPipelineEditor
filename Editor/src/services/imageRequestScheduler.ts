@@ -77,6 +77,40 @@ export class ImageRequestScheduler {
     this.flush();
   }
 
+  /** 服务端主动推送结果时，从排队或活动批次中结束对应路径。 */
+  resolvePaths(paths: string[]): void {
+    const completedPaths: string[] = [];
+
+    for (const path of new Set(paths)) {
+      if (!path) continue;
+      this.queuedPaths.delete(path);
+      this.retryCountByPath.delete(path);
+
+      const requestId = this.activeRequestByPath.get(path);
+      if (requestId) {
+        const batch = this.activeBatches.get(requestId);
+        if (batch) {
+          batch.paths = batch.paths.filter((batchPath) => batchPath !== path);
+          if (batch.paths.length === 0) {
+            if (batch.timeoutId) clearTimeout(batch.timeoutId);
+            this.activeBatches.delete(requestId);
+          }
+        }
+        this.activeRequestByPath.delete(path);
+      }
+      completedPaths.push(path);
+    }
+
+    if (completedPaths.length > 0) {
+      this.options.setPending(completedPaths, false);
+    }
+    if (this.queuedPaths.size === 0 && this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    this.flush();
+  }
+
   clear(): void {
     if (this.flushTimer) {
       clearTimeout(this.flushTimer);

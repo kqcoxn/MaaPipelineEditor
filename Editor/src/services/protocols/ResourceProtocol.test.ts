@@ -154,6 +154,61 @@ describe("ResourceProtocol image requests", () => {
     expect(useLocalFileStore.getState().pendingImageRequests.size).toBe(0);
   });
 
+  it("同名图片文件变化时替换已有缓存", () => {
+    useLocalFileStore.getState().setImageCache("menu.png", {
+      blob: new Blob(["old"], { type: "image/png" }),
+      url: "blob:old",
+      dataUrl: "data:image/png;base64,b2xk",
+      mimeType: "image/png",
+      width: 10,
+      height: 10,
+      bundleName: "base",
+      absPath: "/project/image/menu.png",
+      timestamp: 1,
+    });
+
+    server.deliver("/lte/image_changed", {
+      type: "modified",
+      success: true,
+      relative_path: "menu.png",
+      absolute_path: "/project/image/menu.png",
+      bundle_name: "base",
+      base64: btoa("new"),
+      mime_type: "image/png",
+      width: 20,
+      height: 15,
+    });
+
+    const image = useLocalFileStore.getState().getImageCache("menu.png");
+    expect(image?.dataUrl).toBe("data:image/png;base64,bmV3");
+    expect(image).toMatchObject({ width: 20, height: 15 });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:old");
+  });
+
+  it("图片删除后移除已有缓存", () => {
+    useLocalFileStore.getState().setImageCache("menu.png", {
+      blob: new Blob(["old"], { type: "image/png" }),
+      url: "blob:old",
+      dataUrl: "data:image/png;base64,b2xk",
+      mimeType: "image/png",
+      width: 10,
+      height: 10,
+      bundleName: "base",
+      absPath: "/project/image/menu.png",
+      timestamp: 1,
+    });
+
+    server.deliver("/lte/image_changed", {
+      type: "deleted",
+      success: false,
+      relative_path: "menu.png",
+      message: "图片未找到",
+    });
+
+    expect(useLocalFileStore.getState().getImageCache("menu.png")).toBeUndefined();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:old");
+  });
+
   it("不完整响应也会结束整批 pending", async () => {
     protocol.requestImages(["a.png", "missing.png"]);
     await vi.advanceTimersByTimeAsync(50);

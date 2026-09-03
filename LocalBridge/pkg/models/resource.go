@@ -37,6 +37,18 @@ type GetImageResponse struct {
 	Message      string `json:"message,omitempty"`       // 错误信息或说明
 }
 
+// 资源图片文件变化事件
+type ResourceImageChangedData struct {
+	Type         string `json:"type"`          // 变化类型: created, modified, deleted, renamed
+	RelativePath string `json:"relative_path"` // 相对于 image 目录的路径
+}
+
+// 资源图片变化推送
+type ImageChangedData struct {
+	Type string `json:"type"`
+	GetImageResponse
+}
+
 // 批量获取图片请求
 type GetImagesRequest struct {
 	RequestID     string   `json:"request_id"`     // 前端请求批次 ID

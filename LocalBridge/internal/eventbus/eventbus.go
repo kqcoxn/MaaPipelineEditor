@@ -79,6 +79,7 @@ const (
 	EventConnectionEstablished = "connection.established"
 	EventConnectionClosed      = "connection.closed"
 	EventResourceScanCompleted = "resource.scan.completed"
+	EventResourceImageChanged  = "resource.image.changed"
 	EventConfigReload          = "config.reload"
 	EventProjectInterfaceAgent = "project_interface.agent"
 )

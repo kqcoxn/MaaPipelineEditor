@@ -107,10 +107,9 @@ func (h *Handler) handleGetImages(msg models.Message, conn *server.Connection) *
 
 // 处理刷新资源列表请求
 func (h *Handler) handleRefreshResources(msg models.Message, conn *server.Connection) *models.Message {
-	if err := h.resourceService.Scan(); err != nil {
+	if err := h.resourceService.Reload(""); err != nil {
 		logger.Error("ResourceProtocol", "刷新资源失败: %v", err)
 	}
-	h.pushResourceBundles()
 	return nil
 }
 
@@ -229,6 +228,22 @@ func (h *Handler) subscribeEvents() {
 	h.eventBus.Subscribe(eventbus.EventResourceScanCompleted, func(event eventbus.Event) {
 		// 推送资源包列表
 		h.pushResourceBundles()
+	})
+
+	// 图片内容变化后推送最新数据，使同路径缓存立即更新。
+	h.eventBus.Subscribe(eventbus.EventResourceImageChanged, func(event eventbus.Event) {
+		change, ok := event.Data.(models.ResourceImageChangedData)
+		if !ok || change.RelativePath == "" {
+			return
+		}
+
+		h.wsServer.Broadcast(models.Message{
+			Path: "/lte/image_changed",
+			Data: models.ImageChangedData{
+				Type:             change.Type,
+				GetImageResponse: h.getImageData(change.RelativePath),
+			},
+		})
 	})
 }
 

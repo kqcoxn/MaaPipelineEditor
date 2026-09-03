@@ -119,6 +119,7 @@ export type LocalFileState = {
     completedPaths?: readonly string[],
   ) => void;
   getImageCache: (relativePath: string) => ImageCacheItem | undefined;
+  removeImageCache: (relativePath: string) => void;
   setPendingImageRequest: (relativePath: string, pending: boolean) => void;
   setPendingImageRequests: (relativePaths: string[], pending: boolean) => void;
   isImagePending: (relativePath: string) => boolean;
@@ -331,6 +332,24 @@ export const useLocalFileStore = create<LocalFileState>()(
   // 获取图片缓存
   getImageCache(relativePath) {
     return get().imageCache.get(relativePath);
+  },
+
+  removeImageCache(relativePath) {
+    set((state) => {
+      const previous = state.imageCache.get(relativePath);
+      const wasPending = state.pendingImageRequests.has(relativePath);
+      if (!previous && !wasPending) return {};
+
+      if (previous) URL.revokeObjectURL(previous.url);
+      const newCache = new Map(state.imageCache);
+      const newPending = new Set(state.pendingImageRequests);
+      newCache.delete(relativePath);
+      newPending.delete(relativePath);
+      return {
+        imageCache: newCache,
+        pendingImageRequests: newPending,
+      };
+    });
   },
 
   // 设置图片请求状态

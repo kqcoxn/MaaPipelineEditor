@@ -113,4 +113,25 @@ describe("ImageRequestScheduler", () => {
       pending: false,
     });
   });
+
+  it("服务端主动更新图片时结束该路径的旧请求", async () => {
+    vi.useFakeTimers();
+    const batches: ImageRequestBatch[] = [];
+    const { scheduler, pendingChanges } = createScheduler((batch) => {
+      batches.push(batch);
+      return true;
+    });
+
+    scheduler.request(["changed.png", "other.png"]);
+    await vi.advanceTimersByTimeAsync(10);
+    scheduler.resolvePaths(["changed.png"]);
+
+    expect(scheduler.getActiveBatchPaths(batches[0].requestId)).toEqual([
+      "other.png",
+    ]);
+    expect(pendingChanges.at(-1)).toEqual({
+      paths: ["changed.png"],
+      pending: false,
+    });
+  });
 });

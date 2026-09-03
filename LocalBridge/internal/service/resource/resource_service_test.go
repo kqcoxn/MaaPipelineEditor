@@ -4,8 +4,11 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
 
 func TestServiceDiscoversNestedResourceBundle(t *testing.T) {
@@ -60,5 +63,48 @@ func TestServiceUnlimitedResourceScanDepth(t *testing.T) {
 	}
 	if _, _, found := service.FindImage("menu.png"); !found {
 		t.Fatal("unlimited scan did not find deeply nested image")
+	}
+}
+
+func TestServicePublishesImageChanges(t *testing.T) {
+	_ = logger.Init("ERROR", "", false)
+	root := t.TempDir()
+	imagePath := filepath.Join(root, "assets", "resource", "base", "image", "menu.png")
+	if err := os.MkdirAll(filepath.Dir(imagePath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(imagePath, []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	bus := eventbus.New()
+	changes := make(chan models.ResourceImageChangedData, 1)
+	bus.Subscribe(eventbus.EventResourceImageChanged, func(event eventbus.Event) {
+		change, ok := event.Data.(models.ResourceImageChangedData)
+		if ok {
+			changes <- change
+		}
+	})
+
+	service := NewService(root, bus, 3)
+	if err := service.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer service.Stop()
+
+	if err := os.WriteFile(imagePath, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case change := <-changes:
+		if change.Type != "modified" {
+			t.Fatalf("change type = %q, want modified", change.Type)
+		}
+		if change.RelativePath != "menu.png" {
+			t.Fatalf("relative path = %q, want menu.png", change.RelativePath)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for image change")
 	}
 }

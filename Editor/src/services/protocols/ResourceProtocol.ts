@@ -100,6 +100,9 @@ export class ResourceProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/image_list", (data) =>
       this.handleImageList(data)
     );
+    this.wsClient.registerRoute("/lte/image_changed", (data) =>
+      this.handleImageChanged(data)
+    );
   }
 
   protected handleMessage(_path: string, _data: any): void {
@@ -150,6 +153,23 @@ export class ResourceProtocol extends BaseProtocol {
    */
   private handleImage(data: any): void {
     this.commitImageResponses([data as ImageResponseData]);
+  }
+
+  /** 处理资源图片文件变化推送。 */
+  private handleImageChanged(data: any): void {
+    const image = data as ImageResponseData;
+    const relativePath = image.relative_path;
+    if (!relativePath) {
+      console.error("[ResourceProtocol] Invalid image changed data:", data);
+      return;
+    }
+
+    this.imageRequestScheduler.resolvePaths([relativePath]);
+    if (!image.success || !image.base64) {
+      useLocalFileStore.getState().removeImageCache(relativePath);
+      return;
+    }
+    this.commitImageResponses([image]);
   }
 
   /**
