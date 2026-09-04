@@ -8,6 +8,17 @@ export interface PinnedNotice {
 }
 
 /**
+ * 更新日志顶部展示的精选内容
+ */
+export interface FeaturedNewsItem {
+  title: string;
+  summary?: string;
+  category: string;
+  date?: string;
+  url: string;
+}
+
+/**
  * 更新内容分类
  */
 export interface UpdateCategory {
@@ -54,10 +65,25 @@ export const pinnedNotice: PinnedNotice = {
   type: "info",
   content: [
     "**第一次使用？请务必完整预览** [快速上手](https://mpe.codax.site/docs/guide/start/quick-start.html) **以确保您了解如何使用。**",
-    "**正式版 LocalBridge🌉 已上线**！目前已全面支持**本地文档管理**、**字段快捷填充**（OCR、图片裁剪等）与**流程化调试**功能，**仅需一行指令即可下载安装**，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
-    "MPE 已深度集成至 **VSCode 插件**，点击 Pipeline JSON 右上角工具栏即可快捷打开！",
+    "**MPE LocalBridge 已上线**！已全面支持**本地文档管理**、**OCR/截图/ROI快捷填充**与**流程化调试**等功能，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "MPE 已深度集成至 **VSCode 插件**，详见 [VSCode 嵌入文档](https://mpe.codax.site/docs/guide/mse/overview.html)",
   ],
 };
+
+/**
+ * 精选内容配置
+ * 数组顺序即展示顺序，留空时不显示精选内容区域
+ */
+export const featuredNews: FeaturedNewsItem[] = [
+  {
+    title: "回到手感：1.9.3 性能更新",
+    summary:
+      "从真实大规模 Pipeline 出发，拆解 MPE 如何减少无效计算并改善编辑响应。",
+    category: "技术报告",
+    date: "2026-09-04",
+    url: "https://mpe.codax.site/docs/resources/reports/perf193.html",
+  },
+];
 
 export const longTermPreview: ForecastSection = {
   title: "长期预告",
@@ -107,6 +133,7 @@ export const updateLogs: UpdateLogItem[] = [
         "添加高复杂度功能的过渡动画，提升操作体验",
         "MPE Harness 可配置工具调用上限（默认 50），并补充若干批量工具",
         "MPE Harness 可自动或手动压缩上下文内容",
+        "优化更新日志面板阅读体验",
       ],
       fixes: [
         "修复部分情况下调试节点时开始节点错误的问题",

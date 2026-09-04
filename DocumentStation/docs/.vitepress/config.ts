@@ -168,7 +168,7 @@ export default defineConfig({
       },
       {
         text: "资料",
-        link: "/resources/reports/performance-engineering",
+        link: "/resources/reports/perf193",
         activeMatch: "/02.资料/",
       },
       {

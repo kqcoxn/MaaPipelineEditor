@@ -1,5 +1,4 @@
 ﻿import {
-  Alert,
   Card,
   Empty,
   Modal,
@@ -8,8 +7,9 @@
   Typography,
 } from "antd";
 import { ClockCircleOutlined } from "@ant-design/icons";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  featuredNews,
   longTermPreview,
   nextPreview,
   pinnedNotice,
@@ -20,6 +20,7 @@ import {
   type UpdateLogItem,
 } from "../../data/updateLogs";
 import style from "../../styles/modals/UpdateLog.module.less";
+import UpdateLogHighlights, { MarkdownContent } from "./UpdateLogHighlights";
 
 const { Title, Text } = Typography;
 
@@ -70,46 +71,6 @@ const getStablePreviewTagColor = (item: ForecastItem, index: number) => {
   }
 
   return previewTagColors[hash % previewTagColors.length];
-};
-
-const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
-  const combinedRegex = /(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)/g;
-  const parts: (string | React.ReactElement)[] = [];
-  let lastIndex = 0;
-  let match;
-
-  while ((match = combinedRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
-    }
-
-    if (match[1]) {
-      const linkText = match[2];
-      const linkUrl = match[3];
-      parts.push(
-        <a
-          key={`link-${match.index}`}
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={style.markdownLink}
-        >
-          {linkText}
-        </a>
-      );
-    } else if (match[4]) {
-      const boldText = match[5];
-      parts.push(<strong key={`bold-${match.index}`}>{boldText}</strong>);
-    }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : [text];
 };
 
 const VersionTypeTag = ({ type }: { type: UpdateLogItem["type"] }) => (
@@ -247,7 +208,9 @@ const UpdateLogDetails = ({ log }: UpdateLogDetailsProps) => {
                   {items.map((item, index) => (
                     <p key={index} className={style.updateItem}>
                       <span className={style.updateBullet}>•</span>
-                      <span>{parseMarkdown(item)}</span>
+                      <span>
+                        <MarkdownContent text={item} />
+                      </span>
                     </p>
                   ))}
                 </div>
@@ -379,30 +342,13 @@ const UpdateLog = ({
       className={style.updateLogModal}
       styles={{
         body: {
-          height: "min(74vh, 680px)",
+          height: "min(78dvh, 720px)",
           overflow: "hidden",
           padding: 24,
         },
       }}
     >
-      {pinnedNotice.content && pinnedNotice.content.length > 0 && (
-        <Alert
-          title={pinnedNotice.title || "置顶公告"}
-          description={
-            <div className={style.noticeList}>
-              {pinnedNotice.content.map((item, index) => (
-                <p key={index} className={style.noticeItem}>
-                  <span className={style.noticeBullet}>•</span>
-                  <span>{parseMarkdown(item)}</span>
-                </p>
-              ))}
-            </div>
-          }
-          type={pinnedNotice.type || "info"}
-          showIcon
-          className={style.pinnedNotice}
-        />
-      )}
+      <UpdateLogHighlights notice={pinnedNotice} news={featuredNews} />
 
       {updateLogs.length > 0 && (
         <div className={style.mainGrid}>
