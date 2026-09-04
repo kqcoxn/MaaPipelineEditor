@@ -39,6 +39,7 @@ function isEmptyParam(param: Record<string, any>): boolean {
 export function parsePipelineNodeForExport(
   fNode: PipelineNodeType,
   allNodes: NodeType[],
+  exportDefaultRecoActionOverride?: boolean,
 ): ParsedPipelineNodeType {
   const fNodeData = fNode.data;
   const configs = useConfigStore.getState().configs;
@@ -96,7 +97,8 @@ export function parsePipelineNodeForExport(
       ) ?? {});
 
   // 检查是否导出默认识别/动作
-  const exportDefaultRecoAction = configs.exportDefaultRecoAction;
+  const exportDefaultRecoAction =
+    exportDefaultRecoActionOverride ?? configs.exportDefaultRecoAction;
   // 检查是否导出空 param
   const exportEmptyParam = configs.exportEmptyParam;
   // 获取协议版本

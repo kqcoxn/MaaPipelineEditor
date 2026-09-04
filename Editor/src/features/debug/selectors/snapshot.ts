@@ -93,6 +93,7 @@ function buildFileSources(): DebugFileSource[] {
         edges,
         fileName: sourceFile.fileName,
         config,
+        exportDefaultRecoAction: true,
       });
 
       return {

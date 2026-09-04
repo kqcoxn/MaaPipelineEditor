@@ -140,6 +140,7 @@ export const updateLogs: UpdateLogItem[] = [
         "修复根目录来源覆盖错误与监听死锁问题",
         "修复关闭图片预览后无法操作画布的问题",
         "修复更改本地图片后未及时刷新渲染的问题",
+        "修复调试模块沙盒模式无法覆盖 DirectHit 与 DoNothing 的问题",
         "修复 macOS 原生控制器方案索引错误问题",
       ],
     },

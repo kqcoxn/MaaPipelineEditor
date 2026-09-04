@@ -290,10 +290,12 @@ func buildPipelineOverrideBundle(root string, req protocol.RunRequest) (pipeline
 	}
 
 	var baseOverride map[string]interface{}
+	materializeDefaults := false
 	switch req.Profile.SavePolicy {
 	case "sandbox":
 		if file := findGraphFileSnapshot(req, selectedFileID, selectedSourcePath); file != nil {
 			baseOverride = file.Pipeline
+			materializeDefaults = true
 			break
 		}
 		if selectedSourcePath == "" {
@@ -322,6 +324,9 @@ func buildPipelineOverrideBundle(root string, req protocol.RunRequest) (pipeline
 	if err != nil {
 		return pipelineOverrideBundle{}, err
 	}
+	if materializeDefaults {
+		materializePipelineDefaults(clonedBaseOverride)
+	}
 	requestOverride, err := collectEntryRequestOverride(entry, req.Overrides)
 	if err != nil {
 		return pipelineOverrideBundle{}, err
@@ -336,6 +341,30 @@ func buildPipelineOverrideBundle(root string, req protocol.RunRequest) (pipeline
 		RequestOverride: requestOverride,
 		Merged:          mergedOverride,
 	}, nil
+}
+
+func materializePipelineDefaults(override map[string]interface{}) {
+	for runtimeName, value := range override {
+		if strings.HasPrefix(runtimeName, "$") {
+			continue
+		}
+		node, ok := value.(map[string]interface{})
+		if !ok || node == nil {
+			continue
+		}
+		if _, exists := node["recognition"]; !exists {
+			node["recognition"] = map[string]interface{}{
+				"type":  string(maa.RecognitionTypeDirectHit),
+				"param": map[string]interface{}{},
+			}
+		}
+		if _, exists := node["action"]; !exists {
+			node["action"] = map[string]interface{}{
+				"type":  string(maa.ActionTypeDoNothing),
+				"param": map[string]interface{}{},
+			}
+		}
+	}
 }
 
 func resolveRunSource(req protocol.RunRequest) (string, string) {

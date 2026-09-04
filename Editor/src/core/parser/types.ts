@@ -91,6 +91,7 @@ export type FlowToOptions = {
   fileName?: string;
   config?: FileConfigType;
   forceExportConfig?: boolean; // 强制导出配置
+  exportDefaultRecoAction?: boolean;
 };
 
 // 导入选项

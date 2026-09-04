@@ -285,6 +285,100 @@ func TestPipelineOverrideAllowsRequestOverridesWithoutBasePipeline(t *testing.T)
 	}
 }
 
+func TestPipelineOverrideMaterializesOmittedRecognitionAndActionDefaults(t *testing.T) {
+	req := protocol.RunRequest{
+		Profile: protocol.RunProfile{
+			SavePolicy: "sandbox",
+			Entry: protocol.NodeTarget{
+				FileID:      "test.json",
+				NodeID:      "entry-node",
+				RuntimeName: "Entry",
+			},
+		},
+		Mode: protocol.RunModeSingleNodeRun,
+		GraphSnapshot: protocol.GraphSnapshot{
+			RootFileID: "test.json",
+			Files: []protocol.GraphFileSnapshot{
+				{
+					FileID: "test.json",
+					Pipeline: map[string]interface{}{
+						"Entry": map[string]interface{}{},
+					},
+				},
+			},
+		},
+		Target: &protocol.NodeTarget{
+			FileID:      "test.json",
+			NodeID:      "entry-node",
+			RuntimeName: "Entry",
+		},
+	}
+
+	override, err := PipelineOverride("", req)
+	if err != nil {
+		t.Fatalf("PipelineOverride returned error: %v", err)
+	}
+	entry, ok := override["Entry"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected Entry object, got %#v", override["Entry"])
+	}
+	assertNodeType(t, entry, "recognition", "DirectHit")
+	assertNodeType(t, entry, "action", "DoNothing")
+}
+
+func TestPipelineOverrideUseDiskPreservesOmittedDefaults(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "test.json")
+	if err := os.WriteFile(path, []byte(`{"Entry":{}}`), 0o644); err != nil {
+		t.Fatalf("write pipeline: %v", err)
+	}
+	req := protocol.RunRequest{
+		Profile: protocol.RunProfile{
+			SavePolicy: "use-disk",
+			Entry: protocol.NodeTarget{
+				FileID:      "test.json",
+				RuntimeName: "Entry",
+				SourcePath:  path,
+			},
+		},
+		Mode: protocol.RunModeRunFromNode,
+		Target: &protocol.NodeTarget{
+			FileID:      "test.json",
+			RuntimeName: "Entry",
+			SourcePath:  path,
+		},
+	}
+
+	override, err := PipelineOverride(root, req)
+	if err != nil {
+		t.Fatalf("PipelineOverride returned error: %v", err)
+	}
+	entry, ok := override["Entry"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected Entry object, got %#v", override["Entry"])
+	}
+	if _, exists := entry["recognition"]; exists {
+		t.Fatalf("use-disk recognition should remain omitted, got %#v", entry["recognition"])
+	}
+	if _, exists := entry["action"]; exists {
+		t.Fatalf("use-disk action should remain omitted, got %#v", entry["action"])
+	}
+}
+
+func assertNodeType(t *testing.T, node map[string]interface{}, field string, want string) {
+	t.Helper()
+	value, ok := node[field].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected %s object, got %#v", field, node[field])
+	}
+	if got, _ := value["type"].(string); got != want {
+		t.Fatalf("expected %s type %q, got %#v", field, want, value["type"])
+	}
+	if param, ok := value["param"].(map[string]interface{}); !ok || len(param) != 0 {
+		t.Fatalf("expected empty %s.param, got %#v", field, value["param"])
+	}
+}
+
 func numericValue(value interface{}) float64 {
 	switch typed := value.(type) {
 	case int:

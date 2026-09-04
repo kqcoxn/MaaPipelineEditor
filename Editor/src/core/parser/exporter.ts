@@ -59,12 +59,20 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     // 获取当前 flow 数据
     const flowState = useFlowStore.getState();
     const fileState = useFileStore.getState();
-    const { nodes, edges, config, fileName, forceExportConfig } = {
+    const {
+      nodes,
+      edges,
+      config,
+      fileName,
+      forceExportConfig,
+      exportDefaultRecoAction,
+    } = {
       nodes: datas?.nodes ?? (flowState.nodes as NodeType[]),
       edges: datas?.edges ?? (flowState.edges as EdgeType[]),
       fileName: datas?.fileName ?? fileState.currentFile.fileName,
       config: datas?.config ?? fileState.currentFile.config,
       forceExportConfig: datas?.forceExportConfig,
+      exportDefaultRecoAction: datas?.exportDefaultRecoAction,
     };
     const generalConfig = useConfigStore.getState().configs;
 
@@ -103,6 +111,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
           pipelineObj[prefix + node.data.label] = parsePipelineNodeForExport(
             node as PipelineNodeType,
             sortedNodes,
+            exportDefaultRecoAction,
           );
           break;
         case NodeTypeEnum.External: {

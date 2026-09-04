@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NodeTypeEnum } from "../../../components/flow/nodes";
 import { useFileStore } from "@/stores/project/fileStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
 import {
   buildDebugSnapshotBundle,
@@ -14,8 +15,21 @@ import { repairFileCacheForRoot } from "@/stores/project/fileStore";
 import type { DebugNodeResolverSnapshot } from "../types";
 
 describe("snapshot resource override resolution", () => {
+  let exportDefaultRecoAction: boolean;
+
+  beforeEach(() => {
+    exportDefaultRecoAction =
+      useConfigStore.getState().configs.exportDefaultRecoAction;
+  });
+
   afterEach(() => {
     useFlowStore.setState({ nodes: [], edges: [] });
+    useConfigStore.setState((state) => ({
+      configs: {
+        ...state.configs,
+        exportDefaultRecoAction,
+      },
+    }));
   });
 
   it("uses currentFile config for the active opened file", () => {
@@ -119,6 +133,34 @@ describe("snapshot resource override resolution", () => {
         sourcePath: "C:/resource/base/pipeline/main.json",
       },
     ]);
+  });
+
+  it("includes default recognition and action in debug snapshots", () => {
+    const node = makePipelineNode("p_1", "Entry");
+    const currentFile = {
+      fileName: "main.json",
+      nodes: [],
+      edges: [],
+      config: {
+        filePath: "C:/resource/base/pipeline/main.json",
+        prefix: "",
+      },
+    };
+    useConfigStore.setState((state) => ({
+      configs: {
+        ...state.configs,
+        exportDefaultRecoAction: false,
+      },
+    }));
+    useFileStore.setState({ currentFile, files: [currentFile] });
+    useFlowStore.setState({ nodes: [node], edges: [] });
+
+    const bundle = buildDebugSnapshotBundle([], ["C:/resource/base"]);
+
+    expect(bundle.graphSnapshot.files[0].pipeline.Entry).toMatchObject({
+      recognition: { type: "DirectHit" },
+      action: { type: "DoNothing" },
+    });
   });
 
   it("does not include stale non-current files in the debug snapshot", () => {
