@@ -68,7 +68,6 @@ export const NodeTemplateImages = memo(
                     objectFit: "contain",
                     borderRadius: 2,
                   }}
-                  preview={{ src: image.dataUrl, mask: null }}
                 />
               )}
             </div>

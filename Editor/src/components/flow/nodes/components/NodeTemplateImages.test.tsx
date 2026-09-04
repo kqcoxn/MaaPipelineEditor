@@ -5,16 +5,16 @@ vi.mock("antd", () => ({
   Image: ({
     alt,
     fallback,
-    preview,
+    src,
   }: {
     alt?: string;
     fallback?: string;
-    preview?: { src?: string };
+    src?: string;
   }) => (
     <img
       data-testid="template-image"
       data-fallback={fallback}
-      data-preview-src={preview?.src}
+      data-src={src}
       alt={alt}
     />
   ),
@@ -43,17 +43,14 @@ vi.mock("@/hooks/useResourceImages", () => ({
 import { NodeTemplateImages } from "./NodeTemplateImages";
 
 describe("NodeTemplateImages", () => {
-  it("prevents React Flow from treating image preview clicks as node drags", () => {
+  it("uses the cached image URL and prevents React Flow node dragging", () => {
     render(<NodeTemplateImages templatePaths={["templates/button.png"]} />);
 
     const image = screen.getByTestId("template-image");
     expect(image.closest(".nodrag")).toBeTruthy();
+    expect(image).toHaveAttribute("data-src", "blob:test");
     expect(image).toHaveAttribute(
       "data-fallback",
-      "data:image/png;base64,test",
-    );
-    expect(image).toHaveAttribute(
-      "data-preview-src",
       "data:image/png;base64,test",
     );
   });
