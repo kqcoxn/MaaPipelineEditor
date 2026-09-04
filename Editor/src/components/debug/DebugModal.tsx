@@ -1,4 +1,5 @@
 ﻿import {
+  useEffect,
   useState,
   useCallback,
   type CSSProperties,
@@ -179,12 +180,19 @@ const drawerHeaderStyle: CSSProperties = {
   alignItems: "center",
 };
 
-export function DebugModal() {
-  return <DebugModalContent />;
+interface DebugModalProps {
+  onRuntimeReady?: () => void;
 }
 
-function DebugModalContent() {
+export function DebugModal({ onRuntimeReady }: DebugModalProps) {
+  return <DebugModalContent onRuntimeReady={onRuntimeReady} />;
+}
+
+function DebugModalContent({ onRuntimeReady }: DebugModalProps) {
   const controller = useDebugModalController();
+  useEffect(() => {
+    onRuntimeReady?.();
+  }, [onRuntimeReady]);
   const drawerOpen = useControlledPanelOccupancy(
     "debug",
     controller.modalOpen,

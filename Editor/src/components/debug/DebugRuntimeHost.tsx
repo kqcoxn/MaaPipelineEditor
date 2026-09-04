@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { LazyFeature } from "@/components/async/LazyFeature";
 import {
@@ -13,27 +13,31 @@ const loadDebugModal = () =>
   import("./DebugModal").then((module) => ({ default: module.DebugModal }));
 
 export function DebugRuntimeHost() {
+  const [runtimeLoadRequested, setRuntimeLoadRequested] = useState(false);
+  const [runtimeReady, setRuntimeReady] = useState(false);
   const modalOpen = useDebugSessionStore((state) => state.modalOpen);
-  const openModal = useDebugSessionStore((state) => state.openModal);
-  const modalOpenRef = useRef(modalOpen);
-  modalOpenRef.current = modalOpen;
   useDebugRunStatusTracker();
 
-  useEffect(
-    () =>
-      subscribeDebugRunRequests((intent: DebugRunRequestIntent) => {
-        if (modalOpenRef.current) return;
-        openModal("overview");
-        window.setTimeout(() => queueDebugRun(intent), 0);
-      }),
-    [openModal],
-  );
+  useEffect(() => {
+    if (runtimeReady) return;
 
-  return modalOpen ? (
+    return subscribeDebugRunRequests((intent: DebugRunRequestIntent) => {
+      setRuntimeLoadRequested(true);
+      queueDebugRun(intent);
+    });
+  }, [runtimeReady]);
+
+  const handleRuntimeReady = useCallback(() => {
+    setRuntimeReady(true);
+  }, []);
+
+  const shouldMountRuntime = modalOpen || runtimeLoadRequested || runtimeReady;
+
+  return shouldMountRuntime ? (
     <LazyFeature
       loader={loadDebugModal}
       loadingLabel="正在加载调试功能包"
+      componentProps={{ onRuntimeReady: handleRuntimeReady }}
     />
   ) : null;
 }
-

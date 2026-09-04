@@ -258,7 +258,7 @@ function isDebugRunModeUnavailable(
   mode: DebugRunMode,
   capabilities?: DebugCapabilityManifest,
 ): boolean {
-  return !capabilities?.runModes.includes(mode);
+  return capabilities !== undefined && !capabilities.runModes.includes(mode);
 }
 
 /**删除分组（先解散子节点再删除）处理器 */
