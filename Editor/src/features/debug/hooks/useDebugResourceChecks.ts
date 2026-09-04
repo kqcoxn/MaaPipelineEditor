@@ -1,5 +1,5 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { useCallback, useEffect, useMemo } from "react";
-import { message } from "antd";
 import { useShallow } from "zustand/shallow";
 import { debugProtocolClient } from "../../../services/server";
 import { useFileStore } from "@/stores/project/fileStore";

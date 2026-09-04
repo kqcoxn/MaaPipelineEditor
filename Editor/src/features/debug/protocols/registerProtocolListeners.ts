@@ -1,5 +1,5 @@
+import { message } from "@/utils/ui/antdAppApi";
 import type { DebugProtocolClient } from "../../../services/protocols/DebugProtocolClient";
-import { message } from "antd";
 import { useDebugArtifactStore } from "@/stores/debug/debugArtifactStore";
 import { useDebugDiagnosticsStore } from "@/stores/debug/debugDiagnosticsStore";
 import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";

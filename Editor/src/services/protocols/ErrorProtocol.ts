@@ -1,4 +1,4 @@
-import { Modal } from "antd";
+import { message, modal } from "@/utils/ui/antdAppApi";
 import React from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
@@ -97,10 +97,7 @@ export class ErrorProtocol extends BaseProtocol {
       this.showOCRErrorModal(data);
     } else if (!delegatedConnectionFailure) {
       const displayMessage = errorMessages[code] || msg || "未知错误";
-      // 动态导入 message 避免循环依赖
-      import("antd").then(({ message }) => {
-        message.error(displayMessage, 5);
-      });
+      message.error(displayMessage, 5);
     }
   }
 
@@ -126,7 +123,7 @@ export class ErrorProtocol extends BaseProtocol {
         });
       }
 
-      Modal.error({
+      modal.error({
         title: "OCR 资源加载失败",
         content: React.createElement(
           "pre",
@@ -138,7 +135,7 @@ export class ErrorProtocol extends BaseProtocol {
       return;
     }
 
-    Modal.error({
+    modal.error({
       title: "OCR 错误",
       content: msg || "未知错误",
     });

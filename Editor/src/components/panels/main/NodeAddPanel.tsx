@@ -1,5 +1,6 @@
+import { modal } from "@/utils/ui/antdAppApi";
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { Input, Modal } from "antd";
+import { Input } from "antd";
 import classNames from "classnames";
 import style from "../../../styles/panels/NodeAddPanel.module.less";
 import IconFont from "../../iconfonts";
@@ -428,7 +429,7 @@ function NodeAddPanel({
       e.stopPropagation();
       if (!template.isCustom) return;
 
-      Modal.confirm({
+      modal.confirm({
         title: "删除自定义模板",
         content: `确定要删除模板“${template.label}”吗？此操作不可恢复。`,
         okText: "确定",

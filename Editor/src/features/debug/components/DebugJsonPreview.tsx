@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { useMemo, type CSSProperties } from "react";
-import { Button, message } from "antd";
+import { Button } from "antd";
 import { CopyOutlined } from "@ant-design/icons";
 import ReactJsonView from "@microlink/react-json-view";
 

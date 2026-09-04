@@ -1,4 +1,4 @@
-import { Modal, message } from "antd";
+import { message, modal } from "@/utils/ui/antdAppApi";
 import { ClipboardHelper } from "../../../../utils/ui/clipboard";
 import { useFileStore } from "@/stores/project/fileStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
@@ -42,7 +42,7 @@ export function saveNodeAsTemplate(
   const defaultTemplateName = nodeName || "";
   let templateName = defaultTemplateName;
 
-  Modal.confirm({
+  modal.confirm({
     title: "保存为模板",
     content: (
       <div style={{ marginBottom: 16 }}>
@@ -109,7 +109,7 @@ export function saveNodeAsTemplate(
       // 检查是否已存在
       if (templateStore.hasTemplate(trimmedName)) {
         return new Promise((resolve, reject) => {
-          Modal.confirm({
+          modal.confirm({
             title: "模板名称已存在",
             content: `模板 "${trimmedName}" 已存在，是否覆盖？`,
             okText: "覆盖",

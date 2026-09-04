@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { useMemo, memo, useCallback, useState, useRef } from "react";
-import { Collapse, Tag, Empty, AutoComplete, message } from "antd";
+import { Collapse, Tag, Empty, AutoComplete } from "antd";
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,

@@ -1,3 +1,4 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useEffect, useState, useCallback, useMemo } from "react";
 import { usePersistedState } from "../../../hooks/usePersistedState";
 import {
@@ -5,7 +6,6 @@ import {
   Tabs,
   Button,
   Alert,
-  message,
   Card,
   Typography,
   Badge,

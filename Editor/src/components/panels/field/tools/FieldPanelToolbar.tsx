@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useCallback } from "react";
-import { Tooltip, message } from "antd";
+import { Tooltip } from "antd";
 import IconFont from "../../../iconfonts";
 import type {
   NodeType,

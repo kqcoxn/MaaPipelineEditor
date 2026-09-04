@@ -1,10 +1,11 @@
+import { message, notification } from "@/utils/ui/antdAppApi";
 import {
   type MessageHandler,
   type APIRoute,
   type HandshakeResponse,
   SystemRoutes,
 } from "./type.ts";
-import { message, notification, Button } from "antd";
+import { Button } from "antd";
 import { createElement } from "react";
 import { FileProtocol } from "./protocols/FileProtocol";
 import { MFWProtocol } from "./protocols/MFWProtocol";

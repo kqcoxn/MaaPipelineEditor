@@ -1,3 +1,4 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../styles/panels/FieldSortModal.module.less";
 
@@ -15,7 +16,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Modal, Collapse, Button, message } from "antd";
+import { Modal, Collapse, Button } from "antd";
 import { HolderOutlined, ReloadOutlined } from "@ant-design/icons";
 
 import { useConfigStore } from "@/stores/app/configStore";
@@ -141,7 +142,7 @@ const FieldSortModal: React.FC = () => {
 
   // 重置为默认值
   const handleReset = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: "确认重置",
       content: "确定要恢复默认排序吗？",
       onOk: () => {

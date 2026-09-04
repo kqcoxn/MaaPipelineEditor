@@ -1,9 +1,10 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import {
   memo,
   useMemo,
   useState,
 } from "react";
-import { Badge, message, Tooltip, Popover, Modal } from "antd";
+import { Badge, Tooltip, Popover } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
@@ -96,7 +97,7 @@ function GlobalPanel() {
       return;
     }
 
-    Modal.info({
+    modal.info({
       title: "关于 MPE FlowScope (调试模块)",
       content: <DebugFlowScopeIntro />,
       okText: "我知道了",

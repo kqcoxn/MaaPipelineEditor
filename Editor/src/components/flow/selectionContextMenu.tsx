@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+
 import { isEmbedEnvironment } from "../../utils/embedBridge";
 import type { ReactNode } from "react";
 import { LayoutHelper, AlignmentEnum } from "../../core/layout";

@@ -1,8 +1,9 @@
+import { message } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/LiveScreenPanel.module.less";
 
 import { DownOutlined, UpOutlined } from "@ant-design/icons";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Button, Spin, Tooltip, message } from "antd";
+import { Button, Spin, Tooltip } from "antd";
 import classNames from "classnames";
 
 import { useMFWStore } from "@/stores/connection/mfwStore";

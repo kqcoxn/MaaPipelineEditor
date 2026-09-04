@@ -1,4 +1,5 @@
-import { Button, message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+import { Button } from "antd";
 import { FolderOpenOutlined } from "@ant-design/icons";
 import { memo, useCallback } from "react";
 import { useWSStore } from "@/stores/connection/wsStore";

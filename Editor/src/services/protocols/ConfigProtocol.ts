@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
 

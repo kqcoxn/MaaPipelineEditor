@@ -1,6 +1,7 @@
+import { modal } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
-import { Popover, Input, Select, Spin, Modal, InputNumber } from "antd";
+import { Popover, Input, Select, Spin, InputNumber } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
@@ -137,7 +138,7 @@ export const PipelineEditor = lazy(() =>
             typeof currentFocusValue === "string" &&
             currentFocusValue.trim() !== ""
           ) {
-            Modal.confirm({
+            modal.confirm({
               title: "切换到结构化模式",
               content: "切换到结构化模式会丢失当前的字符串值,是否继续?",
               okText: "确定",
@@ -262,7 +263,7 @@ export const PipelineEditor = lazy(() =>
           const currentValue = currentNode.data.others[fieldKey];
           // 有 int 值时提示
           if (typeof currentValue === "number" && currentValue !== 0) {
-            Modal.confirm({
+            modal.confirm({
               title: "切换到结构化模式",
               content: "切换到结构化模式会丢失当前的数值，是否继续?",
               okText: "确定",

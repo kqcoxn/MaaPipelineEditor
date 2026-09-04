@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+
 import type { ReactNode } from "react";
 import { FlagOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import type { Node } from "@xyflow/react";

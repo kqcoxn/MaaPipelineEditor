@@ -1,3 +1,4 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import {
   Modal,
   Form,
@@ -10,7 +11,6 @@ import {
   Spin,
   Divider,
   Tooltip,
-  message,
 } from "antd";
 import {
   SettingOutlined,
@@ -88,7 +88,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
 
         // 如果是保存后的响应，自动触发重载并关闭面板
         if (data.message) {
-          Modal.info({
+          modal.info({
             title: "配置已保存",
             content: (
               <div>

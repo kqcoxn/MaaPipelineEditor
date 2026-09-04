@@ -1,4 +1,4 @@
-import { message, notification } from "antd";
+import { message, notification } from "@/utils/ui/antdAppApi";
 
 export class ClipboardHelper {
   static async write(

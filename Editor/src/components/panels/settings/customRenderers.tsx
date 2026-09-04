@@ -1,5 +1,6 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import { memo, useCallback, useState } from "react";
-import { App as AntdApp, Button, message, Modal } from "antd";
+import { App as AntdApp, Button } from "antd";
 import {
   useConfigStore,
   getExportableConfigs,
@@ -257,7 +258,7 @@ const ResetDefaultsRenderer = memo(() => {
   const resetAllConfigs = useConfigStore((state) => state.resetAllConfigs);
 
   const handleReset = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "重置所有配置",
       content: "确定要将所有配置项恢复为默认值吗？此操作不可撤销。",
       okText: "确定重置",

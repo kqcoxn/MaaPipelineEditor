@@ -5,12 +5,17 @@ import { createPipelineNode } from ".";
 import { useClipboardStore } from "./clipboardStore";
 import { useProcessStore } from "@/stores/ui/processStore";
 
-vi.mock("antd", () => ({
-  message: {
-    error: vi.fn(),
-    success: vi.fn(),
-  },
-}));
+vi.mock("antd", async (importOriginal) => {
+  const antd = await importOriginal<typeof import("antd")>();
+  return {
+    ...antd,
+    message: {
+      ...antd.message,
+      error: vi.fn(),
+      success: vi.fn(),
+    },
+  };
+});
 
 describe("flow clipboard", () => {
   beforeEach(() => {

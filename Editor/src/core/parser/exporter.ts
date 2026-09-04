@@ -1,4 +1,5 @@
-import { notification } from "antd";
+import { notification } from "@/utils/ui/antdAppApi";
+
 import { useFlowStore, findNodeLabelById } from "../../stores/flow";
 import { useFileStore } from "@/stores/project/fileStore";
 import { globalConfig, useConfigStore } from "@/stores/app/configStore";

@@ -1,7 +1,7 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { toPng } from "html-to-image";
 import { getNodesBounds, getViewportForBounds } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
-import { message } from "antd";
 
 /**
  * 下载图片到本地

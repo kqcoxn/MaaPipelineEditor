@@ -1,5 +1,6 @@
+import { notification } from "@/utils/ui/antdAppApi";
 import { useEffect, useRef } from "react";
-import { Button, notification } from "antd";
+import { Button } from "antd";
 import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
 import { getRunModeLabel } from "../utils/capabilityLabels";

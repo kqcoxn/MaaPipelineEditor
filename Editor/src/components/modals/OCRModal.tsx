@@ -1,9 +1,8 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import {
   Space,
   InputNumber,
-  message,
-  Modal,
   Input,
   Button,
   Radio,
@@ -352,7 +351,7 @@ export const OCRModal = memo(
             );
           }
 
-          Modal.error({
+          modal.error({
             title: errorTitle,
             content: errorContent,
             width: 520,

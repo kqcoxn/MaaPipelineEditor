@@ -1,7 +1,8 @@
+import { message } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { message, Tooltip, AutoComplete } from "antd";
+import { Tooltip, AutoComplete } from "antd";
 import type { AutoCompleteProps } from "antd";
 import { DownOutlined } from "@ant-design/icons";
 import classNames from "classnames";

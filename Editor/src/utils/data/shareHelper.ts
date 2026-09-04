@@ -5,8 +5,8 @@
  */
 
 import LZString from "lz-string";
+import { message } from "@/utils/ui/antdAppApi";
 import { flowToPipeline, pipelineToFlow } from "../../core/parser";
-import { message } from "antd";
 
 // URL 参数名
 const SHARE_PARAM = "shared";

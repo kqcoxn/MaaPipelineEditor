@@ -1,4 +1,4 @@
-import { Modal } from "antd";
+import { modal } from "@/utils/ui/antdAppApi";
 import { parse as parseJsonc, visit } from "jsonc-parser";
 import {
   useFlowStore,
@@ -594,7 +594,7 @@ async function pipelineToFlowInternal(
 
     return true;
   } catch (err) {
-    Modal.error({
+    modal.error({
       title: "导入失败！",
       content:
         "请检查pipeline格式是否正确，或版本是否一致，详细程序错误请在控制台查看。",

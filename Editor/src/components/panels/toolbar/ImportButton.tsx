@@ -1,4 +1,5 @@
-import { Button, Dropdown, message, Modal } from "antd";
+import { message, modal } from "@/utils/ui/antdAppApi";
+import { Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { ImportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useRef } from "react";
@@ -53,7 +54,7 @@ function ImportButton() {
   const confirmImport = (onConfirm: () => void) => {
     const currentNodes = useFlowStore.getState().nodes;
     if (currentNodes.length > 0) {
-      Modal.confirm({
+      modal.confirm({
         title: "当前画布不为空",
         content: "导入将覆盖现有内容。导入后可通过撤销恢复，是否继续？",
         okText: "继续导入",

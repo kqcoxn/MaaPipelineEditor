@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Button, Space, InputNumber, message, Select, Switch, Tag } from "antd";
+import { Button, Space, InputNumber, Select, Switch, Tag } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 import {
   ScreenshotModalBase,

@@ -1,4 +1,5 @@
-import { message, Modal, Button, Space } from "antd";
+import { message, modal } from "@/utils/ui/antdAppApi";
+import { Button, Space } from "antd";
 import { createElement } from "react";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
@@ -19,7 +20,7 @@ import { areFilePathsEqual } from "@/stores/project/filePathUtils";
  */
 export class FileProtocol extends BaseProtocol {
   // 当前显示的Modal实例
-  private currentModal: ReturnType<typeof Modal.confirm> | null = null;
+  private currentModal: ReturnType<typeof modal.confirm> | null = null;
   // 最近保存的文件路径
   private recentlySavedFiles: Map<string, number> = new Map();
   // 待处理的变更文件
@@ -526,7 +527,7 @@ export class FileProtocol extends BaseProtocol {
       return `${displayNames}已被外部修改，请选择处理方式：`;
     };
 
-    this.currentModal = Modal.confirm({
+    this.currentModal = modal.confirm({
       title: "文件已被外部修改",
       content: buildModalContent(),
       icon: null,

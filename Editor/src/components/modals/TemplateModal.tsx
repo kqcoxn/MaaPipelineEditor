@@ -1,9 +1,9 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import {
   Button,
   Space,
   InputNumber,
-  message,
   Slider,
   Radio,
   Tooltip,

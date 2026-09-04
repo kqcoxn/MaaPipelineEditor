@@ -1,11 +1,11 @@
 import { App as AntdApp } from "antd";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { setAntdAppApi } from "../utils/ui/antdAppApi";
 
 export function AntdFeedbackBridge() {
   const appApi = AntdApp.useApp();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setAntdAppApi(appApi);
     return () => setAntdAppApi(null);
   }, [appApi]);

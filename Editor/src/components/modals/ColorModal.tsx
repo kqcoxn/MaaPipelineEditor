@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useRef, useEffect } from "react";
-import { message, Radio, Space, InputNumber, Button } from "antd";
+import { Radio, Space, InputNumber, Button } from "antd";
 import { EyeOutlined, StopOutlined } from "@ant-design/icons";
 import {
   ScreenshotModalBase,

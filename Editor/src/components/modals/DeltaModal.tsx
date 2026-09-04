@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Space, InputNumber, message, Radio } from "antd";
+import { Space, InputNumber, Radio } from "antd";
 import {
   ScreenshotModalBase,
   type CanvasRenderProps,

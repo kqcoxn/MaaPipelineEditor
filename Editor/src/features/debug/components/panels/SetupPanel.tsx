@@ -1,11 +1,11 @@
-﻿import { List } from "../../../../components/SimpleList";
+import { modal } from "@/utils/ui/antdAppApi";
+import { List } from "../../../../components/SimpleList";
 import {
   Typography,
   Button,
   Input,
   Space,
   Tag,
-  Modal,
   Alert,
   Select,
   Checkbox,
@@ -132,7 +132,7 @@ function ProfileSection({ controller }: { controller: DebugModalController }) {
     invalidateResourcePreflight();
   };
   const handleDeleteProfile = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "删除调试配置",
       content: `确定删除“${profileState.profile.name}”吗？`,
       okText: "删除",

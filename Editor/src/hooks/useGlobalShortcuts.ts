@@ -1,5 +1,5 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { useEffect } from "react";
-import { message } from "antd";
 import { useFlowStore } from "../stores/flow";
 
 /**

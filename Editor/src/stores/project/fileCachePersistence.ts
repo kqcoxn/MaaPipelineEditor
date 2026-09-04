@@ -1,4 +1,4 @@
-import { notification } from "antd";
+import { notification } from "@/utils/ui/antdAppApi";
 
 import { useFlowStore } from "@/stores/flow";
 import {

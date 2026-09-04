@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+
 import type { DebugProtocolClient } from "../../../services/protocols/DebugProtocolClient";
 import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import type { DebugNodeExecutionRecord } from "../selectors/nodeExecutionSelector";

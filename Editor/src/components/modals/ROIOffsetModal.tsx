@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Space, InputNumber, message, Button, Tooltip } from "antd";
+import { Space, InputNumber, Button, Tooltip } from "antd";
 import {
   SwapOutlined,
   CopyOutlined,

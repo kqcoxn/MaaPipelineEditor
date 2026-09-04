@@ -1,4 +1,5 @@
-import { message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+
 import type { DebugModalPanel, DebugNodeTarget } from "../types";
 import {
   buildDebugSnapshotBundle,

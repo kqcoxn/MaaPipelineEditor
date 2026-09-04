@@ -1,8 +1,9 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useMemo, useState, useCallback } from "react";
 import { type Node, type NodeProps } from "@xyflow/react";
 import classNames from "classnames";
 import { useShallow } from "zustand/shallow";
-import { Popover, message } from "antd";
+import { Popover } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 
 import style from "../../../styles/flow/nodes.module.less";

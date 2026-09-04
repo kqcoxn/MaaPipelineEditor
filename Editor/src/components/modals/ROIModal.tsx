@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Space, InputNumber, message, Tooltip } from "antd";
+import { Space, InputNumber, Tooltip } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import {
   ScreenshotModalBase,

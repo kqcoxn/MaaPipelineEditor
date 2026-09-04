@@ -1,5 +1,5 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
-import { message } from "antd";
 import type { NodeTemplateType } from "@/data/nodeTemplates";
 import type { PipelineNodeDataType } from "@/stores/flow/types";
 import { NodeTypeEnum } from "@/components/flow/nodes";

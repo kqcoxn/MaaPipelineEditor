@@ -1,6 +1,7 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
-import { Modal, Button, Space, Spin, Tooltip, message } from "antd";
+import { Modal, Button, Space, Spin, Tooltip } from "antd";
 import {
   ReloadOutlined,
   CheckOutlined,

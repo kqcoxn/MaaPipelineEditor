@@ -1,7 +1,8 @@
+import { message, modal } from "@/utils/ui/antdAppApi";
 import style from "./styles/layout/App.module.less";
 
 import { useCallback, useEffect } from "react";
-import { Flex, Layout, message, Modal } from "antd";
+import { Flex, Layout } from "antd";
 const { Header: HeaderSection, Content } = Layout;
 
 import {
@@ -229,7 +230,7 @@ function App() {
         ? `是否从 "${dirName}" 目录选择文件 "${expectedFile}" 导入？`
         : `是否从 "${dirName}" 目录选择文件导入？`;
 
-      Modal.confirm({
+      modal.confirm({
         title: "检测到导入请求",
         content,
         okText: "选择文件",

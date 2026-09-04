@@ -1,8 +1,8 @@
+import { notification } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { notification } from "antd";
 import { visit } from "jsonc-parser";
 
 import { useFlowStore, type NodeType, type EdgeType } from "@/stores/flow";

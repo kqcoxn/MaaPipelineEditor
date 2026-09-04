@@ -1,4 +1,5 @@
-import { Button, Dropdown, message } from "antd";
+import { message } from "@/utils/ui/antdAppApi";
+import { Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { ExportOutlined } from "@ant-design/icons";
 import { memo, useMemo, useState, useCallback } from "react";

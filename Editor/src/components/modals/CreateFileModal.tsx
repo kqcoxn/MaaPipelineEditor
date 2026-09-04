@@ -1,5 +1,6 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Modal, Form, Input, Select, message, Tooltip } from "antd";
+import { Modal, Form, Input, Select, Tooltip } from "antd";
 import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { useFileStore } from "@/stores/project/fileStore";

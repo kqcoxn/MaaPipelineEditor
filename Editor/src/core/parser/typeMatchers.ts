@@ -1,4 +1,5 @@
-import { notification } from "antd";
+import { notification } from "@/utils/ui/antdAppApi";
+
 import { flatten } from "lodash";
 import type { ParamType } from "./types";
 import { FieldTypeEnum, type FieldType } from "../fields";

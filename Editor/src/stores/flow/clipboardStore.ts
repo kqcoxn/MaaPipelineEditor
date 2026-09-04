@@ -1,5 +1,5 @@
+import { message } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
-import { message } from "antd";
 import { cloneDeep } from "lodash";
 import type { NodeType, EdgeType } from "./types";
 import {
