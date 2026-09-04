@@ -67,8 +67,9 @@ export interface PlayCoverDevice {
  * macOS 设备信息
  */
 export interface MacOSDevice {
-  pid: string; // 进程 ID
-  app_name: string; // 应用名称
+  window_id: string; // CGWindowID
+  window_name: string; // 窗口名称
+  class_name: string; // 窗口类名
   screencap_methods: string[];
   input_methods: string[];
   name: string; // 显示名称

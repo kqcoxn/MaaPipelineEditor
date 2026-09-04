@@ -5,24 +5,20 @@ import { AppleOutlined } from "@ant-design/icons";
 const { Text } = Typography;
 
 interface MacOSFormProps {
-  pid: string;
   screencapMethod: string;
   inputMethod: string;
   screencapMethods: string[];
   inputMethods: string[];
-  onPidChange: (value: string) => void;
   onScreencapMethodChange: (value: string) => void;
   onInputMethodChange: (value: string) => void;
 }
 
 export const MacOSForm = memo(
   ({
-    pid,
     screencapMethod,
     inputMethod,
     screencapMethods,
     inputMethods,
-    onPidChange,
     onScreencapMethodChange,
     onInputMethodChange,
   }: MacOSFormProps) => (
@@ -46,35 +42,6 @@ export const MacOSForm = memo(
           </div>
         </div>
       </Card>
-
-      <div style={{ marginBottom: 16 }}>
-        <Text
-          type="secondary"
-          style={{ fontSize: 12, marginBottom: 6, display: "block" }}
-        >
-          应用 PID <span style={{ color: "#ff4d4f" }}>*</span>
-        </Text>
-        <input
-          type="text"
-          value={pid}
-          onChange={(e) => onPidChange(e.target.value)}
-          placeholder="例如: 12345"
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            borderRadius: 6,
-            border: "1px solid #d9d9d9",
-            fontSize: 14,
-            outline: "none",
-          }}
-        />
-        <Text
-          type="secondary"
-          style={{ fontSize: 11, marginTop: 4, display: "block" }}
-        >
-          可通过 Activity Monitor 或 `ps aux | grep 应用名` 查找
-        </Text>
-      </div>
 
       <div style={{ marginBottom: 16 }}>
         <Text

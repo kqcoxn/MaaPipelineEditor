@@ -59,17 +59,19 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 
 	// 控制器相关路由
 	case "/etl/mfw/create_adb_controller":
-		h.handleCreateAdbController(conn, msg)
+		go h.handleCreateAdbController(conn, msg)
 	case "/etl/mfw/create_win32_controller":
-		h.handleCreateWin32Controller(conn, msg)
+		go h.handleCreateWin32Controller(conn, msg)
 	case "/etl/mfw/create_playcover_controller":
-		h.handleCreatePlayCoverController(conn, msg)
+		go h.handleCreatePlayCoverController(conn, msg)
 	case "/etl/mfw/create_gamepad_controller":
-		h.handleCreateGamepadController(conn, msg)
+		go h.handleCreateGamepadController(conn, msg)
 	case "/etl/mfw/create_wlroots_controller":
-		h.handleCreateWlRootsController(conn, msg)
+		go h.handleCreateWlRootsController(conn, msg)
+	case "/etl/mfw/create_macos_controller":
+		go h.handleCreateMacosController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
-		h.handleDisconnectController(conn, msg)
+		go h.handleDisconnectController(conn, msg)
 	case requestScreencapPath:
 		// 截图可能受设备或驱动影响而耗时，不能阻塞 WebSocket 读循环。
 		go h.handleScreencap(conn, msg)
@@ -394,6 +396,49 @@ func (h *MFWHandler) handleCreateWlRootsController(conn *server.Connection, msg 
 		},
 	}
 	conn.Send(response)
+}
+
+func (h *MFWHandler) handleCreateMacosController(conn *server.Connection, msg models.Message) {
+	dataMap, ok := msg.Data.(map[string]interface{})
+	if !ok {
+		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
+		return
+	}
+
+	// MaaFramework macOS 控制器要求 CGWindowID，而不是进程 PID。
+	windowID, _ := dataMap["window_id"].(string)
+	screencapMethod, _ := dataMap["screencap_method"].(string)
+	inputMethod, _ := dataMap["input_method"].(string)
+
+	controllerID, err := h.service.ControllerManager().CreateMacosController(windowID, screencapMethod, inputMethod)
+	if err != nil {
+		logger.Error("MFW", "创建macOS控制器失败: %v", err)
+		if mfwErr, ok := err.(*mfw.MFWError); ok {
+			h.sendMFWError(conn, mfwErr.Code, mfwErr.Message, mfwErr.Detail)
+		} else {
+			h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())
+		}
+		return
+	}
+
+	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
+		logger.Error("MFW", "连接macOS控制器失败: %v", err)
+		if mfwErr, ok := err.(*mfw.MFWError); ok {
+			h.sendMFWError(conn, mfwErr.Code, mfwErr.Message, mfwErr.Detail)
+		} else {
+			h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
+		}
+		return
+	}
+
+	conn.Send(models.Message{
+		Path: "/lte/mfw/controller_created",
+		Data: map[string]interface{}{
+			"success":       true,
+			"controller_id": controllerID,
+			"type":          "macos",
+		},
+	})
 }
 
 func (h *MFWHandler) handleDisconnectController(conn *server.Connection, msg models.Message) {

@@ -16,10 +16,12 @@ interface Win32WindowListProps {
   selectedWindow: Win32Window | null;
   onSelect: (window: Win32Window) => void;
   loading: boolean;
+  platform?: "win32" | "macos";
 }
 
 export const Win32WindowList = memo(
-  ({ windows, selectedWindow, onSelect, loading }: Win32WindowListProps) => {
+  ({ windows, selectedWindow, onSelect, loading, platform = "win32" }: Win32WindowListProps) => {
+    const isMacOS = platform === "macos";
     const [searchText, setSearchText] = useState("");
     const filteredWindows = useMemo(
       () =>
@@ -34,14 +36,18 @@ export const Win32WindowList = memo(
     return (
       <>
         <Alert
-          title="权限提示"
-          description="大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
+          title={isMacOS ? "macOS 权限提示" : "权限提示"}
+          description={
+            isMacOS
+              ? "需要在系统设置中授予 LocalBridge 录屏权限和辅助功能权限。窗口 ID 来自 MaaToolkit 的桌面窗口列表。"
+              : "大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
+          }
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
         />
         <Input
-          placeholder="搜索窗口名称、类名或句柄..."
+          placeholder={isMacOS ? "搜索窗口名称、类名或窗口 ID..." : "搜索窗口名称、类名或句柄..."}
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
@@ -101,7 +107,7 @@ export const Win32WindowList = memo(
                       {window.window_name || window.class_name}
                     </Text>
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      句柄: {window.hwnd}
+                      {isMacOS ? "窗口 ID" : "句柄"}: {window.hwnd}
                     </Text>
                   </div>
                   {isSelected && (

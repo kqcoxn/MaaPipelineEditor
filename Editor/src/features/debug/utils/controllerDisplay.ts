@@ -13,7 +13,7 @@ export function getControllerDisplayName(
     controllerType === "win32"
       ? ["window_name", "class_name", "hwnd"]
       : controllerType === "macos"
-        ? ["app_name", "name", "pid"]
+        ? ["window_name", "name", "window_id"]
         : ["name", "address", "socket_path", "uuid"];
   for (const key of keys) {
     const value = info[key];

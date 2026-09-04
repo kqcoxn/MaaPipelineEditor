@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"sync"
 	"time"
 )
 
@@ -57,6 +58,7 @@ type ControllerInfo struct {
 	AgentPath      string    `json:"agent_path,omitempty"`
 	Warning        string    `json:"warning,omitempty"`
 	screenshotGate screenshotGate
+	lifecycleMu    sync.Mutex
 }
 
 // 资源实例信息

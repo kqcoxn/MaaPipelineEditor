@@ -148,7 +148,6 @@ export const ConnectionPanel = memo(
     );
 
     // macOS 连接参数
-    const [macosPid, setMacosPid] = usePersistedState<string>("mac_pid", "");
     const [macosScreencap, setMacosScreencap] = usePersistedState<string>(
       "mac_screencap",
       MACOS_DEFAULT_METHODS.screencap[0],
@@ -208,6 +207,8 @@ export const ConnectionPanel = memo(
         mfwProtocol.refreshWin32Windows();
       } else if (activeTab === "wlroots") {
         mfwProtocol.refreshWlRootsSockets();
+      } else if (activeTab === "macos") {
+        mfwProtocol.refreshWin32Windows();
       }
       setTimeout(() => setIsRefreshing(false), 1000);
     }, [activeTab]);
@@ -315,7 +316,10 @@ export const ConnectionPanel = memo(
             }
           } else if (controllerType === "macos") {
             setActiveTab("macos");
-            setMacosPid((deviceInfo as any)?.pid || "");
+            const connectedWindow = win32Windows.find(
+              (w) => w.hwnd === (deviceInfo as any)?.window_id,
+            );
+            if (connectedWindow) setSelectedWin32Window(connectedWindow);
           }
           // 已连接状态下不触发刷新
           return;
@@ -333,9 +337,23 @@ export const ConnectionPanel = memo(
       win32Windows,
       wlrootsSockets,
       activeTab,
-      setMacosPid,
       setWlrootsSocketPath,
     ]);
+
+    // macOS 控制器使用同一份桌面窗口列表；列表异步返回后再补选已连接窗口。
+    useEffect(() => {
+      if (
+        !open ||
+        connectionStatus !== "connected" ||
+        controllerType !== "macos" ||
+        !deviceInfo
+      ) {
+        return;
+      }
+      const windowId = (deviceInfo as any)?.window_id;
+      const connectedWindow = win32Windows.find((w) => w.hwnd === windowId);
+      if (connectedWindow) setSelectedWin32Window(connectedWindow);
+    }, [open, connectionStatus, controllerType, deviceInfo, win32Windows]);
 
     // 第一次打开时自动刷新设备列表，即使当前已有控制器连接
     useEffect(() => {
@@ -464,8 +482,8 @@ export const ConnectionPanel = memo(
         });
       } else if (activeTab === "macos") {
         // macOS 连接
-        if (!macosPid.trim()) {
-          message.warning("请输入应用 PID");
+        if (!selectedWin32Window) {
+          message.warning("请选择 macOS 窗口");
           return;
         }
         if (!macosScreencap) {
@@ -478,7 +496,7 @@ export const ConnectionPanel = memo(
         }
 
         mfwProtocol.createMacosController({
-          pid: macosPid.trim(),
+          window_id: selectedWin32Window.hwnd,
           screencap_method: macosScreencap,
           input_method: macosInput,
         });
@@ -499,7 +517,6 @@ export const ConnectionPanel = memo(
       gamepadType,
       gamepadHwnd,
       gamepadScreencap,
-      macosPid,
       macosScreencap,
       macosInput,
       wlrootsUseWin32VkCode,
@@ -542,7 +559,7 @@ export const ConnectionPanel = memo(
               : activeTab === "gamepad"
                 ? true // Gamepad 不需要选择设备
                 : activeTab === "macos"
-                  ? !!macosPid.trim()
+                  ? !!selectedWin32Window
                   : false;
 
     // 检查是否有可用的方法
@@ -616,7 +633,7 @@ export const ConnectionPanel = memo(
       } else if (activeTab === "wlroots" && controllerType === "wlroots") {
         return wlrootsSocketPath === (deviceInfo as any)?.socket_path;
       } else if (activeTab === "macos" && controllerType === "macos") {
-        return macosPid === (deviceInfo as any)?.pid;
+        return selectedWin32Window?.hwnd === (deviceInfo as any)?.window_id;
       }
       return false;
     }, [
@@ -628,7 +645,6 @@ export const ConnectionPanel = memo(
       selectedWin32Window,
       wlrootsSocketPath,
       playCoverAddress,
-      macosPid,
     ]);
 
     // 连接新设备
@@ -795,11 +811,19 @@ export const ConnectionPanel = memo(
           <div style={{ padding: "0 24px" }}>
             <Tabs
               activeKey={activeTab}
-              onChange={(key) =>
-                setActiveTab(
-                  key as "adb" | "win32" | "playcover" | "gamepad" | "wlroots",
-                )
-              }
+              onChange={(key) => {
+                const nextTab = key as
+                  | "adb"
+                  | "win32"
+                  | "playcover"
+                  | "gamepad"
+                  | "wlroots"
+                  | "macos";
+                if (nextTab === "win32" || nextTab === "macos") {
+                  setSelectedWin32Window(null);
+                }
+                setActiveTab(nextTab);
+              }}
               items={[
                 ...(availableTabs.includes("adb")
                   ? [
@@ -929,16 +953,23 @@ export const ConnectionPanel = memo(
                 loading={isRefreshing}
               />
             ) : activeTab === "macos" ? (
-              <MacOSForm
-                pid={macosPid}
-                screencapMethod={macosScreencap}
-                inputMethod={macosInput}
-                screencapMethods={MACOS_DEFAULT_METHODS.screencap}
-                inputMethods={MACOS_DEFAULT_METHODS.input}
-                onPidChange={setMacosPid}
-                onScreencapMethodChange={setMacosScreencap}
-                onInputMethodChange={setMacosInput}
-              />
+              <>
+                <MacOSForm
+                  screencapMethod={macosScreencap}
+                  inputMethod={macosInput}
+                  screencapMethods={MACOS_DEFAULT_METHODS.screencap}
+                  inputMethods={MACOS_DEFAULT_METHODS.input}
+                  onScreencapMethodChange={setMacosScreencap}
+                  onInputMethodChange={setMacosInput}
+                />
+                <Win32WindowList
+                  windows={win32Windows}
+                  selectedWindow={selectedWin32Window}
+                  onSelect={setSelectedWin32Window}
+                  loading={isRefreshing}
+                  platform="macos"
+                />
+              </>
             ) : (
               <GamepadForm
                 gamepadType={gamepadType}

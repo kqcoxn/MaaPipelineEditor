@@ -360,6 +360,10 @@ export const interfaceProtocol = new InterfaceProtocol();
  * 应在应用启动时调用一次
  */
 export function initializeWebSocket() {
+  errorProtocol.setConnectionFailureHandler(
+    mfwProtocol.handleConnectionFailure.bind(mfwProtocol),
+  );
+
   // 注册 ErrorProtocol
   errorProtocol.register(localServer);
 

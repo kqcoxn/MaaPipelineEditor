@@ -9,12 +9,18 @@ import { useMFWStore } from "@/stores/connection/mfwStore";
  * 统一处理所有错误消息
  */
 export class ErrorProtocol extends BaseProtocol {
+  private connectionFailureHandler: ((message: string) => void) | null = null;
+
   getName(): string {
     return "ErrorProtocol";
   }
 
   getVersion(): string {
     return "1.0.0";
+  }
+
+  setConnectionFailureHandler(handler: (message: string) => void): void {
+    this.connectionFailureHandler = handler;
   }
 
   register(wsClient: LocalWebSocketServer): void {
@@ -40,9 +46,13 @@ export class ErrorProtocol extends BaseProtocol {
       MFW_NOT_INITIALIZED: `MaaFramework 未初始化：${
         typeof detail === "string" ? detail : msg
       }`,
-      MFW_CONTROLLER_CREATE_FAIL: `控制器创建失败：${msg || "未知错误"}`,
+      MFW_CONTROLLER_CREATE_FAIL: `控制器创建失败：${
+        (typeof detail === "string" && detail) || msg || "未知错误"
+      }`,
       MFW_CONTROLLER_NOT_FOUND: "控制器不存在",
-      MFW_CONTROLLER_CONNECT_FAIL: `控制器连接失败：${msg || "未知错误"}`,
+      MFW_CONTROLLER_CONNECT_FAIL: `控制器连接失败：${
+        (typeof detail === "string" && detail) || msg || "未知错误"
+      }`,
       MFW_CONTROLLER_NOT_CONNECTED: "控制器未连接",
       MFW_DEVICE_NOT_FOUND: `设备列表刷新失败：${msg || "未知错误"}`,
       MFW_OCR_RESOURCE_NOT_CONFIGURED: `OCR 资源未配置：${
@@ -52,29 +62,45 @@ export class ErrorProtocol extends BaseProtocol {
 
     console.error("[ErrorProtocol]", { code, message: msg, detail });
 
+    // 连接尝试期间，连接相关错误必须结束 connecting 状态；已连接后的普通
+    // 控制器错误则沿用原有的清理行为。
+    const mfwStore = useMFWStore.getState();
+    const wasConnecting = mfwStore.connectionStatus === "connecting";
+    const isControllerError =
+      code === "MFW_CONTROLLER_NOT_FOUND" ||
+      code === "MFW_CONTROLLER_NOT_CONNECTED" ||
+      code === "MFW_CONTROLLER_CONNECT_FAIL" ||
+      code === "MFW_CONTROLLER_CREATE_FAIL";
+    const isConnectionError =
+      isControllerError ||
+      code === "MFW_INVALID_PARAMETER" ||
+      code === "INVALID_REQUEST";
+    const delegatedConnectionFailure =
+      wasConnecting && isConnectionError && !!this.connectionFailureHandler;
+    if (wasConnecting && isConnectionError) {
+      const failureMessage =
+        (typeof detail === "string" && detail) || msg || "控制器连接失败";
+      if (this.connectionFailureHandler) {
+        this.connectionFailureHandler(failureMessage);
+      } else {
+        mfwStore.setErrorMessage(failureMessage);
+      }
+    } else if (isControllerError) {
+      mfwStore.clearConnection();
+    }
+
     // OCR 相关错误使用 Modal 弹窗
     if (
       code === "MFW_RESOURCE_LOAD_FAILED" ||
       code === "MFW_TASK_SUBMIT_FAILED"
     ) {
       this.showOCRErrorModal(data);
-    } else {
+    } else if (!delegatedConnectionFailure) {
       const displayMessage = errorMessages[code] || msg || "未知错误";
       // 动态导入 message 避免循环依赖
       import("antd").then(({ message }) => {
         message.error(displayMessage, 5);
       });
-    }
-
-    // 控制器错误时清除连接状态
-    if (
-      code === "MFW_CONTROLLER_NOT_FOUND" ||
-      code === "MFW_CONTROLLER_NOT_CONNECTED" ||
-      code === "MFW_CONTROLLER_CONNECT_FAIL" ||
-      code === "MFW_CONTROLLER_CREATE_FAIL"
-    ) {
-      const mfwStore = useMFWStore.getState();
-      mfwStore.clearConnection();
     }
   }
 

@@ -31,6 +31,14 @@ type ControllerConnectionRequest =
   | { type: "wlroots" } & PersistedControllerConnection<Parameters<MFWProtocol["createWlRootsController"]>[0]>
   | { type: "macos" } & PersistedControllerConnection<Parameters<MFWProtocol["createMacosController"]>[0]>;
 
+type ControllerConnectionDevice =
+  | AdbDevice
+  | Win32Window
+  | PlayCoverDevice
+  | GamepadDevice
+  | WlRootsCompositor
+  | MacOSDevice;
+
 const LAST_CONTROLLER_STORAGE_KEY = "mpe_last_controller";
 
 function readLastController(): ControllerConnectionRequest | null {
@@ -39,6 +47,12 @@ function readLastController(): ControllerConnectionRequest | null {
       localStorage.getItem(LAST_CONTROLLER_STORAGE_KEY) || "null",
     );
     if (parsed && typeof parsed === "object" && typeof parsed.type === "string") {
+      if (
+        parsed.type === "macos" &&
+        (!parsed.params || typeof parsed.params.window_id !== "string")
+      ) {
+        return null;
+      }
       return parsed as ControllerConnectionRequest;
     }
   } catch {
@@ -73,16 +87,13 @@ export class MFWProtocol extends BaseProtocol {
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos";
-    deviceInfo:
-      | AdbDevice
-      | Win32Window
-      | PlayCoverDevice
-      | GamepadDevice
-      | WlRootsCompositor
-      | MacOSDevice;
+    deviceInfo: ControllerConnectionDevice;
   } | null = null;
   private lastConnectionRequest: ControllerConnectionRequest | null = null;
   private isAutoConnecting = false;
+  private connectionTimeout: number | null = null;
+  private connectionAttempt = 0;
+  private readonly CONTROLLER_CONNECTION_TIMEOUT = 12_000;
   getName(): string {
     return "MFWProtocol";
   }
@@ -98,7 +109,10 @@ export class MFWProtocol extends BaseProtocol {
     this.statusUnsubscribe = this.wsClient.onStatus((connected) => {
       if (!connected) {
         this.screencapRequests.rejectAll("LocalBridge 连接已断开");
+        this.clearControllerConnection();
         this.lastConnectionDevice = null;
+        this.lastConnectionRequest = null;
+        this.isAutoConnecting = false;
       }
     });
 
@@ -178,7 +192,79 @@ export class MFWProtocol extends BaseProtocol {
     this.statusUnsubscribe?.();
     this.statusUnsubscribe = null;
     this.screencapRequests.rejectAll("MaaFramework 协议已注销");
+    this.clearControllerConnection();
+    this.lastConnectionDevice = null;
+    this.lastConnectionRequest = null;
+    this.isAutoConnecting = false;
     super.unregister();
+  }
+
+  private beginControllerConnection(
+    request: ControllerConnectionRequest,
+    deviceInfo: ControllerConnectionDevice,
+  ): void {
+    this.clearControllerConnection();
+    const attempt = ++this.connectionAttempt;
+    this.lastConnectionRequest = request;
+    this.lastConnectionDevice = { type: request.type, deviceInfo };
+    useMFWStore.getState().setConnectionStatus("connecting");
+    this.connectionTimeout = window.setTimeout(() => {
+      if (attempt !== this.connectionAttempt) return;
+      this.connectionTimeout = null;
+      const store = useMFWStore.getState();
+      if (store.connectionStatus !== "connecting") return;
+      store.setErrorMessage("控制器连接超时（12 秒）");
+      if (!this.isAutoConnecting) message.error("控制器连接超时（12 秒）");
+      this.lastConnectionDevice = null;
+      this.lastConnectionRequest = null;
+      this.isAutoConnecting = false;
+    }, this.CONTROLLER_CONNECTION_TIMEOUT);
+  }
+
+  private clearControllerConnection(): void {
+    if (this.connectionTimeout !== null) {
+      window.clearTimeout(this.connectionTimeout);
+      this.connectionTimeout = null;
+    }
+  }
+
+  private finishControllerConnection(): void {
+    this.clearControllerConnection();
+  }
+
+  private failControllerConnection(messageText: string): void {
+    this.finishControllerConnection();
+    const store = useMFWStore.getState();
+    store.setErrorMessage(messageText);
+    if (!this.isAutoConnecting) message.error(messageText);
+    this.lastConnectionDevice = null;
+    this.lastConnectionRequest = null;
+    this.isAutoConnecting = false;
+  }
+
+  /** 由统一错误协议调用，结束后端通过 /error 返回的连接失败尝试。 */
+  public handleConnectionFailure(messageText: string): void {
+    const store = useMFWStore.getState();
+    const isConnectionAttempt =
+      store.connectionStatus === "connecting" || this.connectionTimeout !== null;
+    this.clearControllerConnection();
+    if (!isConnectionAttempt) return;
+    this.failControllerConnection(messageText);
+  }
+
+  private sendControllerConnection(
+    path: string,
+    request: ControllerConnectionRequest,
+    deviceInfo: ControllerConnectionDevice,
+  ): boolean {
+    if (!this.wsClient) {
+      console.error("[MFWProtocol] WebSocket client not initialized");
+      return false;
+    }
+    this.beginControllerConnection(request, deviceInfo);
+    const sent = this.wsClient.send(path, request.params);
+    if (!sent) this.failControllerConnection("无法发送控制器连接请求");
+    return sent;
   }
 
   protected handleMessage(_path: string, _data: any): void {}
@@ -219,25 +305,57 @@ export class MFWProtocol extends BaseProtocol {
 
       const mfwStore = useMFWStore.getState();
       mfwStore.updateWin32Windows(windows as Win32Window[]);
-      if (mfwStore.controllerType === "win32" && mfwStore.deviceInfo) {
-        const hwnd = (mfwStore.deviceInfo as Partial<Win32Window>).hwnd;
+      if (
+        (mfwStore.controllerType === "win32" || mfwStore.controllerType === "macos") &&
+        mfwStore.deviceInfo
+      ) {
+        const hwnd =
+          mfwStore.controllerType === "macos"
+            ? (mfwStore.deviceInfo as Partial<MacOSDevice>).window_id
+            : (mfwStore.deviceInfo as Partial<Win32Window>).hwnd;
         const currentWindow = (windows as Win32Window[]).find(
           (window) => window.hwnd === hwnd,
         );
-        if (currentWindow) mfwStore.updateDeviceInfo(currentWindow);
+        if (currentWindow) {
+          mfwStore.updateDeviceInfo(
+            mfwStore.controllerType === "macos"
+              ? {
+                  window_id: currentWindow.hwnd,
+                  window_name: currentWindow.window_name,
+                  class_name: currentWindow.class_name,
+                  screencap_methods: currentWindow.screencap_methods,
+                  input_methods: currentWindow.input_methods,
+                  name: currentWindow.window_name || currentWindow.hwnd,
+                }
+              : currentWindow,
+          );
+        }
       }
       if (
-        this.lastConnectionRequest?.type === "win32" &&
-        this.lastConnectionRequest.params.hwnd
+        (this.lastConnectionRequest?.type === "win32" ||
+          this.lastConnectionRequest?.type === "macos")
       ) {
+        const targetWindowId =
+          this.lastConnectionRequest.type === "macos"
+            ? this.lastConnectionRequest.params.window_id
+            : this.lastConnectionRequest.params.hwnd;
         const currentWindow = (windows as Win32Window[]).find(
-          (window) =>
-            window.hwnd === this.lastConnectionRequest?.params.hwnd,
+          (window) => window.hwnd === targetWindowId,
         );
         if (currentWindow) {
           this.lastConnectionDevice = {
-            type: "win32",
-            deviceInfo: currentWindow,
+            type: this.lastConnectionRequest.type,
+            deviceInfo:
+              this.lastConnectionRequest.type === "macos"
+                ? {
+                    window_id: currentWindow.hwnd,
+                    window_name: currentWindow.window_name,
+                    class_name: currentWindow.class_name,
+                    screencap_methods: currentWindow.screencap_methods,
+                    input_methods: currentWindow.input_methods,
+                    name: currentWindow.window_name || currentWindow.hwnd,
+                  }
+                : currentWindow,
           };
         }
       }
@@ -279,6 +397,7 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
 
       if (success && controller_id) {
+        this.finishControllerConnection();
         // 使用记录的设备信息
         const deviceInfo =
           this.lastConnectionDevice?.type === type
@@ -313,28 +432,15 @@ export class MFWProtocol extends BaseProtocol {
         this.lastConnectionDevice = null;
         this.lastConnectionRequest = null;
       } else {
-        mfwStore.setErrorMessage(error || "控制器连接失败");
-        if (!this.isAutoConnecting) message.error(error || "控制器连接失败");
+        this.failControllerConnection(error || "控制器连接失败");
         console.error("[MFWProtocol] Controller creation failed:", error);
-
-        // 清除记录的设备信息
-        this.lastConnectionDevice = null;
-        this.lastConnectionRequest = null;
-        this.isAutoConnecting = false;
       }
     } catch (error) {
       console.error(
         "[MFWProtocol] Failed to handle controller created:",
         error,
       );
-      const mfwStore = useMFWStore.getState();
-      mfwStore.setErrorMessage("控制器连接失败");
-      message.error("控制器连接失败");
-
-      // 清除记录的设备信息
-      this.lastConnectionDevice = null;
-      this.lastConnectionRequest = null;
-      this.isAutoConnecting = false;
+      this.failControllerConnection("控制器连接失败");
     }
   }
 
@@ -349,6 +455,7 @@ export class MFWProtocol extends BaseProtocol {
       const mfwStore = useMFWStore.getState();
 
       if (!connected) {
+        this.finishControllerConnection();
         // 控制器断开
         mfwStore.clearConnection();
         message.info("控制器已断开");
@@ -532,22 +639,14 @@ export class MFWProtocol extends BaseProtocol {
     agent_path?: string;
     name?: string;
   }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
     const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "adb", params };
-
-    // 记录设备信息
     const device = mfwStore.adbDevices.find(
       (d) => d.address === params.address,
     );
-    this.lastConnectionDevice = {
-      type: "adb",
-      deviceInfo: device || {
+    return this.sendControllerConnection(
+      "/etl/mfw/create_adb_controller",
+      { type: "adb", params },
+      device || {
         adb_path: params.adb_path,
         address: params.address,
         name: params.name || params.address,
@@ -557,9 +656,7 @@ export class MFWProtocol extends BaseProtocol {
         available_input_methods: params.input_methods,
         config: params.config || "",
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_adb_controller", params);
+    );
   }
 
   /**
@@ -570,29 +667,19 @@ export class MFWProtocol extends BaseProtocol {
     screencap_method: string;
     input_method: string;
   }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
     const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "win32", params };
-
-    // 记录设备信息
     const window = mfwStore.win32Windows.find((w) => w.hwnd === params.hwnd);
-    this.lastConnectionDevice = {
-      type: "win32",
-      deviceInfo: window || {
+    return this.sendControllerConnection(
+      "/etl/mfw/create_win32_controller",
+      { type: "win32", params },
+      window || {
         hwnd: params.hwnd,
         class_name: "",
         window_name: `窗口 ${params.hwnd}`,
         screencap_methods: [params.screencap_method],
         input_methods: [params.input_method],
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_win32_controller", params);
+    );
   }
 
   /**
@@ -603,26 +690,15 @@ export class MFWProtocol extends BaseProtocol {
     uuid: string;
     name?: string;
   }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "playcover", params };
-
-    // 记录设备信息
-    this.lastConnectionDevice = {
-      type: "playcover",
-      deviceInfo: {
+    return this.sendControllerConnection(
+      "/etl/mfw/create_playcover_controller",
+      { type: "playcover", params },
+      {
         address: params.address,
         uuid: params.uuid,
         name: params.name || "PlayCover Device",
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_playcover_controller", params);
+    );
   }
 
   /**
@@ -633,86 +709,54 @@ export class MFWProtocol extends BaseProtocol {
     gamepad_type: "Xbox360" | "DualShock4";
     screencap_method?: string;
   }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "gamepad", params };
-
-    // 记录设备信息
-    this.lastConnectionDevice = {
-      type: "gamepad",
-      deviceInfo: {
+    return this.sendControllerConnection(
+      "/etl/mfw/create_gamepad_controller",
+      { type: "gamepad", params },
+      {
         hwnd: params.hwnd || "",
         gamepad_type: params.gamepad_type,
         screencap_methods: [],
         name: `${params.gamepad_type} Controller`,
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_gamepad_controller", params);
+    );
   }
 
   /**
    * 创建 WlRoots 控制器
    */
   public createWlRootsController(params: { socket_path: string, use_win32_vk_code: boolean }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "wlroots", params };
     const path = params.socket_path.split("/");
     const name = path[path.length - 1];
-
-    // 记录设备信息
-    this.lastConnectionDevice = {
-      type: "wlroots",
-      deviceInfo: {
+    return this.sendControllerConnection(
+      "/etl/mfw/create_wlroots_controller",
+      { type: "wlroots", params },
+      {
         socket_path: params.socket_path,
         name: `WlRoots ${name}`,
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_wlroots_controller", params);
+    );
   }
 
   /**
    * 创建 macOS 控制器
    */
   public createMacosController(params: {
-    pid: string;
+    window_id: string;
     screencap_method: string;
     input_method: string;
   }): boolean {
-    if (!this.wsClient) {
-      console.error("[MFWProtocol] WebSocket client not initialized");
-      return false;
-    }
-
-    const mfwStore = useMFWStore.getState();
-    mfwStore.setConnectionStatus("connecting");
-    this.lastConnectionRequest = { type: "macos", params };
-
-    // 记录设备信息
-    this.lastConnectionDevice = {
-      type: "macos",
-      deviceInfo: {
-        pid: params.pid,
-        app_name: `PID ${params.pid}`,
+    return this.sendControllerConnection(
+      "/etl/mfw/create_macos_controller",
+      { type: "macos", params },
+      {
+        window_id: params.window_id,
+        window_name: `窗口 ${params.window_id}`,
+        class_name: "",
         screencap_methods: [params.screencap_method],
         input_methods: [params.input_method],
-        name: `macOS App (PID: ${params.pid})`,
+        name: `macOS 窗口 ${params.window_id}`,
       },
-    };
-
-    return this.wsClient.send("/etl/mfw/create_macos_controller", params);
+    );
   }
 
   /**
