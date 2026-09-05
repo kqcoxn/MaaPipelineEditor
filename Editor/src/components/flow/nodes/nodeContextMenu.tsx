@@ -21,6 +21,7 @@ import {
   copyNodeRecoJSON,
 } from "./utils/nodeOperations";
 import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import type {
   DebugCapabilityManifest,
   DebugRunMode,
@@ -230,7 +231,7 @@ function handleDebugRunMode(node: NodeContextMenuNode, mode: DebugRunMode) {
     return;
   }
   applyDebugNodeTarget(target, {
-    focusCanvas: true,
+    focusCanvas: useConfigStore.getState().configs.autoFocusNodeOnDebugRun,
     rememberEntryNodeId: true,
   });
   useDebugModalMemoryStore.getState().setLastRunMode(mode);

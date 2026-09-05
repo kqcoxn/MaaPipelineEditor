@@ -528,6 +528,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 1,
   },
   {
+    key: "autoFocusNodeOnDebugRun",
+    category: "component",
+    label: "调试运行时自动居中节点",
+    tipTitle: "调试运行时自动居中节点",
+    tipContent:
+      "开启后，从节点启动调试时会自动居中并缩放到目标节点。默认关闭，保持当前画布位置与缩放，不影响节点执行高亮或手动定位。",
+    type: "switch",
+    checkedChildren: "启用",
+    unCheckedChildren: "关闭",
+    order: 1.5,
+  },
+  {
     key: "showJsonPreviewButton",
     category: "component",
     label: "显示 JSON 预览按钮",

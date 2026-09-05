@@ -119,6 +119,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   enableCanvasMotionPause: "canvas",
   // 组件配置
   saveFilesBeforeDebug: "component",
+  autoFocusNodeOnDebugRun: "component",
   fieldPanelMode: "component",
   inlinePanelScale: "component",
   enableLiveScreen: "component",
@@ -244,6 +245,7 @@ const defaultConfigs = {
   autoConnectLastController: true,
   fileAutoReload: false,
   saveFilesBeforeDebug: true,
+  autoFocusNodeOnDebugRun: false,
   enableCrossFileSearch: true,
   crossFileSearchFolderFilter: "",
   // AI 配置
@@ -322,6 +324,7 @@ export type ConfigState = {
     autoConnectLastController: boolean;
     fileAutoReload: boolean;
     saveFilesBeforeDebug: boolean;
+    autoFocusNodeOnDebugRun: boolean;
     crossFileSearchFolderFilter: string;
     // AI 配置
     aiApiUrl: string;

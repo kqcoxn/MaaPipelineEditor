@@ -126,6 +126,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "major",
     updates: {
       features: ["🚨 调试面板提供字段级静态错误检查"],
+      perfs: ["调试时聚焦入口节点功能可进行配置（默认关闭）"],
     },
   },
   {

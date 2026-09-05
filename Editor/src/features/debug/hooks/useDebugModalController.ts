@@ -6,6 +6,7 @@ import {
   fileProtocol,
 } from "../../../services/server";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useConfigStore } from "@/stores/app/configStore";
 import { useDebugModalMemoryStore } from "@/stores/debug/debugModalMemoryStore";
 import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import { useDebugArtifactStore } from "@/stores/debug/debugArtifactStore";
@@ -462,7 +463,7 @@ export function useDebugModalController() {
       if (request.target) {
         profileState.setEntry(request.target);
         applyDebugNodeTarget(request.target, {
-          focusCanvas: true,
+          focusCanvas: useConfigStore.getState().configs.autoFocusNodeOnDebugRun,
           rememberEntryNodeId: true,
         });
       }
