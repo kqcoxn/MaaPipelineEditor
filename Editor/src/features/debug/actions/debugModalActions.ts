@@ -183,8 +183,8 @@ export function requestResourceHealthAction({
     setResourceHealthError(
       requestId,
       requestKey,
-      "发送资源体检请求失败。",
+      "发送调试检查请求失败。",
     );
-    message.error("发送资源体检请求失败");
+    message.error("发送调试检查请求失败");
   }
 }

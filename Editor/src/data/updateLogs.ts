@@ -121,6 +121,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.0",
+    date: "2026-9",
+    type: "major",
+    updates: {
+      features: ["🚨 调试面板提供字段级静态错误检查"],
+    },
+  },
+  {
     version: "1.9.3",
     date: "2026-9-4",
     type: "perf",

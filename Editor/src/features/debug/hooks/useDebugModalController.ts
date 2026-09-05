@@ -376,13 +376,18 @@ export function useDebugModalController() {
       message.error(overrideValidationError);
       return;
     }
+    if (resourcePreflightStatus === "error") {
+      diagnosticsState.setPreflightDiagnostics(resourcePreflight.result?.diagnostics ?? []);
+      useDebugSessionStore.getState().openModal("setup");
+      message.error("资源检查未通过，请按资源配置中的错误位置和建议修复。");
+      return;
+    }
     if (!debugReadiness.ready) {
       const blockingIssue = debugReadiness.issues.find(
         (issue) => issue.code !== "debug.resource.not_ready",
       );
       if (
         !blockingIssue &&
-        resourcePreflightStatus !== "error" &&
         resolvedResourcePaths.length > 0
       ) {
         pendingRunRef.current = { mode, target, input };
@@ -472,9 +477,8 @@ export function useDebugModalController() {
     if (!pendingRunRef.current) return;
     if (resourcePreflightStatus === "error") {
       pendingRunRef.current = undefined;
-      message.error(
-        resourcePreflight.error ?? "资源加载检测失败，无法启动调试。",
-      );
+      useDebugSessionStore.getState().openModal("setup");
+      message.error("资源检查未通过，请按资源配置中的错误位置和建议修复。");
       return;
     }
     if (resourcePreflightStatus !== "ready") return;

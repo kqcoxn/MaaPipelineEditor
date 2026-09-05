@@ -9,7 +9,6 @@ import { Alert, Button, Drawer, Space, Typography } from "antd";
 import {
   CloseOutlined,
   FileSearchOutlined,
-  MedicineBoxOutlined,
   NodeIndexOutlined,
   ProfileOutlined,
   SettingOutlined,
@@ -23,7 +22,6 @@ import { useControlledPanelOccupancy } from "../../hooks/useControlledPanelOccup
 import type { DebugModalController } from "../../features/debug/hooks/useDebugModalController";
 import { OverviewPanel } from "../../features/debug/components/panels/OverviewPanel";
 import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
-import { ResourceHealthPanel } from "../../features/debug/components/panels/ResourceHealthPanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
 import { DebugLogPanel } from "../../features/debug/components/panels/DebugLogPanel";
 import { WikiAnchor } from "../wiki/WikiAnchor";
@@ -42,7 +40,7 @@ const panels: PanelItem[] = [
     id: "setup",
     label: "调试配置",
     icon: <SettingOutlined />,
-    description: "配置资源路径、控制器、截图和 Agent，并写入本地调试配置。",
+    description: "配置资源、控制器和 Agent，统一检查调试准备状态并定位问题。",
   },
   {
     id: "overview",
@@ -62,13 +60,6 @@ const panels: PanelItem[] = [
     icon: <FileSearchOutlined />,
     description:
       "查看调试产物 maafw.log 的末尾内容，可直接打开日志文件或其所在文件夹。",
-  },
-  {
-    id: "resource-health",
-    label: "调试检查",
-    icon: <MedicineBoxOutlined />,
-    description:
-      "检查资源路径、MaaFW 加载和流程映射，定位无法启动调试的原因。",
   },
 ];
 
@@ -338,8 +329,6 @@ function ActivePanel({ controller }: { controller: DebugModalController }) {
       return <OverviewPanel controller={controller} />;
     case "setup":
       return <SetupPanel controller={controller} />;
-    case "resource-health":
-      return <ResourceHealthPanel controller={controller} />;
     case "node-execution":
       return <NodeExecutionPanel controller={controller} />;
     case "debug-log":

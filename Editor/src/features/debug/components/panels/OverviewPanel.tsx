@@ -15,6 +15,7 @@ import {
 } from "@ant-design/icons";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { DebugSection } from "../DebugSection";
+import { DebugSetupChecks } from "../DebugSetupChecks";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import {
   findDebugRunFirstTimestamp,
@@ -306,6 +307,7 @@ export function OverviewPanel({
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
+      <DebugSetupChecks controller={controller} compact />
       {capabilityStatus === "error" && (
         <Alert
           type="error"

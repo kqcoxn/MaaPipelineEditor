@@ -143,17 +143,17 @@ func TestCheckResourceLoadDiagnostics_SkipsChecklistWhenMaaFWUnavailable(t *test
 	assertDiagnosticCode(t, result.diagnostics, "debug.resource.load_unavailable")
 }
 
-func TestCheckResourceLoadDiagnostics_ChecksEachBundleIndependently(t *testing.T) {
+func TestCheckResourceLoadDiagnostics_PreservesEarlierBundles(t *testing.T) {
 	service := NewService(nil, "")
 	service.resourceLoadAvailableFn = func() bool { return true }
 
 	var calledPaths []string
 	service.resourceBundleChecker = func(paths []string) (string, []mfw.ResourceBundleResolution, error) {
-		if len(paths) != 1 {
-			t.Fatalf("checker received %d paths, want 1", len(paths))
+		if paths[0] != "bundle-a" || len(paths) != len(calledPaths)+1 {
+			t.Fatalf("checker must retain previous bundles: %v", paths)
 		}
-		calledPaths = append(calledPaths, paths[0])
-		switch paths[0] {
+		calledPaths = append(calledPaths, paths[len(paths)-1])
+		switch paths[len(paths)-1] {
 		case "bundle-a":
 			return "hash-a", []mfw.ResourceBundleResolution{{ResolvedPath: "bundle-a"}}, nil
 		case "bundle-b":
@@ -207,7 +207,7 @@ func TestCheckResourceLoadDiagnostics_DeduplicatesResolvedBundles(t *testing.T) 
 	}
 }
 
-func TestRunLoadFailureChecklist_DetectsPipelineJSONErrorsFromResolvedBundle(t *testing.T) {
+func TestBundlePipelineDiagnostics_DetectsPipelineJSONErrorsFromResolvedBundle(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	filePath := filepath.Join(bundleDir, "pipeline", "broken.jsonc")
@@ -215,7 +215,7 @@ func TestRunLoadFailureChecklist_DetectsPipelineJSONErrorsFromResolvedBundle(t *
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{
 		{
 			InputPath:    bundleDir,
 			InputAbsPath: bundleDir,
@@ -228,7 +228,7 @@ func TestRunLoadFailureChecklist_DetectsPipelineJSONErrorsFromResolvedBundle(t *
 	assertDiagnosticCategory(t, diagnostics, "debug.resource.pipeline_json_invalid", "loading")
 }
 
-func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesFromResolvedBundle(t *testing.T) {
+func TestBundlePipelineDiagnostics_DetectsDuplicateNodeNamesFromResolvedBundle(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	filePath := filepath.Join(bundleDir, "pipeline", "duplicate.json")
@@ -241,7 +241,7 @@ func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesFromResolvedBundle(t *
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{
 		{
 			InputPath:    bundleDir,
 			InputAbsPath: bundleDir,
@@ -254,7 +254,7 @@ func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesFromResolvedBundle(t *
 	assertDiagnosticCategory(t, diagnostics, "debug.resource.pipeline_node_name_duplicate", "loading")
 }
 
-func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesAcrossFilesInBundle(t *testing.T) {
+func TestBundlePipelineDiagnostics_DetectsDuplicateNodeNamesAcrossFilesInBundle(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	firstPath := filepath.Join(bundleDir, "pipeline", "first.json")
@@ -269,7 +269,7 @@ func TestRunLoadFailureChecklist_DetectsDuplicateNodeNamesAcrossFilesInBundle(t 
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
 	diagnostic := findDiagnostic(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
 	files, ok := diagnostic.Data["conflictFiles"].([]string)
 	if !ok || len(files) != 2 {
@@ -296,7 +296,7 @@ func TestResourcePreflightReportsDuplicateBeforeMaaFWLoad(t *testing.T) {
 	assertDiagnosticMissing(t, result.Diagnostics, "debug.resource.load_unavailable")
 }
 
-func TestRunLoadFailureChecklist_NodeNamesAreCaseSensitive(t *testing.T) {
+func TestBundlePipelineDiagnostics_NodeNamesAreCaseSensitive(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	if err := os.WriteFile(filepath.Join(bundleDir, "pipeline", "upper.json"), []byte(`{"Node": {}}`), 0o644); err != nil {
@@ -306,11 +306,11 @@ func TestRunLoadFailureChecklist_NodeNamesAreCaseSensitive(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{{ResolvedPath: bundleDir}})
 	assertDiagnosticMissing(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
 }
 
-func TestRunLoadFailureChecklist_AllowsDuplicateNodeNamesAcrossBundles(t *testing.T) {
+func TestBundlePipelineDiagnostics_AllowsDuplicateNodeNamesAcrossBundles(t *testing.T) {
 	service := NewService(nil, "")
 	firstBundle := createResourceBundleDir(t)
 	secondBundle := createResourceBundleDir(t)
@@ -320,14 +320,14 @@ func TestRunLoadFailureChecklist_AllowsDuplicateNodeNamesAcrossBundles(t *testin
 		}
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{
 		{ResolvedPath: firstBundle},
 		{ResolvedPath: secondBundle},
 	})
 	assertDiagnosticMissing(t, diagnostics, "debug.resource.pipeline_node_name_duplicate")
 }
 
-func TestRunLoadFailureChecklist_ScansFilesOutsideGraphSnapshot(t *testing.T) {
+func TestBundlePipelineDiagnostics_ScansFilesOutsideGraphSnapshot(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	filePath := filepath.Join(bundleDir, "pipeline", "sub", "extra.json")
@@ -342,7 +342,7 @@ func TestRunLoadFailureChecklist_ScansFilesOutsideGraphSnapshot(t *testing.T) {
 		t.Fatalf("WriteFile failed: %v", err)
 	}
 
-	diagnostics := service.runLoadFailureChecklist([]mfw.ResourceBundleResolution{
+	diagnostics := service.checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{
 		{
 			InputPath:    bundleDir,
 			InputAbsPath: bundleDir,

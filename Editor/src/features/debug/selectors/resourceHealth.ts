@@ -20,7 +20,7 @@ const genericLoadingDiagnosticCodes = new Set([
 
 const categoryLabels: Record<DebugResourceHealthCategory, string> = {
   resolution: "资源路径",
-  loading: "MaaFW 资源加载",
+  loading: "资源静态检查与加载",
   graph: "流程文件与节点映射",
 };
 

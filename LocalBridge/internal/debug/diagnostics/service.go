@@ -57,7 +57,8 @@ func FirstError(diagnostics []protocol.Diagnostic) error {
 }
 
 func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
-	_, diagnostics := s.resolveResources(paths)
+	resolutions, diagnostics := s.resolveResources(paths)
+	diagnostics = append(diagnostics, s.checkBundlePipelineDiagnostics(resolutions)...)
 	return diagnostics
 }
 

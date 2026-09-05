@@ -24,7 +24,6 @@ export type DebugSessionStatus =
 export type DebugModalPanel =
   | "overview"
   | "setup"
-  | "resource-health"
   | "node-execution"
   | "debug-log";
 

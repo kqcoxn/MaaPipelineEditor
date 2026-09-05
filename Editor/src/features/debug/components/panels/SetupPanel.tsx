@@ -1,3 +1,5 @@
+import { DebugSetupChecks } from "../DebugSetupChecks";
+import { useState } from "react";
 import { modal } from "@/utils/ui/antdAppApi";
 import { List } from "../../../../components/SimpleList";
 import {
@@ -28,7 +30,6 @@ import {
   DEFAULT_DEBUG_AGENT_TIMEOUT_MS,
   getDebugAgentProfileKey,
 } from "../../utils/agentProfile";
-import { getDebugStatusLabel } from "../../utils/capabilityLabels";
 import { stringArray } from "../../utils/modalUtils";
 import { ProjectInterfaceAgentSection } from "./ProjectInterfaceAgentSection";
 
@@ -48,14 +49,21 @@ export function SetupPanel({
 }: {
   controller: DebugModalController;
 }) {
+  const [expandedSections, setExpandedSections] = useState<string[]>(["profile", "resources"]);
+  const configureSection = (section: "resources" | "controller") => {
+    setExpandedSections((current) => current.includes(section) ? current : [...current, section]);
+    requestAnimationFrame(() => document.getElementById(`debug-setup-${section}`)?.scrollIntoView({ block: "nearest" }));
+  };
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
       <DebugSection title="关于 MPE FlowScope (调试模块)">
         <DebugFlowScopeIntro />
       </DebugSection>
+      <DebugSetupChecks controller={controller} onConfigure={configureSection} />
       <ConfigurationSourceSection controller={controller} />
       <Collapse
-        defaultActiveKey={["profile", "resources"]}
+        activeKey={expandedSections}
+        onChange={(keys) => setExpandedSections(Array.isArray(keys) ? keys : [keys])}
         items={[
           {
             key: "profile",
@@ -64,12 +72,12 @@ export function SetupPanel({
           },
           {
             key: "resources",
-            label: "资源路径（Resource）",
+            label: <span id="debug-setup-resources">资源路径（Resource）</span>,
             children: <ResourceSection controller={controller} />,
           },
           {
             key: "controller",
-            label: "控制器（Controller）",
+            label: <span id="debug-setup-controller">控制器（Controller）</span>,
             children: <ControllerSection controller={controller} />,
           },
           {
@@ -221,11 +229,6 @@ function ProfileSection({ controller }: { controller: DebugModalController }) {
 
 function ResourceSection({ controller }: { controller: DebugModalController }) {
   const {
-    connected,
-    resourcePreflightStatus,
-    resourcePreflight,
-    resolvedResourcePaths,
-    requestResourcePreflight,
     profileState,
     updateResourcePaths,
     resourceBundles,
@@ -237,52 +240,6 @@ function ResourceSection({ controller }: { controller: DebugModalController }) {
 
   return (
     <Space orientation="vertical" size={14} style={{ width: "100%" }}>
-      <Alert
-        type={
-          resourcePreflightStatus === "ready"
-            ? "success"
-            : resourcePreflightStatus === "error"
-              ? "error"
-              : "info"
-        }
-        showIcon
-        title={
-          resourcePreflightStatus === "ready"
-            ? "资源加载检测通过"
-            : resourcePreflightStatus === "checking"
-              ? "正在检测资源加载"
-              : resourcePreflightStatus === "error"
-                ? "资源加载检测失败"
-                : "资源路径"
-        }
-        description={
-          resourcePreflightStatus === "ready"
-            ? `已由后端完成一次真实资源加载检测${
-                resourcePreflight.result?.hash
-                  ? `，hash：${resourcePreflight.result.hash}`
-                  : ""
-              }。`
-            : resourcePreflightStatus === "checking"
-              ? "后端正在使用 MaaFramework 加载资源，请稍候。"
-              : (resourcePreflight.error ??
-                "留空时会使用 LocalBridge 当前扫描到的资源包绝对路径；打开调试模块或修改资源路径后会检测一次。")
-        }
-      />
-      <Space wrap>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={requestResourcePreflight}
-          loading={resourcePreflightStatus === "checking"}
-          disabled={!connected || resolvedResourcePaths.length === 0}
-        >
-          重新检测资源加载
-        </Button>
-        <Tag>{getDebugStatusLabel(resourcePreflightStatus)}</Tag>
-        <Tag>资源路径 {resolvedResourcePaths.length}</Tag>
-        {resourcePreflight.result?.durationMs !== undefined && (
-          <Tag>耗时 {resourcePreflight.result.durationMs}ms</Tag>
-        )}
-      </Space>
       <Select
         mode="tags"
         style={{ width: "100%" }}
@@ -360,14 +317,7 @@ function ProjectInterfaceResourceSection({ controller }: { controller: DebugModa
         locale={{ emptyText: "正在解析 Project Interface 资源路径" }}
         renderItem={(path) => <List.Item><Text code>{path}</Text></List.Item>}
       />
-      <Button
-        icon={<ReloadOutlined />}
-        onClick={controller.requestResourcePreflight}
-        loading={controller.resourcePreflightStatus === "checking"}
-        disabled={!pi.context}
-      >
-        重新检测资源加载
-      </Button>
+
     </Space>
   );
 }

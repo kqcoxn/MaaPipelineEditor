@@ -56,18 +56,19 @@ export function useDebugResourceChecks({
   resourcePathsOverride,
   projectContextId,
 }: UseDebugResourceChecksOptions) {
+  const inspectGraph = modalOpen && (activePanel === "setup" || activePanel === "overview");
   const { files, currentFileName } = useFileStore(
     useShallow((state) => ({
-      files: activePanel === "resource-health" ? state.files : EMPTY_ARRAY,
-      currentFileName: activePanel === "resource-health" ? state.currentFile.fileName : "",
+      files: inspectGraph ? state.files : EMPTY_ARRAY,
+      currentFileName: inspectGraph ? state.currentFile.fileName : "",
     })),
   );
   const { semanticRevision, topologyRevision } = useFlowStore(
     useShallow((state) => ({
       semanticRevision:
-        activePanel === "resource-health" ? state.semanticRevision : -1,
+        inspectGraph ? state.semanticRevision : -1,
       topologyRevision:
-        activePanel === "resource-health" ? state.topologyRevision : -1,
+        inspectGraph ? state.topologyRevision : -1,
     })),
   );
   const { resourceBundles, localFiles, localFilesRevision } = useLocalFileStore(
@@ -152,7 +153,7 @@ export function useDebugResourceChecks({
   );
 
   const resourceHealthDraft = useMemo(() => {
-    if (activePanel !== "resource-health") return {};
+    if (!inspectGraph) return {};
     try {
       void resourceHealthSnapshotKey;
       const runRequest = profileState.buildRunRequest(
@@ -168,20 +169,21 @@ export function useDebugResourceChecks({
       };
       return {
         request,
-        requestKey: makeDebugResourceHealthRequestKey(request),
+        requestKey: JSON.stringify([makeDebugResourceHealthRequestKey(request), resourceKey, resourceHealthSnapshotKey, projectContextId]),
       };
     } catch (error) {
       return {
         error:
-          error instanceof Error ? error.message : "生成资源体检请求失败",
+          error instanceof Error ? error.message : "生成调试检查请求失败",
       };
     }
   }, [
-    activePanel,
+    inspectGraph,
     profileState,
     projectContextId,
     resolvedResourcePaths,
     resourceHealthSnapshotKey,
+    resourceKey,
     selectedFlowTarget,
   ]);
   const resourceHealthMatches =
@@ -239,7 +241,7 @@ export function useDebugResourceChecks({
   ]);
 
   useEffect(() => {
-    if (!modalOpen || activePanel !== "resource-health") return;
+    if (!modalOpen || !inspectGraph) return;
     if (!connected) return;
     if (!resourceHealthDraft.request || !resourceHealthDraft.requestKey) return;
     if (
@@ -257,7 +259,7 @@ export function useDebugResourceChecks({
       setResourceHealthError,
     });
   }, [
-    activePanel,
+    inspectGraph,
     connected,
     modalOpen,
     resourceHealth.requestKey,
@@ -290,7 +292,7 @@ export function useDebugResourceChecks({
 
   const requestResourceHealth = useCallback(() => {
     if (!resourceHealthDraft.request || !resourceHealthDraft.requestKey) {
-      message.error(resourceHealthDraft.error ?? "生成资源体检请求失败");
+      message.error(resourceHealthDraft.error ?? "生成调试检查请求失败");
       return;
     }
     requestResourceHealthAction({
