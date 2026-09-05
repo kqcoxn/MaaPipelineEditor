@@ -48,6 +48,7 @@ import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
 } from "../utils/pipelineOverride";
+import { useDebugStopControl } from "./useDebugStopControl";
 import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
 import type {
@@ -503,22 +504,7 @@ export function useDebugModalController() {
   );
 
 
-  const stopRun = () => {
-    if (!session?.sessionId) {
-      message.warning("当前没有调试会话（Session）");
-      return;
-    }
-    if (session.status !== "running" || !activeRun?.runId) {
-      message.warning("当前没有运行中的调试任务");
-      return;
-    }
-    const sent = debugProtocolClient.stopRun({
-      sessionId: session.sessionId,
-      runId: activeRun.runId,
-      reason: "user_stop",
-    });
-    if (!sent) message.error("发送停止请求失败");
-  };
+  const { stopRun, stopPending } = useDebugStopControl();
 
   const captureScreenshot = () => {
     captureScreenshotAction(
@@ -723,6 +709,7 @@ export function useDebugModalController() {
     testingAgentIds,
     startRun,
     stopRun,
+    stopPending,
     captureScreenshot,
     selectDisplaySessions,
     selectLatestDisplaySession,

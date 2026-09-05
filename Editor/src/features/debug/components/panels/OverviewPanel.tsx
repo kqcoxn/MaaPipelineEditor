@@ -159,6 +159,7 @@ export function OverviewPanel({
     nodeExecutionResolverNodes,
     startRun,
     stopRun,
+    stopPending,
     selectPipelineNode,
     setIncludeAllJsonRunTargets,
     selectDisplaySessions,
@@ -439,9 +440,10 @@ export function OverviewPanel({
                 danger
                 icon={<StopOutlined />}
                 onClick={stopRun}
-                disabled={!canStopRun}
+                loading={stopPending}
+                disabled={!canStopRun || stopPending}
               >
-                停止
+                {stopPending ? "正在停止…" : "停止"}
               </Button>
             </Space>
           </div>

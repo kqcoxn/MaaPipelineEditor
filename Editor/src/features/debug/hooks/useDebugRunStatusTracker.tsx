@@ -1,123 +1,17 @@
-import { notification } from "@/utils/ui/antdAppApi";
-import { useEffect, useRef } from "react";
-import { Button } from "antd";
+import { useEffect } from "react";
 import { useDebugTraceStore } from "@/stores/debug/debugTraceStore";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
-import { getRunModeLabel } from "../utils/capabilityLabels";
-import type { DebugRunMode } from "../types";
 
-function isTerminalDebugSessionStatus(status?: string): boolean {
-  return status === "completed" || status === "failed" || status === "stopped";
-}
-
-function formatDuration(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return "未知";
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return `${m}m${s}s`;
-}
-
-const statusLabels: Record<string, string> = {
-  completed: "运行成功",
-  failed: "运行失败",
-  stopped: "运行已停止",
-};
-
-/**
- * 追踪调试运行状态：
- * 1. 更新 debugSessionStore.runBadgeStatus（供工具栏 badge 显示）
- * 2. 运行进入终态时弹出 notification（仅对实时运行触发，回放历史不触发）
- */
+/** 工具栏保留运行标记，运行结果由悬浮胶囊展示。 */
 export function useDebugRunStatusTracker(): void {
-  const displaySessions = useDebugTraceStore((s) => s.displaySessions);
-  const seenRunningRef = useRef<Set<string>>(new Set());
-  const notifiedRef = useRef<Set<string>>(new Set());
+  const status = useDebugTraceStore((state) => state.displaySessions[0]?.status);
 
   useEffect(() => {
-    const latest = displaySessions[0];
-    if (!latest) return;
-
-    const sessionKey = `${latest.sessionId}:${latest.runId}`;
-    const sessionStore = useDebugSessionStore.getState();
-
-    if (!isTerminalDebugSessionStatus(latest.status)) {
-      // 记录见过非终态的会话（区分实时运行 vs 回放历史）
-      seenRunningRef.current.add(sessionKey);
-      sessionStore.setRunBadgeStatus("running");
-      return;
-    }
-
-    // 终态：更新 badge
-    sessionStore.setRunBadgeStatus(
-      latest.status as "completed" | "failed" | "stopped",
-    );
-
-    // 仅对"见过运行中"的会话发通知（跳过回放/快照加载的历史会话）
-    if (!seenRunningRef.current.has(sessionKey)) return;
-    if (notifiedRef.current.has(sessionKey)) return;
-    notifiedRef.current.add(sessionKey);
-
-    const started = Date.parse(latest.startedAt ?? "");
-    const completed = Date.parse(latest.completedAt ?? "");
-    const durationMs =
-      Number.isFinite(started) && Number.isFinite(completed)
-        ? completed - started
-        : undefined;
-
-    const statusLabel = statusLabels[latest.status ?? ""] ?? "运行结束";
-    const modeLabel = latest.mode
-      ? getRunModeLabel(latest.mode as DebugRunMode)
-      : "未知";
-    const notifyKey = `debug-run-finished-${sessionKey}`;
-
-    const method =
-      latest.status === "completed"
-        ? notification.success
-        : latest.status === "failed"
-          ? notification.error
-          : notification.warning;
-
-    const runMeta = `模式：${modeLabel}${durationMs !== undefined ? ` | 耗时：${formatDuration(durationMs)}` : ""}`;
-
-    method({
-      key: notifyKey,
-      title: `调试${statusLabel}`,
-      description: (
-        <div style={{ display: "grid", gap: 4 }}>
-          <span>{runMeta}</span>
-          {latest.failure?.message && (
-            <span
-              style={{
-                color: "#cf1322",
-                overflowWrap: "anywhere",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              原因：{latest.failure.message}
-            </span>
-          )}
-        </div>
-      ),
-      duration: 6,
-      placement: "top",
-      actions: (
-        <Button
-          type="link"
-          size="small"
-          onClick={() => {
-            useDebugSessionStore
-              .getState()
-              .openModal(
-                latest.status === "completed" ? "node-execution" : undefined,
-              );
-            notification.destroy(notifyKey);
-          }}
-        >
-          查看详情
-        </Button>
-      ),
-    });
-  }, [displaySessions]);
+    if (!status) return;
+    const badgeStatus =
+      status === "completed" || status === "failed" || status === "stopped"
+        ? status
+        : "running";
+    useDebugSessionStore.getState().setRunBadgeStatus(badgeStatus);
+  }, [status]);
 }

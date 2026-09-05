@@ -25,6 +25,7 @@ import { SetupPanel } from "../../features/debug/components/panels/SetupPanel";
 import { NodeExecutionPanel } from "../../features/debug/components/panels/NodeExecutionPanel";
 import { DebugLogPanel } from "../../features/debug/components/panels/DebugLogPanel";
 import { WikiAnchor } from "../wiki/WikiAnchor";
+import { DebugRunIsland } from "./DebugRunIsland";
 
 const { Text, Title } = Typography;
 
@@ -210,6 +211,8 @@ function DebugModalContent({ onRuntimeReady }: DebugModalProps) {
   }, []);
 
   return (
+    <>
+    <DebugRunIsland stopPending={controller.stopPending} onStop={controller.stopRun} />
     <Drawer
       title={
         <span style={drawerHeaderStyle}>
@@ -320,6 +323,7 @@ function DebugModalContent({ onRuntimeReady }: DebugModalProps) {
         </main>
       </div>
     </Drawer>
+    </>
   );
 }
 

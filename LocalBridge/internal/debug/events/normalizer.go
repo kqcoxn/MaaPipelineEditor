@@ -74,7 +74,7 @@ func (n *Normalizer) OnTaskerTask(tasker *maa.Tasker, status maa.EventStatus, de
 	n.publish(event)
 }
 
-func (n *Normalizer) OnNodePipelineNode(_ *maa.Context, status maa.EventStatus, detail maa.NodePipelineNodeDetail) {
+func (n *Normalizer) OnNodePipelineNode(ctx *maa.Context, status maa.EventStatus, detail maa.NodePipelineNodeDetail) {
 	event := n.baseEvent("node", "Node.PipelineNode", status)
 	event.TaskID = int64(detail.TaskID)
 	event.Node = n.nodeForPipelineEvent(status, detail.Name)
@@ -82,6 +82,7 @@ func (n *Normalizer) OnNodePipelineNode(_ *maa.Context, status maa.EventStatus, 
 		"nodeId": detail.NodeID,
 		"focus":  detail.Focus,
 	}
+	attachRuntimeMetadata(ctx, &event, detail.Name)
 	n.publish(event)
 }
 
@@ -107,7 +108,7 @@ func (n *Normalizer) OnNodeActionNode(_ *maa.Context, status maa.EventStatus, de
 	n.publish(event)
 }
 
-func (n *Normalizer) OnNodeNextList(_ *maa.Context, status maa.EventStatus, detail maa.NodeNextListDetail) {
+func (n *Normalizer) OnNodeNextList(ctx *maa.Context, status maa.EventStatus, detail maa.NodeNextListDetail) {
 	event := n.baseEvent("next-list", "Node.NextList", status)
 	event.TaskID = int64(detail.TaskID)
 	event.Node = n.nodeForNextListEvent(detail.Name)
@@ -115,6 +116,7 @@ func (n *Normalizer) OnNodeNextList(_ *maa.Context, status maa.EventStatus, deta
 		"next":  normalizeNextList(detail.List),
 		"focus": detail.Focus,
 	}
+	attachRuntimeMetadata(ctx, &event, detail.Name)
 	n.publish(event)
 }
 
@@ -126,6 +128,7 @@ func (n *Normalizer) OnNodeRecognition(ctx *maa.Context, status maa.EventStatus,
 		"recognitionId": detail.RecognitionID,
 		"focus":         detail.Focus,
 	}
+	attachRuntimeMetadata(ctx, &event, detail.Name)
 
 	n.mu.Lock()
 	currentNode := n.currentNode
@@ -155,6 +158,7 @@ func (n *Normalizer) OnNodeAction(ctx *maa.Context, status maa.EventStatus, deta
 		"actionId": detail.ActionID,
 		"focus":    detail.Focus,
 	}
+	attachRuntimeMetadata(ctx, &event, detail.Name)
 
 	if status == maa.EventStatusSucceeded || status == maa.EventStatusFailed {
 		if ref := n.storeActionDetail(ctx, int64(detail.ActionID)); ref != nil {
@@ -170,6 +174,7 @@ func (n *Normalizer) baseEvent(kind string, baseMessage string, status maa.Event
 		SessionID:    n.sessionID,
 		RunID:        n.runID,
 		Source:       "maafw",
+		Timestamp:    eventTimestamp(),
 		Kind:         kind,
 		MaaFWMessage: maafwMessage(baseMessage, status),
 		Phase:        eventPhase(status),

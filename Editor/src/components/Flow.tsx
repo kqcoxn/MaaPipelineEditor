@@ -665,6 +665,7 @@ function MainFlow() {
   // 渲染
   return (
     <div
+      id="mpe-main-canvas"
       className={style.editor}
       data-node-shadows={showNodeShadows}
       ref={ref}

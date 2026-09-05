@@ -125,7 +125,10 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-9",
     type: "major",
     updates: {
-      features: ["🚨 调试面板提供字段级静态错误检查"],
+      features: [
+        "🚨 调试面板提供字段级静态错误检查",
+        "💊 新增灵动调试胶囊小组件，调试时管理与信息查看更便捷",
+      ],
       perfs: ["调试时聚焦入口节点功能可进行配置（默认关闭）"],
     },
   },
