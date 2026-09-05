@@ -153,7 +153,7 @@ export function buildDebugSnapshotBundle(
     .flatMap((file) =>
       (file.nodes ?? [])
         .map((node) => {
-          const runtimeName = node.label?.trim();
+          const runtimeName = node.label;
           if (!runtimeName) return undefined;
           const prefix = node.prefix || file.prefix || undefined;
           return {
@@ -210,6 +210,7 @@ export function buildDebugSnapshotBundle(
     nodes: selectEffectiveResolverNodes(
       [...resolverNodes, ...localResolverNodes],
       resourcePaths,
+      rootFileId,
     ),
     edges: selectEffectiveResolverEdges(resolverEdges, resourcePaths),
   };
@@ -223,10 +224,11 @@ export function buildDebugSnapshotBundle(
 export function selectEffectiveResolverNodes(
   nodes: ResolverNode[],
   resourcePaths: string[] = [],
+  rootFileId?: string,
 ): ResolverNode[] {
   const grouped = new Map<string, Array<{ node: ResolverNode; order: number }>>();
   nodes.forEach((node, order) => {
-    const runtimeName = node.runtimeName.trim();
+    const runtimeName = node.runtimeName;
     if (!runtimeName) return;
     const entries = grouped.get(runtimeName) ?? [];
     entries.push({ node, order });
@@ -234,7 +236,7 @@ export function selectEffectiveResolverNodes(
   });
 
   return [...grouped.values()]
-    .flatMap((entries) => selectWinningBundleEntries(entries, resourcePaths))
+    .flatMap((entries) => selectWinningBundleEntries(entries, resourcePaths, rootFileId))
     .sort((left, right) => left.order - right.order)
     .map((entry) => entry.node);
 }
@@ -247,8 +249,8 @@ export function selectEffectiveResolverEdges(
 
   edges.forEach((edge, order) => {
     const key = [
-      edge.fromRuntimeName.trim(),
-      edge.toRuntimeName.trim(),
+      edge.fromRuntimeName,
+      edge.toRuntimeName,
       edge.reason,
     ].join("\x00");
     const entries = grouped.get(key) ?? [];
@@ -262,10 +264,15 @@ export function selectEffectiveResolverEdges(
     .map((entry) => entry.edge);
 }
 
-function selectWinningBundleEntries<T extends { sourcePath?: string }>(
-  entries: Array<{ node: T; order: number }> | Array<{ edge: T; order: number }>,
+type ResolverSource = { sourcePath?: string; fileId?: string };
+
+function selectWinningBundleEntries<T extends { order: number } & (
+  { node: ResolverSource } | { edge: ResolverSource }
+)>(
+  entries: T[],
   resourcePaths: string[],
-): typeof entries {
+  rootFileId?: string,
+): T[] {
   let winningPriority = -1;
   for (const entry of entries) {
     const value = "node" in entry ? entry.node : entry.edge;
@@ -274,10 +281,18 @@ function selectWinningBundleEntries<T extends { sourcePath?: string }>(
       resolveResolverSourcePriority(value.sourcePath, resourcePaths),
     );
   }
+  // Relative paths need LocalBridge resolution; do not infer exclusion from
+  // comparing them with absolute source paths in the browser.
+  const absoluteScope = resourcePaths.length > 0 && resourcePaths.every(
+    (path) => /^(?:[a-z]:\/|\/)/i.test(normalizeResolverPath(path)),
+  );
   return entries.filter((entry) => {
     const value = "node" in entry ? entry.node : entry.edge;
-    return resolveResolverSourcePriority(value.sourcePath, resourcePaths) === winningPriority;
-  }) as typeof entries;
+    const priority = resolveResolverSourcePriority(value.sourcePath, resourcePaths);
+    const currentFile = Boolean(rootFileId && value.fileId === rootFileId);
+    if (absoluteScope && value.sourcePath && priority < 0 && !currentFile) return false;
+    return priority === winningPriority;
+  });
 }
 
 function resolveResolverSourcePriority(

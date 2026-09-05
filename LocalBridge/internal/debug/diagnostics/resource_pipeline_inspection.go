@@ -65,6 +65,10 @@ func (s *Service) inspectBundlePipelineFiles(
 		}
 		seenBundles[key] = struct{}{}
 		pipelineDir := filepath.Join(bundlePath, "pipeline")
+		// Image/model-only overlay bundles need not contain a pipeline directory.
+		if _, err := os.Stat(pipelineDir); os.IsNotExist(err) {
+			continue
+		}
 		walkErr := filepath.WalkDir(pipelineDir, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{

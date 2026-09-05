@@ -10,23 +10,10 @@ import (
 )
 
 func checkResourceRecognitionTemplates(ctx resourceHealthChecklistContext, name string, reco resourceReferenceField) []protocol.Diagnostic {
-	kind, _ := resourceReferenceString(resourceReferenceChild(reco, "type").value)
-	param := resourceReferenceChild(reco, "param")
-	switch kind {
-	case "TemplateMatch", "FeatureMatch":
-		return checkResourceTemplateField(ctx, name, resourceReferenceChild(param, "template"))
-	case "And", "Or":
-		key := "all_of"
-		if kind == "Or" {
-			key = "any_of"
-		}
-		var diagnostics []protocol.Diagnostic
-		for _, child := range resourceReferenceItems(resourceReferenceChild(param, key)) {
-			diagnostics = append(diagnostics, checkResourceRecognitionTemplates(ctx, name, child)...)
-		}
-		return diagnostics
-	}
-	return nil
+	// Inline sub-recognitions use the same v1/v2 node syntax as parse_recognition.
+	// A string here is a runtime node reference, not an image path.
+	return checkEffectiveResourceImageRecognition(ctx, name,
+		mergeResourceImageRecognition(reco, resourceImageRecognition{kind: "DirectHit"}))
 }
 
 func checkResourceTemplateField(ctx resourceHealthChecklistContext, name string, field resourceReferenceField) []protocol.Diagnostic {
@@ -55,9 +42,9 @@ func checkResourceTemplateField(ctx resourceHealthChecklistContext, name string,
 			}
 		}
 		if !found {
-			severity, code := "error", "debug.resource.pipeline_image_missing"
+			severity, code := "warning", "debug.resource.pipeline_image_missing"
 			message := fmt.Sprintf("节点「%s」的 %s 引用了不存在的图片「%s」。", name, ref.path, template)
-			suggestion := "将图片放入已选资源包的 image 目录，或修正 template 为相对于 image 目录的路径；请替换 TODO 占位图片引用。"
+			suggestion := "图片在识别时读取，不阻止资源加载或调试；若执行到该识别，请补齐 image 目录中的图片、修正 template 路径，或确保运行时已注入同名图片。"
 			if readErr != nil {
 				severity, code = "warning", "debug.resource.pipeline_image_unreadable"
 				message = fmt.Sprintf("无法检查节点「%s」引用的图片「%s」：%v。", name, template, readErr)

@@ -288,6 +288,33 @@ describe("snapshot resource override resolution", () => {
     expect(selectEffectiveResolverNodes(nodes, ["C:/resource/base"])).toEqual(nodes);
   });
 
+  it("excludes unselected resource nodes and edges even without a selected namesake", () => {
+    const nodes = ["base", "en", "jp"].map((bundle) => ({
+      fileId: bundle, nodeId: bundle, runtimeName: "Only_" + bundle,
+      displayName: bundle, sourcePath: `C:/resource/${bundle}/pipeline/main.json`,
+    }));
+    expect(selectEffectiveResolverNodes(nodes, ["C:/resource/base", "C:/resource/en"])).toEqual(nodes.slice(0, 2));
+    const edges = nodes.map((node) => ({
+      edgeId: node.nodeId, fromRuntimeName: node.runtimeName,
+      toRuntimeName: "End", reason: "next" as const, sourcePath: node.sourcePath,
+    }));
+    expect(selectEffectiveResolverEdges(edges, ["C:/resource/base"])).toEqual(edges.slice(0, 1));
+  });
+
+  it("keeps whitespace in runtime names significant", () => {
+    const nodes = ["Node", " Node"].map((runtimeName, index) => ({
+      fileId: String(index), nodeId: String(index), runtimeName, displayName: runtimeName,
+      sourcePath: `C:/resource/${index}/pipeline/main.json`,
+    }));
+    expect(selectEffectiveResolverNodes(nodes, ["C:/resource/0", "C:/resource/1"])).toEqual(nodes);
+  });
+
+  it("preserves current-file overrides outside bundles and defers relative paths to LocalBridge", () => {
+    const nodes = [{fileId: "current", nodeId: "node", runtimeName: "Start", displayName: "Start", sourcePath: "C:/scratch/main.json"}];
+    expect(selectEffectiveResolverNodes(nodes, ["C:/resource/base"], "current")).toEqual(nodes);
+    expect(selectEffectiveResolverNodes(nodes, ["./resource/base"])).toEqual(nodes);
+  });
+
   it("resolves duplicate canvas node ids within the current file", () => {
     const resolverSnapshot: DebugNodeResolverSnapshot = {
       generatedAt: "2026-09-01T00:00:00.000Z",

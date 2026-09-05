@@ -277,7 +277,7 @@ func TestBundlePipelineDiagnostics_DetectsDuplicateNodeNamesAcrossFilesInBundle(
 	}
 }
 
-func TestResourcePreflightReportsDuplicateBeforeMaaFWLoad(t *testing.T) {
+func TestResourcePreflightRetainsStaticLocationsWhenNativeLoadUnavailable(t *testing.T) {
 	service := NewService(nil, "")
 	bundleDir := createResourceBundleDir(t)
 	for _, name := range []string{"first.json", "second.json"} {
@@ -293,7 +293,7 @@ func TestResourcePreflightReportsDuplicateBeforeMaaFWLoad(t *testing.T) {
 		t.Fatalf("status = %q, want failed", result.Status)
 	}
 	assertDiagnosticCode(t, result.Diagnostics, "debug.resource.pipeline_node_name_duplicate")
-	assertDiagnosticMissing(t, result.Diagnostics, "debug.resource.load_unavailable")
+	assertDiagnosticCode(t, result.Diagnostics, "debug.resource.load_unavailable")
 }
 
 func TestBundlePipelineDiagnostics_NodeNamesAreCaseSensitive(t *testing.T) {

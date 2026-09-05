@@ -22,6 +22,7 @@ type resourceReferenceNode map[string]resourceReferenceField
 
 func (s *Service) checkBundlePipelineReferences(ctx resourceHealthChecklistContext) []protocol.Diagnostic {
 	nodes := make(map[string]resourceReferenceNode)
+	recognitions := make(map[string]resourceImageRecognition)
 	diagnostics := make([]protocol.Diagnostic, 0)
 	seen := make(map[string]bool)
 	appendUnique := func(items []protocol.Diagnostic) {
@@ -54,9 +55,10 @@ func (s *Service) checkBundlePipelineReferences(ctx resourceHealthChecklistConte
 				if nodes[name] == nil {
 					nodes[name] = make(resourceReferenceNode)
 				}
-				for i := range body.Members {
-					field := &body.Members[i]
-					key := resourceHealthObjectMemberName(*field)
+				recognitions[name] = mergeResourceImageRecognition(
+					resourceReferenceField{file: file, value: &member.Value}, recognitions[name])
+				for _, field := range body.Members {
+					key := resourceHealthObjectMemberName(field)
 					nodes[name][key] = resourceReferenceField{file: file, value: &field.Value, path: key}
 				}
 			}
@@ -67,6 +69,7 @@ func (s *Service) checkBundlePipelineReferences(ctx resourceHealthChecklistConte
 			for _, key := range []string{"next", "on_error"} {
 				for _, ref := range resourceReferenceItems(nodes[name][key]) {
 					target, ok := resourceReferenceString(ref.value)
+					stringForm := ok
 					anchor := false
 					if !ok {
 						anchorField := resourceReferenceChild(ref, "anchor")
@@ -80,7 +83,7 @@ func (s *Service) checkBundlePipelineReferences(ctx resourceHealthChecklistConte
 					if !ok {
 						continue
 					}
-					for strings.HasPrefix(target, "[") {
+					for stringForm && strings.HasPrefix(target, "[") {
 						end := strings.Index(target, "]")
 						if end < 0 {
 							break
@@ -103,15 +106,7 @@ func (s *Service) checkBundlePipelineReferences(ctx resourceHealthChecklistConte
 	}
 	// Images are lazy-loaded at recognition time and can come from any selected bundle.
 	for _, name := range resourceReferenceNodeNames(nodes) {
-		node := nodes[name]
-		reco := node["recognition"]
-		if kind, ok := resourceReferenceString(reco.value); ok {
-			if kind == "TemplateMatch" || kind == "FeatureMatch" {
-				appendUnique(checkResourceTemplateField(ctx, name, node["template"]))
-			}
-		} else {
-			appendUnique(checkResourceRecognitionTemplates(ctx, name, reco))
-		}
+		appendUnique(checkEffectiveResourceImageRecognition(ctx, name, recognitions[name]))
 	}
 	return diagnostics
 }
@@ -147,7 +142,11 @@ func resourceReferenceChild(field resourceReferenceField, key string) resourceRe
 	for i := range object.Members {
 		member := &object.Members[i]
 		if resourceHealthObjectMemberName(*member) == key {
-			return resourceReferenceField{file: field.file, value: &member.Value, path: field.path + "." + key}
+			path := key
+			if field.path != "" {
+				path = field.path + "." + key
+			}
+			return resourceReferenceField{file: field.file, value: &member.Value, path: path}
 		}
 	}
 	return resourceReferenceField{}

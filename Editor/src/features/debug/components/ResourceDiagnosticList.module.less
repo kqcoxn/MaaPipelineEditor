@@ -1,0 +1,13 @@
+.list { margin: 0; padding: 0; list-style: none; }
+.item { padding-block: 3px; }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.node, .field { max-width: 22%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field { opacity: .65; font-size: 12px; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; min-width: 64px; padding: 6px 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.toggle:hover .reason { text-decoration: underline; }
+.toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 3px; }
+.reason { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detail { margin: 4px 0 10px 36px; padding-inline-start: 12px; border-inline-start: 2px solid color-mix(in srgb, currentColor 15%, transparent); overflow-wrap: anywhere; font-size: 13px; }
+.detail > * + * { margin-top: 6px; }
+.detailItem { display: flex; align-items: baseline; gap: 8px; }
+.detailItem > div { flex: 1; min-width: 0; }

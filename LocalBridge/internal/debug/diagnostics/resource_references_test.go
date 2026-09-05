@@ -1,6 +1,7 @@
 package diagnostics
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,7 +22,7 @@ func writeReferencePipeline(t *testing.T, bundle, name, content string) string {
 	return path
 }
 
-func TestResourcePreflightReportsMissingReferencesBeforeNativeLoad(t *testing.T) {
+func TestResourcePreflightReportsMissingReferencesWithNativeFailure(t *testing.T) {
 	bundle := createResourceBundleDir(t)
 	path := writeReferencePipeline(t, bundle, "battle.jsonc", `{
   // 编辑器的外部节点记录不是节点定义
@@ -32,7 +33,10 @@ func TestResourcePreflightReportsMissingReferencesBeforeNativeLoad(t *testing.T)
   }
 }`)
 	service := NewService(nil, "")
-	service.resourceLoadAvailableFn = func() bool { t.Fatal("static errors must precede native initialization"); return false }
+	service.resourceLoadAvailableFn = func() bool { return true }
+	service.resourceBundleChecker = func([]string) (string, []mfw.ResourceBundleResolution, error) {
+		return "", nil, fmt.Errorf("invalid next node")
+	}
 	result := service.CheckResourcePreflight(protocol.ResourcePreflightRequest{ResourcePaths: []string{bundle}})
 	for _, code := range []string{"debug.resource.pipeline_node_missing", "debug.resource.pipeline_image_missing"} {
 		d := findDiagnostic(t, result.Diagnostics, code)
@@ -50,6 +54,56 @@ func TestResourcePreflightReportsMissingReferencesBeforeNativeLoad(t *testing.T)
 	}
 	if result.Status != "failed" {
 		t.Fatalf("status = %s", result.Status)
+	}
+}
+
+func TestResourcePreflightMissingImageDoesNotBlockNativeLoad(t *testing.T) {
+	bundle := createResourceBundleDir(t)
+	writeReferencePipeline(t, bundle, "main.json", `{"Start":{"recognition":"TemplateMatch","template":"missing.png"}}`)
+	service := NewService(nil, "")
+	service.resourceLoadAvailableFn = func() bool { return true }
+	called := false
+	service.resourceBundleChecker = func([]string) (string, []mfw.ResourceBundleResolution, error) {
+		called = true
+		return "hash", []mfw.ResourceBundleResolution{{ResolvedPath: bundle}}, nil
+	}
+	result := service.CheckResourcePreflight(protocol.ResourcePreflightRequest{ResourcePaths: []string{bundle}})
+	if !called || result.Status != "ready" || findDiagnostic(t, result.Diagnostics, "debug.resource.pipeline_image_missing").Severity != "warning" {
+		t.Fatalf("image warning must allow native load and debugging: %#v", result)
+	}
+}
+
+func TestResourceReferencesObjectNamesAreLiteral(t *testing.T) {
+	bundle := createResourceBundleDir(t)
+	writeReferencePipeline(t, bundle, "main.json", `{"Start":{"next":[{"name":"[Anchor]Missing"},{"name":"[JumpBack]End"}]},"[JumpBack]End":{}}`)
+	diagnostics := NewService(nil, "").checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{{ResolvedPath: bundle}})
+	d := findDiagnostic(t, diagnostics, "debug.resource.pipeline_node_missing")
+	if d.Data["target"] != "[Anchor]Missing" {
+		t.Fatalf("object names must not parse attributes: %#v", diagnostics)
+	}
+}
+
+func TestResourceReferencesRecognitionInheritance(t *testing.T) {
+	for _, tc := range []struct{ name, base, overlay, target string }{
+		{"v2 to v1", `{"recognition":{"type":"TemplateMatch","param":{"template":"old.png"}}}`, `{"template":"new.png"}`, "new.png"},
+		{"inline v2", `{}`, `{"recognition":{"type":"FeatureMatch","template":"new.png"}}`, "new.png"},
+		{"default type", `{"recognition":"TemplateMatch","template":"old.png"}`, `{"recognition":{"param":{"threshold":0.8}}}`, "old.png"},
+		{"changed type", `{"recognition":"TemplateMatch","template":"old.png"}`, `{"recognition":"OCR"}`, ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			base, overlay := createResourceBundleDir(t), createResourceBundleDir(t)
+			writeReferencePipeline(t, base, "base.json", `{"Start":`+tc.base+`}`)
+			writeReferencePipeline(t, overlay, "overlay.json", `{"Start":`+tc.overlay+`}`)
+			diagnostics := NewService(nil, "").checkBundlePipelineDiagnostics([]mfw.ResourceBundleResolution{{ResolvedPath: base}, {ResolvedPath: overlay}})
+			if tc.target == "" {
+				assertDiagnosticMissing(t, diagnostics, "debug.resource.pipeline_image_missing")
+				return
+			}
+			d := findDiagnostic(t, diagnostics, "debug.resource.pipeline_image_missing")
+			if d.Data["target"] != tc.target {
+				t.Fatalf("wrong effective template: %#v", diagnostics)
+			}
+		})
 	}
 }
 
@@ -95,8 +149,8 @@ func TestResourceReferencesCheckObjectNextAndNestedTemplates(t *testing.T) {
     "next": [{"name":"Missing","jump_back":true}, {"name":"Dynamic","anchor":true}],
     "on_error": "MissingError",
     "recognition": {"type":"And","param":{"all_of":[
-      {"type":"TemplateMatch","param":{"template":["missing.png"]}},
-      {"type":"Custom","param":{"custom_recognition_param":{"template":"not_an_image.png"}}}
+      {"recognition":{"type":"TemplateMatch","param":{"template":["missing.png"]}}},
+      {"recognition":"Custom","custom_recognition_param":{"template":"not_an_image.png"}}
     ]}}
   }
 }`)

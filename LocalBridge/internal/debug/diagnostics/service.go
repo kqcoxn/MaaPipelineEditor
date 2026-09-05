@@ -58,7 +58,15 @@ func FirstError(diagnostics []protocol.Diagnostic) error {
 
 func (s *Service) checkResources(paths []string) []protocol.Diagnostic {
 	resolutions, diagnostics := s.resolveResources(paths)
-	diagnostics = append(diagnostics, s.checkBundlePipelineDiagnostics(resolutions)...)
+	// The runtime loads resources immediately afterwards. Static diagnostics
+	// must not veto resources accepted by that loader.
+	static := s.checkBundlePipelineDiagnostics(resolutions)
+	for i := range static {
+		if static[i].Severity == "error" {
+			static[i].Severity = "warning"
+		}
+	}
+	diagnostics = append(diagnostics, static...)
 	return diagnostics
 }
 

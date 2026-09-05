@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DebugModalController } from "../hooks/useDebugModalController";
 import { DebugSetupChecks } from "./DebugSetupChecks";
 import { groupSetupDiagnostics, selectSetupChecks } from "../selectors/setupChecks";
+import { getDebugReadiness } from "../selectors/readiness";
 
 function makeController(status: "ready" | "error" | "checking") {
   return {
@@ -35,16 +36,33 @@ describe("DebugSetupChecks", () => {
   it("provides a persistent route from the overview to source diagnostics", () => {
     const controller = makeController("error");
     render(<DebugSetupChecks controller={controller} compact />);
-    expect(screen.getByText(/发现 1 个错误、0 个警告/)).toBeTruthy();
+    expect(screen.getByText("1 个错误 · 0 个警告")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "查看调试配置与检查结果" }));
     expect(controller.handlePanelClick).toHaveBeenCalledWith("setup");
   });
 
   it("shows warnings without describing a passed preflight as blocked", () => {
     render(<DebugSetupChecks controller={makeController("ready")} />);
-    expect(screen.getByText("调试准备就绪")).toBeTruthy();
-    expect(screen.getByText(/发现 0 个错误、1 个警告/)).toBeTruthy();
+    expect(screen.getByText("调试检查通过")).toBeTruthy();
+    expect(screen.getByText("0 个错误 · 1 个警告")).toBeTruthy();
     expect(screen.getByText(/警告不会阻止调试/)).toBeTruthy();
+  });
+
+  it("allows static checks to pass without a device while keeping the run readiness guard", () => {
+    const controller = makeController("ready");
+    controller.debugReadiness = getDebugReadiness({
+      localBridgeConnected: true,
+      deviceConnectionStatus: "disconnected",
+      resourceStatus: "ready",
+    });
+    expect(controller.debugReadiness.ready).toBe(false);
+    expect(selectSetupChecks(controller).ready).toBe(true);
+    render(<DebugSetupChecks controller={controller} />);
+    expect(screen.getByText("调试检查通过")).toBeTruthy();
+    expect(screen.getByText("0 个错误 · 1 个警告")).toBeTruthy();
+    expect(screen.queryByText(/设备未连接/)).toBeNull();
+    expect(screen.queryByText("控制器与设备")).toBeNull();
+    expect(screen.queryByText(/可以启动调试/)).toBeNull();
   });
 
   it("hides results from the previous check while checking again", () => {
@@ -82,5 +100,20 @@ describe("DebugSetupChecks", () => {
     fireEvent.click(screen.getByRole("button", { name: /重新检查/ }));
     expect(controller.requestResourcePreflight).toHaveBeenCalledOnce();
     expect(controller.requestResourceHealth).toHaveBeenCalledOnce();
+  });
+
+  it("opens error files first and keeps warning-only files folded with full paths in tooltips", () => {
+    const controller = makeController("error");
+    controller.resourceHealthResult = { diagnostics: [
+      { severity: "warning", code: "warning", message: "图片待提供", sourcePath: "C:/resource/warn.json" },
+      { severity: "error", code: "error", message: "加载失败", sourcePath: "C:/resource/error.json" },
+    ] } as DebugModalController["resourceHealthResult"];
+    render(<DebugSetupChecks controller={controller} />);
+    const errorGroup = screen.getByText("error.json").closest("details")!;
+    const warningGroup = screen.getByText("warn.json").closest("details")!;
+    expect(errorGroup.querySelector("summary")?.title).toBe("C:/resource/error.json");
+    expect(errorGroup.hasAttribute("open")).toBe(true);
+    expect(warningGroup.hasAttribute("open")).toBe(false);
+    expect(screen.getByText("error.json")).toBeTruthy();
   });
 });

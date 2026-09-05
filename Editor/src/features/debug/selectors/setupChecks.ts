@@ -23,12 +23,13 @@ export function selectSetupChecks(controller: DebugModalController) {
     }
   }
   for (const issue of controller.debugReadiness.issues) {
-    if (issue.code === "debug.resource.not_ready") continue;
+    // Device readiness is checked when starting a run, not during static analysis.
+    if (issue.code === "debug.resource.not_ready" || issue.code === "debug.device.disconnected") continue;
     addError(issue.code, issue.message);
   }
   const issues = diagnostics.filter((item) => item.severity !== "info");
   const counts = countDebugDiagnosticsBySeverity(issues);
-  const ready = !checking && counts.error === 0 && controller.debugReadiness.ready && controller.resourceHealthStatus === "ready";
+  const ready = !checking && counts.error === 0 && controller.resourceHealthStatus === "ready";
   return { diagnostics: issues, counts, checking, ready };
 }
 
@@ -48,10 +49,14 @@ export function groupSetupDiagnostics(diagnostics: DebugDiagnostic[]) {
   }
   for (const group of groups.values()) {
     group.diagnostics.sort((a, b) => {
+      if (a.severity !== b.severity) return a.severity === "error" ? -1 : b.severity === "error" ? 1 : 0;
       const aLine = typeof a.data?.line === "number" ? a.data.line : 0;
       const bLine = typeof b.data?.line === "number" ? b.data.line : 0;
       return aLine - bLine;
     });
   }
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) =>
+    Number(b.diagnostics.some((item) => item.severity === "error")) -
+    Number(a.diagnostics.some((item) => item.severity === "error")),
+  );
 }

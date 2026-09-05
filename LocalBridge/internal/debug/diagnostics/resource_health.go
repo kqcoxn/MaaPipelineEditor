@@ -114,8 +114,6 @@ func (s *Service) checkResourceLoadDiagnostics(
 				"先修复资源路径解析错误，再重新体检。",
 			)},
 		}
-	case HasBlockingDiagnostic(staticDiagnostics):
-		return resourceHealthLoadCheckResult{diagnostics: staticDiagnostics}
 	case s.resourceLoadAvailableFn == nil || !s.resourceLoadAvailableFn():
 		return resourceHealthLoadCheckResult{
 			diagnostics: append(staticDiagnostics, newResourceHealthDiagnostic(
@@ -138,6 +136,15 @@ func (s *Service) checkResourceLoadDiagnostics(
 		hashes = append(hashes, single.hash)
 		if HasBlockingDiagnostic(single.diagnostics) {
 			break
+		}
+	}
+	// Static parsing is advisory when the actual MaaFW loader accepts the
+	// complete sequence (e.g. JSON duplicate keys or parser/default differences).
+	if !HasBlockingDiagnostic(loadDiagnostics[len(staticDiagnostics):]) {
+		for i := range staticDiagnostics {
+			if loadDiagnostics[i].Severity == "error" {
+				loadDiagnostics[i].Severity = "warning"
+			}
 		}
 	}
 	return resourceHealthLoadCheckResult{
@@ -207,6 +214,8 @@ func (s *Service) checkGraphHealth(
 	diagnostics := make([]protocol.Diagnostic, 0)
 	graphSnapshot := req.GraphSnapshot
 	resolverSnapshot := req.ResolverSnapshot
+	resolutions, _ := s.resolveResources(req.ResourcePaths)
+	resolverSnapshot.Nodes = effectiveResourceResolverNodes(resolverSnapshot.Nodes, resolutions, resolverSnapshot.RootFileID)
 
 	fileIDs := make(map[string]struct{}, len(graphSnapshot.Files))
 	if strings.TrimSpace(graphSnapshot.RootFileID) == "" {
@@ -313,7 +322,7 @@ func (s *Service) checkGraphHealth(
 		fieldPrefix := fmt.Sprintf("resolverSnapshot.nodes[%d]", index)
 		fileID := strings.TrimSpace(node.FileID)
 		nodeID := strings.TrimSpace(node.NodeID)
-		runtimeName := strings.TrimSpace(node.RuntimeName)
+		runtimeName := node.RuntimeName
 		if fileID == "" {
 			diagnostics = append(diagnostics, newResourceHealthFieldDiagnostic(
 				resourceHealthCategoryGraph,
@@ -370,9 +379,9 @@ func (s *Service) checkGraphHealth(
 		runtimeKey := runtimeName
 		if previous, exists := runtimeIndex[runtimeKey]; exists {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
-				Severity:   "error",
+				Severity:   "warning",
 				Code:       "debug.resolver.runtime_duplicate",
-				Message:    "resolver snapshot 中存在重复的 runtimeName。",
+				Message:    "resolver snapshot 中同一运行时名称有多个来源，节点定位可能存在歧义。",
 				FileID:     fileID,
 				NodeID:     nodeID,
 				SourcePath: node.SourcePath,
@@ -382,7 +391,7 @@ func (s *Service) checkGraphHealth(
 					"previousNodeId":     previous.NodeID,
 					"previousSourcePath": previous.SourcePath,
 				},
-			}, resourceHealthCategoryGraph, "调整重复节点的名称或 prefix，确保 runtimeName 唯一后重新体检。"))
+			}, resourceHealthCategoryGraph, "确认资源加载顺序与节点来源；跨 Bundle 同名覆盖合法，同一 Bundle 跨文件重名由 MaaFW 加载检查判定。"))
 		} else {
 			runtimeIndex[runtimeKey] = node
 		}
@@ -390,8 +399,8 @@ func (s *Service) checkGraphHealth(
 
 	for index, edge := range resolverSnapshot.Edges {
 		fieldPrefix := fmt.Sprintf("resolverSnapshot.edges[%d]", index)
-		fromRuntimeName := strings.TrimSpace(edge.FromRuntimeName)
-		toRuntimeName := strings.TrimSpace(edge.ToRuntimeName)
+		fromRuntimeName := edge.FromRuntimeName
+		toRuntimeName := edge.ToRuntimeName
 		if fromRuntimeName == "" {
 			diagnostics = append(diagnostics, newResourceHealthFieldDiagnostic(
 				resourceHealthCategoryGraph,
@@ -403,7 +412,7 @@ func (s *Service) checkGraphHealth(
 			))
 		} else if _, exists := runtimeIndex[fromRuntimeName]; !exists {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
-				Severity:  "error",
+				Severity:  "warning",
 				Code:      "debug.resolver.edge_source_unknown",
 				Message:   "resolver edge 的起点 runtimeName 不存在。",
 				FieldPath: fmt.Sprintf("%s.fromRuntimeName", fieldPrefix),
@@ -422,11 +431,11 @@ func (s *Service) checkGraphHealth(
 				fmt.Sprintf("%s.toRuntimeName", fieldPrefix),
 				"补齐边的终点 runtimeName 后重新体检。",
 			))
-		} else if _, exists := runtimeIndex[toRuntimeName]; !exists {
+		} else if _, exists := runtimeIndex[toRuntimeName]; !exists && edge.Reason != "anchor" {
 			diagnostics = append(diagnostics, withResourceHealthMeta(protocol.Diagnostic{
-				Severity:  "error",
+				Severity:  "warning",
 				Code:      "debug.resolver.edge_target_unknown",
-				Message:   "resolver edge 的终点 runtimeName 不存在。",
+				Message:   "resolver 快照中未找到连线终点，节点是否可用由资源加载和运行时决定。",
 				FieldPath: fmt.Sprintf("%s.toRuntimeName", fieldPrefix),
 				Data: map[string]interface{}{
 					"runtimeName": toRuntimeName,
@@ -436,7 +445,7 @@ func (s *Service) checkGraphHealth(
 		}
 	}
 
-	diagnostics = append(diagnostics, s.checkGraphTarget(req, runtimeIndex)...)
+	diagnostics = append(diagnostics, s.checkGraphTarget(req, resolverSnapshot.Nodes)...)
 	if len(diagnostics) == 0 {
 		diagnostics = append(diagnostics, newResourceHealthDiagnostic(
 			resourceHealthCategoryGraph,
@@ -451,7 +460,7 @@ func (s *Service) checkGraphHealth(
 
 func (s *Service) checkGraphTarget(
 	req protocol.ResourceHealthRequest,
-	runtimeIndex map[string]protocol.NodeResolverSnapshotNode,
+	nodes []protocol.NodeResolverSnapshotNode,
 ) []protocol.Diagnostic {
 	if req.Target == nil {
 		return []protocol.Diagnostic{newResourceHealthDiagnostic(
@@ -477,8 +486,14 @@ func (s *Service) checkGraphTarget(
 		}, resourceHealthCategoryGraph, "重新选择调试目标，确保目标节点能解析到完整的 fileId / nodeId / runtimeName。")}
 	}
 
-	node, exists := runtimeIndex[strings.TrimSpace(target.RuntimeName)]
-	if !exists || node.FileID != target.FileID || node.NodeID != target.NodeID {
+	found := false
+	for _, node := range nodes {
+		if node.RuntimeName == target.RuntimeName && node.FileID == target.FileID && node.NodeID == target.NodeID {
+			found = true
+			break
+		}
+	}
+	if !found {
 		return []protocol.Diagnostic{withResourceHealthMeta(protocol.Diagnostic{
 			Severity:   "error",
 			Code:       "debug.target.not_in_resolver",
@@ -574,7 +589,7 @@ func withResourceHealthMeta(
 }
 
 func resourceHealthNodeKey(fileID string, nodeID string) string {
-	return strings.ToLower(strings.TrimSpace(fileID)) + "\x00" + strings.ToLower(strings.TrimSpace(nodeID))
+	return fileID + "\x00" + nodeID
 }
 
 func resourceHealthResolutionData(
