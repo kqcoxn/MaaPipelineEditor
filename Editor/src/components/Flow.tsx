@@ -670,6 +670,7 @@ function MainFlow() {
       data-node-shadows={showNodeShadows}
       ref={ref}
     >
+      <div id="mpe-island-host" className={style.islandHost} />
       <CanvasMotionContext.Provider value={canvasMotionContext}>
         <AvoidanceRoutingProvider enabled={edgePathMode === "avoid"}>
           <ReactFlow

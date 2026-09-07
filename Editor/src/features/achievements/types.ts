@@ -78,7 +78,7 @@ export interface AchievementDef {
   hidden?: boolean;
   /**系列成就 key：同系列在成就墙合并为一个格子，逐档解锁 */
   series?: string;
-  /**档位（从 1 开始），同系列内递增；高档位解锁时附带更强的庆祝反馈 */
+  /**档位（从 1 开始），同系列内递增 */
   tier?: number;
   trigger: AchievementTrigger;
 }

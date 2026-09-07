@@ -28,6 +28,9 @@ describe("调试悬浮状态条", () => {
   beforeEach(() => {
     const canvas = document.createElement("div");
     canvas.id = "mpe-main-canvas";
+    const host = document.createElement("div");
+    host.id = "mpe-island-host";
+    canvas.appendChild(host);
     document.body.appendChild(canvas);
     vi.useFakeTimers();
     useDebugSessionStore.setState(useDebugSessionStore.getInitialState());

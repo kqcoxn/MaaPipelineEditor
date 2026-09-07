@@ -107,7 +107,7 @@ export function initializeAchievements(): () => void {
 
   const disposePersistence = initializeAchievementPersistence();
 
-  // 启动回溯：先于通知器挂载，补发的解锁不逐个弹窗
+  // 启动回溯：先于通知器挂载，补发的解锁不逐个弹胶囊
   const retroactive = reevaluateAchievements();
 
   const disposeNotifier = startUnlockNotifier();

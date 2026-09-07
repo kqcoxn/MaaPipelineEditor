@@ -1,3 +1,4 @@
+import { IslandDetails } from "@/components/island";
 import { activityDuration, presentDebugActivity } from "@/features/debug/selectors/debugActivityPresentation";
 import type { DebugActivity } from "@/features/debug/state/debugActivityTypes";
 import type { DebugRunStarted } from "@/features/debug/types";
@@ -13,7 +14,7 @@ export function DebugRunIslandDetails({ activity, run, now, terminal, failure }:
 }) {
   const view = presentDebugActivity(activity, run, now);
   return (
-    <div className={styles.expandedContent}>
+    <IslandDetails>
       {failure && <p className={styles.failure}>{failure}</p>}
       {view.focus && <p className={styles.focusMessage}>{view.focus}</p>}
       <dl className={styles.metrics}>
@@ -40,6 +41,6 @@ export function DebugRunIslandDetails({ activity, run, now, terminal, failure }:
       {terminal && <div className={styles.totals}>
         扫描 {activity.totalRounds} 轮 · 识别 {activity.recognitionCount} 次 · 动作 {activity.actionCount} 次
       </div>}
-    </div>
+    </IslandDetails>
   );
 }

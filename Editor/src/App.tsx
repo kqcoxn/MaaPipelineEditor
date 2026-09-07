@@ -64,6 +64,7 @@ import {
 import { DebugRuntimeHost } from "./components/debug/DebugRuntimeHost";
 import { initializeAchievements } from "./features/achievements/listeners";
 import { AchievementWallModal } from "./features/achievements/components/AchievementWallModal";
+import { AchievementUnlockIsland } from "./features/achievements/components/AchievementUnlockIsland";
 
 const isPreviewMode = import.meta.env.MODE === "preview";
 
@@ -350,6 +351,7 @@ function App() {
       </Flex>
       <DebugRuntimeHost />
       <GlobalProcessOverlay />
+      {!isEmbed && <AchievementUnlockIsland />}
       {!isEmbed && <AchievementWallModal />}
       {!isEmbed && <TermsAgreementModal />}
       {!shouldSkipNewcomerGuide && <NewcomerGuideModal />}
