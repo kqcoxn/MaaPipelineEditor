@@ -1,0 +1,95 @@
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+
+  .summaryText {
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .summaryBar {
+    flex: 1;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  transition: border-color 0.2s;
+
+  &.unlockedCard {
+    border-color: rgba(250, 173, 20, 0.55);
+    background: rgba(250, 173, 20, 0.06);
+  }
+}
+
+.iconWrap {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 20px;
+  background: rgba(128, 128, 128, 0.12);
+  color: rgba(128, 128, 128, 0.85);
+
+  &.unlockedIcon {
+    background: rgba(250, 173, 20, 0.15);
+    color: #faad14;
+  }
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desc {
+  font-size: 12px;
+  opacity: 0.65;
+  line-height: 1.5;
+}
+
+.footer {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.55;
+}
+
+.progress {
+  margin-top: 2px;
+}

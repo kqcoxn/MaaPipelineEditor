@@ -40,6 +40,7 @@ import { useEmbedMode } from "../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../features/embed/components/serviceNotice";
 import { openExternalUrl } from "../features/embed/navigation/externalNavigation";
 import { usePanelOccupancy } from "../hooks/usePanelOccupancy";
+import { AchievementEntry } from "../features/achievements/components/AchievementEntry";
 
 const versionLinks = [
   {
@@ -435,6 +436,7 @@ function Header() {
             </Tooltip>
           </div>
           <div className={style.links}>
+            {!isEmbed && <AchievementEntry />}
             <Tooltip placement="bottom" title="Pipeline协议">
               <img
                 className="icon-interactive"

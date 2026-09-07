@@ -62,6 +62,8 @@ import {
   updateBootScreen,
 } from "./components/async/bootScreen";
 import { DebugRuntimeHost } from "./components/debug/DebugRuntimeHost";
+import { initializeAchievements } from "./features/achievements/listeners";
+import { AchievementWallModal } from "./features/achievements/components/AchievementWallModal";
 
 const isPreviewMode = import.meta.env.MODE === "preview";
 
@@ -119,6 +121,7 @@ function App() {
     let disposed = false;
     let disposeFileCache = () => undefined;
     let disposeLocalBridgeConnection = () => undefined;
+    let disposeAchievements = () => undefined;
     const fileCacheRestoreController = new AbortController();
     // 检查是否为嵌入模式（最高优先级）
     const embedEnvironment = isEmbedEnvironment();
@@ -245,6 +248,9 @@ function App() {
 
     disposeLocalBridgeConnection = initializeLocalBridgeConnectionState();
 
+    // 成就系统（仅非嵌入模式启用）
+    disposeAchievements = initializeAchievements();
+
     // WebSocket自动连接
     const wsAutoConnect = useConfigStore.getState().configs.wsAutoConnect;
     const configuredPort = useConfigStore.getState().configs.wsPort;
@@ -288,6 +294,7 @@ function App() {
       fileCacheRestoreController.abort();
       disposeFileCache();
       disposeLocalBridgeConnection();
+      disposeAchievements();
       unsubscribeConfigCache();
       window.removeEventListener("mpe:terms-accepted", handleTermsAccepted);
       document.removeEventListener("drop", handleFileDrop);
@@ -343,6 +350,7 @@ function App() {
       </Flex>
       <DebugRuntimeHost />
       <GlobalProcessOverlay />
+      {!isEmbed && <AchievementWallModal />}
       {!isEmbed && <TermsAgreementModal />}
       {!shouldSkipNewcomerGuide && <NewcomerGuideModal />}
     </ThemeProvider>

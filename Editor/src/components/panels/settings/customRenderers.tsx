@@ -7,6 +7,8 @@ import {
   globalConfig,
 } from "@/stores/app/configStore";
 import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
+import { useAchievementStore } from "@/stores/achievement/achievementStore";
+import { reevaluateAchievements } from "@/features/achievements/listeners";
 import { useFlowStore } from "../../../stores/flow";
 import { localServer } from "../../../services";
 import { AIClient } from "@/utils/ai/aiClient";
@@ -171,6 +173,7 @@ const ExportConfigRenderer = memo(() => {
       exportTime: new Date().toISOString(),
       configs: exportableConfigs,
       customTemplates: customTemplates,
+      achievements: useAchievementStore.getState().exportData(),
     };
 
     const indent = useConfigStore.getState().configs.jsonIndent;
@@ -224,6 +227,14 @@ const ImportConfigRenderer = memo(() => {
         }
 
         replaceConfig(data.configs);
+
+        // 成就数据合并导入，合并后回溯补发达标成就
+        if (data.achievements && typeof data.achievements === "object") {
+          const changed = useAchievementStore
+            .getState()
+            .importData(data.achievements);
+          if (changed) reevaluateAchievements();
+        }
 
         let templateImportSuccess = false;
         let templateCount = 0;

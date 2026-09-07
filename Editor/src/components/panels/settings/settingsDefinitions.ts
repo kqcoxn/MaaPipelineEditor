@@ -821,7 +821,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     label: "导出配置",
     tipTitle: "导出/导入配置",
     tipContent:
-      "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板。",
+      "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板、成就数据。",
     type: "custom",
     customRender: "exportConfig",
     order: 1,
@@ -832,7 +832,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
     label: "导入配置",
     tipTitle: "导出/导入配置",
     tipContent:
-      "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板。",
+      "导出当前设置为 JSON 文件，或从 JSON 文件导入设置。包括：编辑器配置、自定义节点模板、成就数据。",
     type: "custom",
     customRender: "importConfig",
     order: 2,
