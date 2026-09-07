@@ -35,17 +35,15 @@ export const Win32WindowList = memo(
 
     return (
       <>
-        <Alert
-          title={isMacOS ? "macOS 权限提示" : "权限提示"}
-          description={
-            isMacOS
-              ? "需要在系统设置中授予 LocalBridge 录屏权限和辅助功能权限。窗口 ID 来自 MaaToolkit 的桌面窗口列表。"
-              : "大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
-          }
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
+        {!isMacOS && (
+          <Alert
+            title="权限提示"
+            description="大多数 Win32 控制需要以管理员模式启动 LocalBridge 才能正常工作。如果遇到连接失败或控制无响应的情况，请尝试以管理员身份重新启动 LocalBridge。"
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Input
           placeholder={isMacOS ? "搜索窗口名称、类名或窗口 ID..." : "搜索窗口名称、类名或句柄..."}
           prefix={<SearchOutlined />}
