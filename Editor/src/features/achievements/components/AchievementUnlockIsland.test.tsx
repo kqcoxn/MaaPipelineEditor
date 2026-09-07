@@ -42,9 +42,9 @@ describe("成就解锁胶囊", () => {
       });
     });
 
-    expect(screen.getByText("第一步")).toBeInTheDocument();
+    expect(screen.getByText("达成成就：第一步")).toBeInTheDocument();
     expect(screen.getByText("创建第一个节点")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "打开成就墙" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看成就" }));
     expect(useAchievementStore.getState().wallOpen).toBe(true);
     expect(useAchievementStore.getState().toast).toBeNull();
   });
@@ -58,7 +58,7 @@ describe("成就解锁胶囊", () => {
       });
     });
 
-    expect(screen.getByText("补发 2 个成就")).toBeInTheDocument();
+    expect(screen.getByText("达成成就：补发 2 个")).toBeInTheDocument();
     expect(screen.getByText("第一步、牵针引线")).toBeInTheDocument();
   });
 
@@ -76,12 +76,12 @@ describe("成就解锁胶囊", () => {
       .closest("[data-tone]")!;
     fireEvent.mouseEnter(island);
     act(() => vi.advanceTimersByTime(15000));
-    expect(screen.getByText("第一步")).toBeInTheDocument();
+    expect(screen.getByText("达成成就：第一步")).toBeInTheDocument();
 
     fireEvent.mouseLeave(island);
     act(() => vi.advanceTimersByTime(3999));
-    expect(screen.getByText("第一步")).toBeInTheDocument();
+    expect(screen.getByText("达成成就：第一步")).toBeInTheDocument();
     act(() => vi.advanceTimersByTime(481));
-    expect(screen.queryByText("第一步")).toBeNull();
+    expect(screen.queryByText("达成成就：第一步")).toBeNull();
   });
 });

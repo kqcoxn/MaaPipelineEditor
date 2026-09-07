@@ -1,3 +1,13 @@
 .shell {
-  --island-width: 320px;
+  --island-width: 420px;
+  --island-indicator-size: 36px;
+
+  &[data-hovered="true"],
+  &:focus-within {
+    --island-width: 480px;
+  }
+}
+
+.open {
+  flex-shrink: 0;
 }

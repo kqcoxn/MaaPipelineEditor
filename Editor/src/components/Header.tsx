@@ -436,11 +436,10 @@ function Header() {
             </Tooltip>
           </div>
           <div className={style.links}>
-            {!isEmbed && <AchievementEntry />}
             <Tooltip placement="bottom" title="Pipeline协议">
               <img
                 className="icon-interactive"
-                style={{ width: 29, marginLeft: 7, marginRight: 2 }}
+                style={{ width: 29 }}
                 src={`${import.meta.env.BASE_URL}maafw.png`}
                 onClick={() => {
                   openExternalUrl(
@@ -457,6 +456,7 @@ function Header() {
                 onClick={() => setUpdateLogOpen(true)}
               />
             </Tooltip>
+            {!isEmbed && <AchievementEntry />}
             <Tooltip placement="bottom" title="Github">
               <IconFont
                 className="icon-interactive"

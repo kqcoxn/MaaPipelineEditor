@@ -55,7 +55,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px 8px 14px;
+  padding: 8px 16px 8px 14px;
   animation: island-content-arrive 400ms ease 140ms backwards;
 }
 
@@ -101,9 +101,10 @@
 
 .indicator {
   display: flex;
-  width: 22px;
+  width: var(--island-indicator-size, 22px);
   flex-shrink: 0;
   justify-content: center;
+  align-items: center;
   color: #389e0d;
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
-import { TrophyOutlined, GiftOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import { TrophyFilled, GiftFilled } from "@ant-design/icons";
 
 import {
   useAchievementStore,
@@ -35,6 +36,11 @@ export function AchievementUnlockIsland() {
       : renderRetroactive(toast.ids);
   if (!content) return null;
 
+  const openWall = () => {
+    setWallOpen(true);
+    setToast(null);
+  };
+
   const key = toastKey(toast);
   return (
     <Island
@@ -48,11 +54,25 @@ export function AchievementUnlockIsland() {
         owner: content.owner,
         subtitle: content.subtitle,
       }}
-      onOpen={() => {
-        setWallOpen(true);
-        setToast(null);
-      }}
+      onOpen={openWall}
       openLabel="打开成就墙"
+      actions={[
+        {
+          key: "open-wall",
+          node: (
+            <Button
+              color="gold"
+              variant="outlined"
+              shape="round"
+              size="small"
+              onClick={openWall}
+              className={styles.open}
+            >
+              查看成就
+            </Button>
+          ),
+        },
+      ]}
       autoHide={{ enabled: true, durationMs: NOTIFY_DURATION * 1000 }}
       onHidden={() => setToast(null)}
     />
@@ -68,8 +88,8 @@ function renderUnlock(id: string): {
   const def = getAchievementDef(id);
   if (!def) return null;
   return {
-    icon: <TrophyOutlined />,
-    title: def.title,
+    icon: <TrophyFilled style={{ fontSize: 26 }} />,
+    title: `达成成就：${def.title}`,
     owner: ACHIEVEMENT_CATEGORY_LABELS[def.category],
     subtitle: def.description,
   };
@@ -86,8 +106,8 @@ function renderRetroactive(ids: string[]): {
     .filter(Boolean)
     .join("、");
   return {
-    icon: <GiftOutlined />,
-    title: `补发 ${ids.length} 个成就`,
+    icon: <GiftFilled style={{ fontSize: 26 }} />,
+    title: `达成成就：补发 ${ids.length} 个`,
     owner: "历史记录",
     subtitle: titles,
   };
