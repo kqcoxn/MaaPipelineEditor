@@ -1,3 +1,5 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { recordDebugFailureFocus } from "@/features/achievements/debugDetails";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebugOverlayStore } from "@/stores/debug/debugOverlayStore";
 import { useFileStore } from "@/stores/project/fileStore";
@@ -320,6 +322,7 @@ export function useDebugNodeExecutionController({
 
   const selectNodeExecutionRecord = useCallback(
     (record: DebugNodeExecutionRecord) => {
+      emitAchievementEvent("achievement:debug_details_opened");
       setSelectedNodeExecutionRecordId(record.id);
       useDebugOverlayStore
         .getState()
@@ -341,6 +344,7 @@ export function useDebugNodeExecutionController({
       applyDebugNodeTarget(toDebugNodeTarget(resolverNode), {
         focusCanvas: true,
       });
+      recordDebugFailureFocus(record);
     },
     [
       allNodeExecutionRecords,
@@ -351,6 +355,7 @@ export function useDebugNodeExecutionController({
   );
   const openNodeExecutionRecord = useCallback(
     (record: DebugNodeExecutionRecord) => {
+      emitAchievementEvent("achievement:debug_details_opened");
       setSelectedNodeExecutionRecordId(record.id);
       useDebugOverlayStore
         .getState()
@@ -369,6 +374,7 @@ export function useDebugNodeExecutionController({
         applyDebugNodeTarget(toDebugNodeTarget(resolverNode), {
           focusCanvas: true,
         });
+        recordDebugFailureFocus(record);
       }
     },
     [allNodeExecutionRecords, nodeExecutionResolverNodes, resolverEdges],

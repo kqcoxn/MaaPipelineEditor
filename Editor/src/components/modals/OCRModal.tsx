@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import {
@@ -243,6 +244,7 @@ export const OCRModal = memo(
             .trim();
 
           setOcrText(processedText);
+          if (processedText.length > 0) emitAchievementEvent("achievement:ocr_recognized");
           setOcrSuccess(processedText.length > 0 && confidence > 50);
         } catch (error) {
           message.error(
@@ -303,6 +305,7 @@ export const OCRModal = memo(
         setIsOCRing(false);
         if (data.success) {
           setOcrText(data.text ?? "");
+          if (!data.no_content && data.text?.trim()) emitAchievementEvent("achievement:ocr_recognized");
           if (data.no_content) {
             setOcrSuccess(false);
           } else {

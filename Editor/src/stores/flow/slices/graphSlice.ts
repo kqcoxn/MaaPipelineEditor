@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import type { StateCreator } from "zustand";
 import { cloneDeep } from "lodash";
 import type { FlowStore, FlowGraphState, NodeType, EdgeType } from "../types";
@@ -309,6 +310,7 @@ export const createGraphSlice: StateCreator<
         action: "paste",
         description: `粘贴 ${totalNodes} 个节点`,
       });
+      emitAchievementEvent("achievement:nodes_pasted");
       return pastedNodes;
     };
 

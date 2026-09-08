@@ -9,7 +9,7 @@ import { ACHIEVEMENT_CATEGORY_LABELS } from "../types";
 import metadataTag from "@/styles/MetadataTag.module.less";
 import style from "@/styles/achievements/AchievementWall.module.less";
 
-const icons = { canvas: ApartmentOutlined, debug: PlayCircleOutlined, explore: CompassOutlined };
+const icons = { onboarding: CompassOutlined, canvas: ApartmentOutlined, connection: ApartmentOutlined, organize: ApartmentOutlined, material: CompassOutlined, debug: PlayCircleOutlined, project: CompassOutlined, explore: CompassOutlined };
 
 export function AchievementBadge({ category, unlocked, hidden }: {
   category: AchievementCategory; unlocked: boolean; hidden?: boolean;

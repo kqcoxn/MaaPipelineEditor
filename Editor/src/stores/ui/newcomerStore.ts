@@ -1,3 +1,4 @@
+import { quizAchievementTracker } from "@/features/achievements/quizProgress";
 import { create } from "zustand";
 import { globalConfig } from "@/stores/app/configStore";
 import {
@@ -40,6 +41,7 @@ export const useNewcomerStore = create<NewcomerStore>((set) => ({
   passed: localStorage.getItem(STORAGE_KEY) === "true",
 
   openModal: () => {
+    quizAchievementTracker.start();
     const savedStage = parseInt(localStorage.getItem(STAGE_KEY) || "0", 10);
     const startStep = savedStage >= 3 ? 0 : savedStage;
     set({

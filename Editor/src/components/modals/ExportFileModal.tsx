@@ -1,3 +1,4 @@
+import { recordPipelineExport } from "@/features/achievements/exportEvents";
 import { message } from "@/utils/ui/antdAppApi";
 import { useState, useEffect } from "react";
 import { Modal, Form, Input, Select, Radio } from "antd";
@@ -127,6 +128,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
         if (exportTarget === "both" || exportTarget === "pipeline") {
           await exportFile(pipelineFileName, pipelineString, format);
+          recordPipelineExport(pipelineString);
         }
 
         if (exportTarget === "both" || exportTarget === "config") {
@@ -144,6 +146,7 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
         // 集成模式导出
         const content = flowToPipelineString();
         await exportFile(`${trimmedName}.${format}`, content, format);
+        recordPipelineExport(content);
         message.success(`已导出 ${trimmedName}.${format}`);
       }
 

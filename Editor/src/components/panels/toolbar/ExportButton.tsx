@@ -1,3 +1,4 @@
+import { recordPipelineExport } from "@/features/achievements/exportEvents";
 import { message } from "@/utils/ui/antdAppApi";
 import { Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
@@ -76,9 +77,10 @@ function StandaloneExportButton() {
 
   // 导出操作处理
   const handleExportToClipboard = () => {
-    ClipboardHelper.write(flowToPipeline(), {
+    const pipeline = flowToPipeline();
+    void ClipboardHelper.write(pipeline, {
       successMsg: "已将 Pipeline 导出到粘贴板",
-    });
+    }).then((success) => { if (success) recordPipelineExport(pipeline); });
   };
 
   const handleExportToFile = () => {
@@ -100,20 +102,17 @@ function StandaloneExportButton() {
   };
 
   const handlePartialExport = useCallback(() => {
-    ClipboardHelper.write(
-      flowToPipeline({
-        nodes: selectedNodes,
-        edges: selectedEdges,
-      }),
+    const pipeline = flowToPipeline({ nodes: selectedNodes, edges: selectedEdges });
+    void ClipboardHelper.write(pipeline,
       { successMsg: "已将选中节点 Pipeline 导出到粘贴板" },
-    );
+    ).then((success) => { if (success) recordPipelineExport(pipeline); });
   }, [selectedEdges, selectedNodes]);
 
   const handleExportPipeline = () => {
     const { pipelineString } = flowToSeparatedStrings();
-    ClipboardHelper.writeString(pipelineString, {
+    void ClipboardHelper.writeString(pipelineString, {
       successMsg: "已将 Pipeline 导出到粘贴板",
-    });
+    }).then((success) => { if (success) recordPipelineExport(pipelineString); });
   };
 
   const handleExportConfig = () => {

@@ -1,3 +1,4 @@
+import { recordPipelineExport } from "@/features/achievements/exportEvents";
 import { notification } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
@@ -818,6 +819,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
 
       // 根据保存模式确定要等待 ACK 的文件路径
       let ackFilePath = targetFilePath;
+      let savedPipeline: string | undefined;
 
       // 获取 JSON 缩进配置
       const jsonIndent = useConfigStore.getState().configs.jsonIndent;
@@ -830,6 +832,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
 
         // 根据保存模式决定保存哪些内容
         const effectiveMode = saveMode || "all";
+        if (effectiveMode !== "config") savedPipeline = pipelineString;
 
         if (effectiveMode === "all") {
           // 全部保存
@@ -868,6 +871,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
         // 集成模式或不导出模式
         const pipelineString = flowToPipelineString(exportOptions);
 
+        savedPipeline = pipelineString;
         sendSuccess = localServer.send("/etl/save_file", {
           file_path: targetFilePath,
           content: pipelineString,
@@ -887,6 +891,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       const ackSuccess = await ackPromise;
 
       if (ackSuccess) {
+        recordPipelineExport(savedPipeline);
         configUpdates.lastSyncTime = Date.now();
         updateFileConfigAfterSave(targetFile.fileName, configUpdates);
         return true;

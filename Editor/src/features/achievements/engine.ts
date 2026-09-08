@@ -1,6 +1,6 @@
+import type { AchievementEnginePatch } from "@/stores/achievement/achievementStore";
 import type {
   AchievementDef,
-  AchievementEnginePatch,
   AchievementEvalResult,
   AchievementEvent,
   CounterRule,

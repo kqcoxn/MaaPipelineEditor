@@ -22,6 +22,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("成就面板交互", () => {
+  it("成就卡片不显示重新答题按钮", () => {
+    render(<AchievementWallModal />);
+    expect(screen.queryByRole("button", { name: "重新答题" })).not.toBeInTheDocument();
+  });
+
   it("图和成就册直接展示条件、进度，只显示到下一档", () => {
     render(<AchievementWallModal />);
     for (const mode of ["成就图", "成就册"]) {
@@ -29,22 +34,22 @@ describe("成就面板交互", () => {
       const completed = within(screen.getByRole("article", { name: "第一步" }));
       expect(completed.getByRole("progressbar")).toHaveAttribute("value", "100");
       expect(completed.getByText("解锁于")).toBeInTheDocument();
-      const card = within(screen.getByRole("article", { name: "初窥门径" }));
-      expect(card.getByText("累计创建 10 个节点")).toBeInTheDocument();
-      expect(card.getByText("下一档 · 渐入佳境")).toBeInTheDocument();
-      expect(card.getByText("累计创建 50 个节点")).toBeInTheDocument();
+      const card = within(screen.getByRole("article", { name: "初具雏形" }));
+      expect(card.getByText("累计创建 10 个 Pipeline 节点")).toBeInTheDocument();
+      expect(card.getByText("下一档 · 渐成规模")).toBeInTheDocument();
+      expect(card.getByText("累计创建 50 个 Pipeline 节点")).toBeInTheDocument();
       expect(card.getByText("27 / 50")).toBeInTheDocument();
-      expect(screen.queryByText("管线大师")).not.toBeInTheDocument();
-      fireEvent.click(card.getByText("初窥门径"));
+      expect(screen.queryByText("积木成城")).not.toBeInTheDocument();
+      fireEvent.click(card.getByText("初具雏形"));
       expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     }
   });
 
   it("跨模式保持分类", () => {
     render(<AchievementWallModal />);
-    fireEvent.click(screen.getByRole("button", { name: /^调试/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^验证/ }));
     fireEvent.click(screen.getByText("成就册"));
-    expect(screen.getByRole("button", { name: /^调试/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /^验证/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("拿来主义")).not.toBeInTheDocument();
   });
 
@@ -54,7 +59,7 @@ describe("成就面板交互", () => {
     act(() => useAchievementStore.getState().setWallOpen(false));
     act(() => useAchievementStore.getState().setWallOpen(true));
     expect(screen.queryByTestId("achievement-graph")).not.toBeInTheDocument();
-    expect(screen.getByText("未知的惊喜")).toBeInTheDocument();
-    expect(screen.queryByText("夜猫子")).not.toBeInTheDocument();
+    expect(screen.getAllByText("未知的惊喜")[0]).toBeInTheDocument();
+    expect(screen.queryByText("原来是这里")).not.toBeInTheDocument();
   });
 });

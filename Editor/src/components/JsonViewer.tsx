@@ -1,3 +1,8 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { useFlowStore } from "@/stores/flow";
+import { useFileStore } from "@/stores/project/fileStore";
+import { selectAndCenterNode } from "@/services/flowNavigationService";
+import { getFullNodeName } from "@/utils/node/nodeNameHelper";
 import style from "../styles/panels/FloatingJsonPanel.module.less";
 
 import React, {
@@ -106,6 +111,15 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
       enableClipboard={false}
       iconStyle="square"
       shouldCollapse={shouldCollapse}
+      onSelect={({ namespace }) => {
+        const file = useFileStore.getState().currentFile;
+        // namespace 的第一项是 JSON 根名，第二项才是 Pipeline 节点名。
+        const nodeName = namespace[1];
+        const node = useFlowStore.getState().nodes.find((candidate) =>
+          candidate.type === "pipeline" && nodeName === getFullNodeName(candidate.data.label, file.config.prefix),
+        );
+        if (node && selectAndCenterNode(node.id)) emitAchievementEvent("achievement:preview_located");
+      }}
     />
   );
 });
@@ -198,7 +212,7 @@ function JsonViewer() {
     <div className={panelClassName}>
       <div className={style.header}>
         <div className={style.headerRow}>
-          <div className={style.title}>Pipeline JSON</div>
+          <Tooltip title="点击字段值可定位到所属画布节点"><div className={style.title}>Pipeline JSON</div></Tooltip>
           <div className={style.actions}>
             <Tooltip title="刷新">
               <Button

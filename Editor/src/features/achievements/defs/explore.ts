@@ -1,30 +1,30 @@
 import type { AchievementDef } from "../types";
 
-/**探索类成就（含 custom 触发器示例：个性化条件可完全自定义求值） */
 export const exploreAchievements: AchievementDef[] = [
   {
-    id: "explore_night_owl",
-    title: "夜猫子",
-    subtitle: "月亮不睡我不睡。",
-    description: "在 23:00 - 05:00 之间创建节点",
+    id: "explore_redo",
+    title: "还是原来的好",
+    subtitle: "这一圈也没白绕。",
+    description: "一次修改后撤销，再重做该修改",
     category: "explore",
     hidden: true,
     trigger: {
-      kind: "custom",
-      watch: ["canvas:node:add"],
-      evaluate: (ctx) => {
-        if (!ctx.event) return false;
-        const hour = new Date(ctx.event.at).getHours();
-        return hour >= 23 || hour < 5;
-      },
-    },
+      kind: "counter",
+      counter: "history_redone",
+      target: 1
+    }
   },
   {
-    id: "explore_group_master",
-    title: "收纳达人",
-    subtitle: "整整齐齐，舒舒服服。",
-    description: "累计创建 5 个分组",
+    id: "explore_fix",
+    title: "原来是这里",
+    subtitle: "找到了，就好办了。",
+    description: "从失败节点详情定位回画布，修改该节点后，下一次同入口流程调试成功（同次打开编辑器期间）",
     category: "explore",
-    trigger: { kind: "counter", counter: "group_created", target: 5 },
-  },
+    hidden: true,
+    trigger: {
+      kind: "counter",
+      counter: "debug_fix_completed",
+      target: 1
+    }
+  }
 ];

@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/ToolPanel.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
@@ -94,6 +95,7 @@ function SearchPanel() {
         return;
       }
 
+      emitAchievementEvent("achievement:search_located");
       message.success(`已定位到节点: ${label}`);
       // 关闭下拉提示，但不清空内容
       setIsOpen(false);
@@ -107,6 +109,7 @@ function SearchPanel() {
   const navigateToNode = useCallback(async (nodeInfo: CrossFileNodeInfo) => {
     const success = await crossFileService.navigateToNode(nodeInfo);
     if (success) {
+      emitAchievementEvent("achievement:search_located");
       message.success(
         nodeInfo.isCurrentFile
           ? `已定位到节点: ${nodeInfo.label}`

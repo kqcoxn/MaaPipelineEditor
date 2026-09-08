@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
 import type { NodeTemplateType } from "@/data/nodeTemplates";
@@ -158,6 +159,7 @@ export const useCustomTemplateStore = create<CustomTemplateState>(
         };
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
+        emitAchievementEvent("achievement:template_saved");
         message.success("模板已保存");
         return true;
       } catch (error) {

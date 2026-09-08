@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import type { DebugProtocolClient } from "../../../services/protocols/DebugProtocolClient";
 import { useDebugArtifactStore } from "@/stores/debug/debugArtifactStore";
@@ -96,6 +97,7 @@ export function registerDebugProtocolListeners(
   });
 
   debugProtocolClient.onDebugEvent((event) => {
+    emitAchievementEvent("debug:live-event", event);
     enqueueDebugEvent(debugProtocolClient, event);
   });
 

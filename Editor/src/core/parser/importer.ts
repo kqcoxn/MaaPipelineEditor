@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { modal } from "@/utils/ui/antdAppApi";
 import { parse as parseJsonc, visit } from "jsonc-parser";
 import {
@@ -588,6 +589,8 @@ async function pipelineToFlowInternal(
     // 保存顺序映射
     setFileConfig("nodeOrderMap", orderMap);
     setFileConfig("nextOrderNumber", nextOrder);
+
+    if (nodes.some((node) => node.type === NodeTypeEnum.Pipeline)) emitAchievementEvent("achievement:pipeline_imported");
 
     // 自动布局
     if (!isIncludePos) void LayoutHelper.auto();

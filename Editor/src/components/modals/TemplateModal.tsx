@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import {
@@ -457,6 +458,7 @@ export const TemplateModal = memo(
           await writable.close();
 
           const filename = fileHandle.name;
+          emitAchievementEvent("achievement:screenshot_saved");
           message.success("模板已保存");
 
           // 存储待确认的数据
@@ -482,6 +484,7 @@ export const TemplateModal = memo(
         a.click();
         URL.revokeObjectURL(url);
 
+        emitAchievementEvent("achievement:screenshot_saved");
         message.success("模板已保存");
 
         // 存储待确认的数据并尝试解析

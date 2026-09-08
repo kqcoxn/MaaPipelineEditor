@@ -1,3 +1,4 @@
+import { quizAchievementTracker } from "@/features/achievements/quizProgress";
 import { registerDevCommand } from "./devConsole";
 import { setDevFlag } from "./devConsole";
 import { useFlowStore } from "../stores/flow";
@@ -99,7 +100,9 @@ export function registerBuiltinDevCommands() {
 
   registerDevCommand("skipNewcomer", () => {
     const newcomerStore = useNewcomerStore.getState();
+    quizAchievementTracker.shortcut();
     newcomerStore.markPassed();
+    quizAchievementTracker.receiveCertificate(true);
     newcomerStore.closeModal();
     window.dispatchEvent(new CustomEvent("mpe:newcomer-passed"));
     return "newcomer guide skipped";

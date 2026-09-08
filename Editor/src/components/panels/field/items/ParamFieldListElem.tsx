@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo, useState, useCallback, useMemo } from "react";
 import { Popover, Input, InputNumber, Select, Switch } from "antd";
@@ -251,6 +252,7 @@ export const ParamFieldListElem = memo(
           } else {
             onChange(currentROIKey, roi);
           }
+          emitAchievementEvent("achievement:roi_applied");
         }
         setRoiModalOpen(false);
         setCurrentROIKey(null);
@@ -349,6 +351,7 @@ export const ParamFieldListElem = memo(
           onChange(currentColorKey, [color]);
         }
 
+        emitAchievementEvent("achievement:color_applied");
         setColorModalOpen(false);
         setCurrentColorKey(null);
         setCurrentListIndex(null);

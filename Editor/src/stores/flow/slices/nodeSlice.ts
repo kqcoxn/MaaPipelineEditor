@@ -1,3 +1,5 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { recordNodeEdit } from "@/features/achievements/graphEvents";
 import type { StateCreator } from "zustand";
 import {
   addEdge as addEdgeRF,
@@ -441,11 +443,13 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       targetIds: [finalId],
     });
 
+    if (type === NodeTypeEnum.Pipeline) emitAchievementEvent("achievement:node_created", { count: 1 });
     return finalId;
   },
 
   // 更新节点数据
   setNodeData(id: string, type: string, key: string, value: any) {
+    const before = get().nodeById.get(id);
     set((state) => {
       const nodeIndex = findNodeIndexById(state.nodes, id);
       if (nodeIndex < 0) return {};
@@ -478,6 +482,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
       return updates;
     });
 
+    recordNodeEdit(before, get().nodeById.get(id));
     // 检查节点名重复
     checkRepeatNodeLabelList();
 
@@ -510,6 +515,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     id: string,
     updates: Array<{ type: string; key: string; value: any }>,
   ) {
+    const before = get().nodeById.get(id);
     set((state) => {
       const nodeIndex = findNodeIndexById(state.nodes, id);
       if (nodeIndex < 0) return {};
@@ -543,6 +549,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     // 检查节点名重复
     checkRepeatNodeLabelList();
 
+    recordNodeEdit(before, get().nodeById.get(id));
     // 保存历史记录
     const batchNodeLabel =
       get().nodeSemanticById.get(id)?.label ?? id;

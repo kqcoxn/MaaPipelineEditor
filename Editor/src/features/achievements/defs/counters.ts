@@ -1,20 +1,42 @@
 import type { CounterRule } from "../types";
 
-/**
- * 画布操作事件（listeners 将 operationLog 的 category/action 映射为
- * `canvas:{category}:{action}`），以及调试生命周期事件。
- *
- * 新增统计口径时在此处追加规则即可，成就定义按 counter key 引用。
- */
+/**只接收操作成功事件；累计值支持启动及配置导入后的回溯。 */
 export const counterRules: CounterRule[] = [
-  { counter: "node_created", on: "canvas:node:add" },
-  { counter: "node_deleted", on: "canvas:node:delete" },
-  { counter: "node_moved", on: "canvas:node:move" },
-  { counter: "node_updated", on: "canvas:node:update" },
-  { counter: "edge_created", on: "canvas:edge:add" },
-  { counter: "edge_deleted", on: "canvas:edge:delete" },
-  { counter: "group_created", on: "canvas:group:add" },
-  { counter: "paste_count", on: "canvas:graph:paste" },
-  { counter: "debug_run_completed", on: "debug:run:completed" },
-  { counter: "debug_run_failed", on: "debug:run:failed" },
+  { counter: "terms_accepted", on: "achievement:terms_accepted" },
+  { counter: "quiz_failure", on: "achievement:quiz_failure" },
+  { counter: "quiz_pass", on: "achievement:quiz_pass" },
+  { counter: "quiz_first", on: "achievement:quiz_first" },
+  { counter: "quiz_retry", on: "achievement:quiz_retry" },
+  { counter: "quiz_persistent", on: "achievement:quiz_persistent" },
+  { counter: "quiz_shortcut", on: "achievement:quiz_shortcut" },
+
+  { counter: "node_created", on: "achievement:node_created", delta: (event) => (event.payload as { count?: number } | undefined)?.count ?? 0 },
+  { counter: "node_renamed", on: "achievement:node_renamed" },
+  { counter: "field_added", on: "achievement:field_added" },
+  { counter: "nodes_pasted", on: "achievement:nodes_pasted" },
+  { counter: "edge_created", on: "achievement:edge_created" },
+  { counter: "branch_created", on: "achievement:branch_created" },
+  { counter: "error_edge_created", on: "achievement:error_edge_created" },
+  { counter: "external_connected", on: "achievement:external_connected" },
+  { counter: "layout_completed", on: "achievement:layout_completed" },
+  { counter: "group_organized", on: "achievement:group_organized" },
+  { counter: "search_located", on: "achievement:search_located" },
+  { counter: "template_saved", on: "achievement:template_saved" },
+  { counter: "template_used", on: "achievement:template_used" },
+  { counter: "device_connected", on: "achievement:device_connected" },
+  { counter: "screenshot_saved", on: "achievement:screenshot_saved" },
+  { counter: "roi_applied", on: "achievement:roi_applied" },
+  { counter: "ocr_recognized", on: "achievement:ocr_recognized" },
+  { counter: "color_applied", on: "achievement:color_applied" },
+  { counter: "debug_run_completed", on: "achievement:debug_run_completed" },
+  { counter: "debug_single_completed", on: "achievement:debug_single_completed" },
+  { counter: "debug_recognition_result", on: "achievement:debug_recognition_result" },
+  { counter: "debug_details_opened", on: "achievement:debug_details_opened" },
+  { counter: "debug_retry_completed", on: "achievement:debug_retry_completed" },
+  { counter: "pipeline_imported", on: "achievement:pipeline_imported" },
+  { counter: "pipeline_saved", on: "achievement:pipeline_saved" },
+  { counter: "preview_located", on: "achievement:preview_located" },
+  { counter: "harness_applied", on: "achievement:harness_applied" },
+  { counter: "history_redone", on: "achievement:history_redone" },
+  { counter: "debug_fix_completed", on: "achievement:debug_fix_completed" },
 ];

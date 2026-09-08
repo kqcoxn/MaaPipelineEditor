@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useSyncExternalStore } from "react";
+﻿import { quizAchievementTracker } from "@/features/achievements/quizProgress";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import {
   Modal,
   Button,
@@ -91,6 +92,12 @@ export function NewcomerGuideModal() {
 
   useEffect(() => {
     if (!modalOpen) {
+      setFixedError(false);
+      setFixedWrongIndices(new Set());
+      setFixedScore(null);
+      setRandomError(false);
+      setRandomWrongIndices(new Set());
+      setRandomScore(null);
       setQuizStartedAt(null);
       setElapsedSeconds(0);
       setFinishedSeconds(null);
@@ -136,7 +143,9 @@ export function NewcomerGuideModal() {
   };
 
   const handleSubmitFixed = () => {
-    if (checkFixedPass(fixedQuiz, fixedAnswers)) {
+    const correct = checkFixedPass(fixedQuiz, fixedAnswers);
+    quizAchievementTracker.submit(correct);
+    if (correct) {
       setFixedError(false);
       setFixedWrongIndices(new Set());
       setFixedScore(null);
@@ -180,6 +189,7 @@ export function NewcomerGuideModal() {
   };
 
   const handleFinish = () => {
+    quizAchievementTracker.receiveCertificate();
     markPassed();
     closeModal();
     window.dispatchEvent(new CustomEvent("mpe:newcomer-passed"));
@@ -354,6 +364,7 @@ function QuizPage({
   });
 
   const handleFillAll = () => {
+    quizAchievementTracker.shortcut();
     quiz.forEach((q, i) => {
       setAnswer(i, q.type === "input" ? q.include : q.answer);
     });

@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { create } from "zustand";
 import { TERMS_VERSION, termsItems } from "@/data/termsData";
 
@@ -35,6 +36,7 @@ export const useTermsStore = create<TermsStore>((set) => ({
   acceptTerms: () => {
     localStorage.setItem(STORAGE_KEY, TERMS_VERSION);
     set({ accepted: true, modalOpen: false });
+    emitAchievementEvent("achievement:terms_accepted");
     window.dispatchEvent(new CustomEvent("mpe:terms-accepted"));
   },
 }));

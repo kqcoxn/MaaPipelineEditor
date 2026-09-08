@@ -143,7 +143,7 @@ function LayoutPanel() {
           if (debouncedSelectedNodes.length >= 2) {
             void LayoutHelper.autoPartial(debouncedSelectedNodes as any);
           } else {
-            void LayoutHelper.auto();
+            void LayoutHelper.auto(true);
           }
         },
         onDisabledClick: () => {

@@ -9,13 +9,17 @@
  */
 
 /**成就分类 */
-export type AchievementCategory = "canvas" | "debug" | "explore";
-
-export const ACHIEVEMENT_CATEGORY_LABELS: Record<AchievementCategory, string> = {
-  canvas: "画布",
-  debug: "调试",
-  explore: "探索",
-};
+export const ACHIEVEMENT_CATEGORY_LABELS = {
+  onboarding: "启程",
+  canvas: "起笔",
+  connection: "编排",
+  organize: "整理",
+  material: "取材",
+  debug: "验证",
+  project: "成果",
+  explore: "彩蛋",
+} as const;
+export type AchievementCategory = keyof typeof ACHIEVEMENT_CATEGORY_LABELS;
 
 /**成就事件（由 listeners 从各 store 推导，或经 bus 显式发射） */
 export interface AchievementEvent<T = unknown> {

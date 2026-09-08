@@ -1,12 +1,6 @@
 import type { AchievementEvent } from "./types";
 
-/**
- * 成就显式事件总线
- *
- * 绝大多数成就事件由 listeners 从既有 store 自动推导（业务零侵入）；
- * 仅当某个个性化行为无法从状态推导时（例如彩蛋功能），才在业务点调用
- * emitAchievementEvent 显式发射。
- */
+/**成功操作与实时反馈的轻量事件总线；未初始化成就时不会持久化或通知。 */
 
 type AchievementEventHandler = (event: AchievementEvent) => void;
 

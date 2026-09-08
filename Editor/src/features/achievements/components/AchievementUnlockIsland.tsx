@@ -88,7 +88,7 @@ function renderUnlock(id: string): {
     icon: <TrophyFilled style={{ fontSize: 26 }} />,
     title: `达成成就：${def.title}`,
     owner: ACHIEVEMENT_CATEGORY_LABELS[def.category],
-    subtitle: def.description,
+    subtitle: def.subtitle ?? "",
   };
 }
 

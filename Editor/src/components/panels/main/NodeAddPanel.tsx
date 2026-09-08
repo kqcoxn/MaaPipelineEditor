@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { modal } from "@/utils/ui/antdAppApi";
 import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Input } from "antd";
@@ -367,6 +368,7 @@ function NodeAddPanel({
         focus: !flowPosition,
         link: false,
       });
+      if (template.isCustom) emitAchievementEvent("achievement:template_used");
 
       if (
         quickCreateConnection &&

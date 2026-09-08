@@ -4,7 +4,7 @@
  * 新增效果只需向 EFFECTS 追加一项。
  */
 
-type ConfettiFn = typeof import("canvas-confetti").default;
+type ConfettiFn = typeof import("canvas-confetti");
 
 type CelebrationEffect = (confetti: ConfettiFn) => void;
 

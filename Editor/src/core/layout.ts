@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { type NodeChange } from "@xyflow/react";
 import ELK from "elkjs/lib/elk.bundled.js";
 
@@ -33,24 +34,25 @@ const elkOptions = {
 };
 
 export class LayoutHelper {
-  static async auto(): Promise<void> {
+  static async auto(userInitiated = false): Promise<void> {
     if (useFlowStore.getState().nodes.length === 0) return;
     await runWithProcess("正在重排节点", (update) =>
-      LayoutHelper.performLayout(undefined, update),
+      LayoutHelper.performLayout(undefined, update, userInitiated),
     );
   }
 
   static async autoPartial(selectedNodes: NodeType[]): Promise<void> {
     if (selectedNodes.length < 2) return;
     await runWithProcess("正在重排节点", (update) =>
-      LayoutHelper.performLayout(selectedNodes, update),
+      LayoutHelper.performLayout(selectedNodes, update, true),
     );
   }
 
   private static async performLayout(
     targetNodes?: NodeType[],
     updateProcess: (update: ProcessUpdate) => void = () => undefined,
-  ) {
+    userInitiated = false,
+  ): Promise<void> {
     const flowState = useFlowStore.getState();
     const allNodes = flowState.nodes as NodeType[];
     const allEdges = flowState.edges as EdgeType[];
@@ -67,7 +69,7 @@ export class LayoutHelper {
     if (!allMeasured) {
       updateProcess({ detail: "正在等待节点完成测量", progress: 18 });
       await new Promise((resolve) => setTimeout(resolve, 10));
-      return LayoutHelper.performLayout(targetNodes, updateProcess);
+      return LayoutHelper.performLayout(targetNodes, updateProcess, userInitiated);
     }
 
     updateProcess({ detail: "正在整理节点与连线", progress: 28 });
@@ -156,6 +158,7 @@ export class LayoutHelper {
 
         flowState.replace(layoutedNodes, allEdges);
       }
+      if (userInitiated && nodes.length >= 3) emitAchievementEvent("achievement:layout_completed");
       updateProcess({ detail: "正在刷新画布", progress: 96 });
     } catch (error) {
       console.error("Elkjs layout error:", error);

@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "@/components/flow/nodes";
 import { flowToPipeline } from "@/core/parser/exporter";
 import { convertMfwToStoreFormat } from "@/core/parser/nodeParser";
@@ -104,12 +105,15 @@ function createDefaultAdapter(): CanvasCommandBusAdapter {
       };
     },
     commit: (nodes, edges) => {
+      const before = useFlowStore.getState();
+      const changed = JSON.stringify([before.nodes, before.edges]) !== JSON.stringify([nodes, edges]);
       useFlowStore.getState().replace(nodes, edges, {
         isFitView: false,
         skipHistory: false,
         skipSave: true,
       });
       saveFlow();
+      if (changed) emitAchievementEvent("achievement:harness_applied");
     },
   };
 }

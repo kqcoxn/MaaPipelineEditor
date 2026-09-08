@@ -1,6 +1,6 @@
 import ELK from "elkjs/lib/elk.bundled.js";
 
-import type { AchievementCategory } from "./types";
+import { ACHIEVEMENT_CATEGORY_LABELS, type AchievementCategory } from "./types";
 
 const elk = new ELK();
 export interface AchievementNodeSize {
@@ -47,12 +47,12 @@ export interface AchievementGraphLayout {
   regions: AchievementRegion[];
 }
 
-/**先排分区内部，再将画布置左，调试与探索上下排列于右侧。 */
+/**先排主题内部，再按流程顺序分成两列，彩蛋位于末尾。 */
 export async function layoutAchievementGraph(
   nodes: AchievementNodeSize[],
   connections: [string, string][],
 ): Promise<AchievementGraphLayout> {
-  const categories: AchievementCategory[] = ["canvas", "debug", "explore"];
+  const categories = Object.keys(ACHIEVEMENT_CATEGORY_LABELS) as AchievementCategory[];
   const groups = await Promise.all(categories.map(async (category) => {
     const members = nodes.filter((node) => node.category === category);
     if (!members.length) return null;
@@ -62,19 +62,21 @@ export async function layoutAchievementGraph(
     return { category, members, positions, width, height };
   }));
   const result: AchievementGraphLayout = { positions: {}, regions: [] };
-  const canvas = groups.find((group) => group?.category === "canvas");
-  const rightX = canvas ? canvas.width + 100 : 0;
-  let rightY = 0;
-  for (const group of groups) {
-    if (!group) continue;
-    const x = group.category === "canvas" ? 0 : rightX;
-    const y = group.category === "canvas" ? 0 : rightY;
-    result.regions.push({ category: group.category, x, y, width: group.width, height: group.height });
-    for (const member of group.members) {
-      const position = group.positions[member.id];
-      result.positions[member.id] = { x: x + position.x + 8, y: y + position.y + 40 };
-    }
-    if (group.category !== "canvas") rightY += group.height + 64;
+  const visibleGroups = groups.filter((group) => group !== null);
+  const columnWidth = Math.max(0, ...visibleGroups.map((group) => group.width)) + 100;
+  let rowY = 0;
+  for (let index = 0; index < visibleGroups.length; index += 2) {
+    const row = visibleGroups.slice(index, index + 2);
+    row.forEach((group, column) => {
+      const x = column * columnWidth;
+      const y = rowY;
+      result.regions.push({ category: group.category, x, y, width: group.width, height: group.height });
+      for (const member of group.members) {
+        const position = group.positions[member.id];
+        result.positions[member.id] = { x: x + position.x + 8, y: y + position.y + 40 };
+      }
+    });
+    rowY += Math.max(...row.map((group) => group.height)) + 80;
   }
   return result;
 }

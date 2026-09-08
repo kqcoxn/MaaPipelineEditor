@@ -39,8 +39,8 @@
   i { display: inline-block; width: 22px; border-top: 1px dashed currentColor; vertical-align: middle; margin-right: 6px; }
 }
 .handle { opacity: 0; pointer-events: none; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-content: start; align-items: start; gap: 12px; padding: 16px; height: 100%; overflow: auto; box-sizing: border-box; background: var(--ant-color-fill-quaternary, #fafbfc); }
-.card { display: flex; flex-direction: column; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--wall-border); border-radius: 8px; background: var(--wall-paper); color: inherit; font: inherit; box-sizing: border-box;
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; align-content: start; align-items: start; gap: 12px; padding: 16px; height: 100%; overflow: auto; box-sizing: border-box; background: var(--ant-color-fill-quaternary, #fafbfc); }
+.card { min-height: auto; display: flex; flex-direction: column; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--wall-border); border-radius: 8px; background: var(--wall-paper); color: inherit; font: inherit; box-sizing: border-box;
 }
 .earnedCard { border-color: #d5b76c80; }
 .completeCard .status { color: var(--ant-color-warning-text, #ad7d23); }

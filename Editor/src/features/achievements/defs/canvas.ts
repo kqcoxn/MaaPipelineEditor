@@ -1,60 +1,41 @@
 import type { AchievementDef } from "../types";
 
-/**画布操作类成就 */
 export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_first_node",
     title: "第一步",
     subtitle: "万事开头，一个节点。",
-    description: "创建第一个节点",
+    description: "创建第一个 Pipeline 节点",
     category: "canvas",
-    trigger: { kind: "event", on: "canvas:node:add" },
+    trigger: {
+      kind: "counter",
+      counter: "node_created",
+      target: 1
+    }
   },
   {
-    id: "canvas_nodes_10",
-    title: "初窥门径",
-    subtitle: "有点意思，再来几个。",
-    description: "累计创建 10 个节点",
+    id: "canvas_rename",
+    title: "名字很重要",
+    subtitle: "让名字替你说明白。",
+    description: "首次修改 Pipeline 节点名称",
     category: "canvas",
-    series: "node_created",
-    tier: 1,
-    trigger: { kind: "counter", counter: "node_created", target: 10 },
+    trigger: {
+      kind: "counter",
+      counter: "node_renamed",
+      target: 1
+    }
   },
   {
-    id: "canvas_nodes_50",
-    title: "渐入佳境",
-    subtitle: "这条管线，我熟。",
-    description: "累计创建 50 个节点",
+    id: "canvas_field",
+    title: "细节决定成败",
+    subtitle: "再多想一个参数。",
+    description: "首次添加并填写一个可选字段",
     category: "canvas",
-    series: "node_created",
-    tier: 2,
-    trigger: { kind: "counter", counter: "node_created", target: 50 },
-  },
-  {
-    id: "canvas_nodes_200",
-    title: "管线大师",
-    subtitle: "节点越来越多，思路越来越清楚。",
-    description: "累计创建 200 个节点",
-    category: "canvas",
-    series: "node_created",
-    tier: 3,
-    trigger: { kind: "counter", counter: "node_created", target: 200 },
-  },
-  {
-    id: "canvas_first_edge",
-    title: "牵针引线",
-    subtitle: "这下接上了。",
-    description: "创建第一条连接",
-    category: "canvas",
-    trigger: { kind: "event", on: "canvas:edge:add" },
-  },
-  {
-    id: "canvas_edges_50",
-    title: "千丝万缕",
-    subtitle: "关系网，也是一门手艺。",
-    description: "累计创建 50 条连接",
-    category: "canvas",
-    trigger: { kind: "counter", counter: "edge_created", target: 50 },
+    trigger: {
+      kind: "counter",
+      counter: "field_added",
+      target: 1
+    }
   },
   {
     id: "canvas_first_paste",
@@ -62,6 +43,49 @@ export const canvasAchievements: AchievementDef[] = [
     subtitle: "拿来吧你！",
     description: "首次粘贴节点",
     category: "canvas",
-    trigger: { kind: "event", on: "canvas:graph:paste" },
+    trigger: {
+      kind: "counter",
+      counter: "nodes_pasted",
+      target: 1
+    }
   },
+  {
+    id: "canvas_nodes_10",
+    title: "初具雏形",
+    description: "累计创建 10 个 Pipeline 节点",
+    category: "canvas",
+    series: "node_created",
+    tier: 1,
+    trigger: {
+      kind: "counter",
+      counter: "node_created",
+      target: 10
+    }
+  },
+  {
+    id: "canvas_nodes_50",
+    title: "渐成规模",
+    description: "累计创建 50 个 Pipeline 节点",
+    category: "canvas",
+    series: "node_created",
+    tier: 2,
+    trigger: {
+      kind: "counter",
+      counter: "node_created",
+      target: 50
+    }
+  },
+  {
+    id: "canvas_nodes_200",
+    title: "积木成城",
+    description: "累计创建 200 个 Pipeline 节点",
+    category: "canvas",
+    series: "node_created",
+    tier: 3,
+    trigger: {
+      kind: "counter",
+      counter: "node_created",
+      target: 200
+    }
+  }
 ];

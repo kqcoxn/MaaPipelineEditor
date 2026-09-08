@@ -43,7 +43,8 @@ describe("成就解锁胶囊", () => {
     });
 
     expect(screen.getByText("达成成就：第一步")).toBeInTheDocument();
-    expect(screen.getByText("创建第一个节点")).toBeInTheDocument();
+    expect(screen.getByText("万事开头，一个节点。")).toBeInTheDocument();
+    expect(screen.queryByText("创建第一个 Pipeline 节点")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "查看成就" }));
     expect(useAchievementStore.getState().wallOpen).toBe(true);
     expect(useAchievementStore.getState().toasts).toEqual([]);

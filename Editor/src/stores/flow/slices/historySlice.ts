@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import type { StateCreator } from "zustand";
 
 import { useConfigStore } from "@/stores/app/configStore";
@@ -144,6 +145,7 @@ export const createHistorySlice: StateCreator<
         return;
       }
 
+      emitAchievementEvent("graph:committed", { beforeNodes: baseline.nodes, nodes: currentState.nodes, beforeEdges: baseline.edges, edges: currentState.edges });
       addOperationLog(opDescriptor);
       const limit = useConfigStore.getState().configs.historyLimit;
       set((state) => ({
@@ -219,6 +221,7 @@ export const createHistorySlice: StateCreator<
         graphRevision: currentState.graphRevision,
       },
     });
+    emitAchievementEvent("achievement:history_redone");
     return true;
   },
 
