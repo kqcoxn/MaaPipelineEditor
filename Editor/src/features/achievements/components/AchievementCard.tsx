@@ -56,7 +56,6 @@ export function AchievementCard({ item, graph = false }: {
       {earned && !item.complete && <time className={style.cardMeta}>{dayjs(earned.at).format("YYYY-MM-DD HH:mm")} 解锁</time>}
       {!concealed && showNext && <div className={style.nextGoal}>
         <span className={style.nextTitle}>下一档 · {next.title}</span>
-        {next.subtitle && <span className={style.subtitle}>{next.subtitle}</span>}
         <span className={style.nextCondition}>{next.description}</span>
       </div>}
       <div className={style.cardProgress}>

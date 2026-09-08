@@ -17,7 +17,7 @@ vi.mock("./AchievementGraph", () => ({
 
 beforeEach(() => {
   localStorage.clear();
-  useAchievementStore.setState({ counters: { node_created: 27 }, unlocked: { canvas_first_node: { at: 1 }, canvas_nodes_10: { at: 1 } }, progress: {}, wallOpen: true });
+  useAchievementStore.setState({ counters: { node_created: 27 }, unlocked: { canvas_first_node: { at: 1 }, canvas_nodes: { at: 1 } }, progress: {}, wallOpen: true });
 });
 afterEach(cleanup);
 
@@ -34,13 +34,13 @@ describe("成就面板交互", () => {
       const completed = within(screen.getByRole("article", { name: "第一步" }));
       expect(completed.getByRole("progressbar")).toHaveAttribute("value", "100");
       expect(completed.getByText("解锁于")).toBeInTheDocument();
-      const card = within(screen.getByRole("article", { name: "初具雏形" }));
+      const card = within(screen.getByRole("article", { name: "积土成山 Ⅰ" }));
       expect(card.getByText("累计创建 10 个 Pipeline 节点")).toBeInTheDocument();
-      expect(card.getByText("下一档 · 渐成规模")).toBeInTheDocument();
+      expect(card.getByText("下一档 · 积土成山 Ⅱ")).toBeInTheDocument();
       expect(card.getByText("累计创建 50 个 Pipeline 节点")).toBeInTheDocument();
       expect(card.getByText("27 / 50")).toBeInTheDocument();
-      expect(screen.queryByText("积木成城")).not.toBeInTheDocument();
-      fireEvent.click(card.getByText("初具雏形"));
+      expect(screen.queryByText("积土成山 Ⅲ")).not.toBeInTheDocument();
+      fireEvent.click(card.getByText("积土成山 Ⅰ"));
       expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
     }
   });

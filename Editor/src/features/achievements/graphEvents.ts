@@ -17,7 +17,13 @@ function hasValue(value: unknown): boolean {
 
 /**仅由实际字段编辑调用；导入、撤销、文件切换不会计为字段编辑。 */
 export function recordNodeEdit(before: NodeType | undefined, after: NodeType | undefined) {
-  if (!before || !after || before.type !== NodeTypeEnum.Pipeline || after.type !== NodeTypeEnum.Pipeline) return;
+  if (!before || !after) return;
+  if (before.type === NodeTypeEnum.Sticker && after.type === NodeTypeEnum.Sticker &&
+    "content" in before.data && "content" in after.data &&
+    before.data.content !== after.data.content && after.data.content.trim()) {
+    emitAchievementEvent("achievement:node_note");
+  }
+  if (before.type !== NodeTypeEnum.Pipeline || after.type !== NodeTypeEnum.Pipeline) return;
   if (JSON.stringify(before.data) === JSON.stringify(after.data)) return;
   emitAchievementEvent("graph:node:edited", { nodeId: after.id });
   const previous = before.data as PipelineNodeDataType;
@@ -28,9 +34,22 @@ export function recordNodeEdit(before: NodeType | undefined, after: NodeType | u
     { before: previous.action.param, after: next.action.param, fields: actionFields[next.action.type]?.params, same: previous.action.type === next.action.type },
     { before: previous.others, after: next.others, fields: otherFieldParams, same: true },
   ];
-  if (sections.some((section) => section.same && section.fields?.some((field) =>
-    !field.required && !hasValue(section.before[field.key]) && hasValue(section.after[field.key]),
-  ))) emitAchievementEvent("achievement:field_added");
+  for (const section of sections) {
+    if (!section.same) continue;
+    for (const field of section.fields ?? []) {
+      if (!field.required && !Object.hasOwn(section.before, field.key) && Object.hasOwn(section.after, field.key)) {
+        emitAchievementEvent("achievement:field_added");
+      }
+    }
+  }
+  for (const kind of ["recognition", "action"] as const) {
+    const current = next[kind];
+    const fields = (kind === "recognition" ? recoFields : actionFields)[current.type];
+    const excluded = kind === "recognition" ? "DirectHit" : "DoNothing";
+    if (current.type === excluded || !fields || JSON.stringify(previous[kind]) === JSON.stringify(current)) continue;
+    if (!fields.params.filter((field) => field.required).every((field) => hasValue(current.param[field.key]))) continue;
+    emitAchievementEvent(`achievement:${kind}_configured`, { type: current.type });
+  }
 }
 
 export interface CommittedGraph {

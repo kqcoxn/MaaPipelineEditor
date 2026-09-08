@@ -11,7 +11,7 @@
 /**成就分类 */
 export const ACHIEVEMENT_CATEGORY_LABELS = {
   onboarding: "启程",
-  canvas: "起笔",
+  canvas: "节点",
   connection: "编排",
   organize: "整理",
   material: "取材",

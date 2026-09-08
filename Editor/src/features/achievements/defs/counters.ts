@@ -1,7 +1,10 @@
 import type { CounterRule } from "../types";
+import { configurationCounterRules } from "../nodeConfiguration";
 
 /**只接收操作成功事件；累计值支持启动及配置导入后的回溯。 */
 export const counterRules: CounterRule[] = [
+  ...configurationCounterRules,
+  ...["recognition_configured", "action_configured", "node_note", "node_json_saved", "bulk_copied"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "terms_accepted", on: "achievement:terms_accepted" },
   { counter: "quiz_failure", on: "achievement:quiz_failure" },
   { counter: "quiz_pass", on: "achievement:quiz_pass" },
@@ -11,6 +14,7 @@ export const counterRules: CounterRule[] = [
   { counter: "quiz_shortcut", on: "achievement:quiz_shortcut" },
 
   { counter: "node_created", on: "achievement:node_created", delta: (event) => (event.payload as { count?: number } | undefined)?.count ?? 0 },
+  { counter: "node_deleted", on: "achievement:node_deleted", delta: (event) => (event.payload as { count?: number } | undefined)?.count ?? 0 },
   { counter: "node_renamed", on: "achievement:node_renamed" },
   { counter: "field_added", on: "achievement:field_added" },
   { counter: "nodes_pasted", on: "achievement:nodes_pasted" },

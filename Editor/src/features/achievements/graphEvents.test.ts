@@ -21,17 +21,36 @@ describe("节点与结构行为口径", () => {
     expect(events).not.toContain("achievement:field_added");
   });
 
-  it("空字符串与空列表不算填写，0 和 false 是有效字段值", () => {
+  it("按字段新增次数计数，空默认值也计入，修改已有字段不累计", () => {
     for (const value of ["", [], [""]]) {
       const before = createPipelineNode("node");
       recordNodeEdit(before, applyNodeDataUpdates(before, [{ type: "others", key: "timeout", value }]));
     }
-    expect(events).not.toContain("achievement:field_added");
+    expect(events.filter((event) => event === "achievement:field_added")).toHaveLength(3);
+    events = [];
     for (const [key, value] of [["timeout", 0], ["enabled", false]] as const) {
       const before = createPipelineNode("node");
       recordNodeEdit(before, applyNodeDataUpdates(before, [{ type: "others", key, value }]));
     }
     expect(events.filter((event) => event === "achievement:field_added")).toHaveLength(2);
+    const before = createPipelineNode("node");
+    const added = applyNodeDataUpdates(before, [{ type: "others", key: "timeout", value: 0 }]);
+    recordNodeEdit(added, applyNodeDataUpdates(added, [{ type: "others", key: "timeout", value: 100 }]));
+    expect(events.filter((event) => event === "achievement:field_added")).toHaveLength(2);
+  });
+
+  it("同一次编辑添加两个可选字段累计两次，必填参数完整才记录识别配置", () => {
+    const before = createPipelineNode("node");
+    recordNodeEdit(before, applyNodeDataUpdates(before, [
+      { type: "others", key: "timeout", value: 0 },
+      { type: "others", key: "enabled", value: false },
+    ]));
+    expect(events.filter((event) => event === "achievement:field_added")).toHaveLength(2);
+    const ocr = applyNodeDataUpdates(before, [{ type: "type", key: "recognition", value: "OCR" }]);
+    recordNodeEdit(before, ocr);
+    expect(events).not.toContain("achievement:recognition_configured");
+    recordNodeEdit(ocr, applyNodeDataUpdates(ocr, [{ type: "recognition", key: "expected", value: ["文字"] }]));
+    expect(events).toContain("achievement:recognition_configured");
   });
 
   it("既有结构重新提交或仅移动节点不会授予结构成就", () => {

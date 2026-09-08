@@ -33,6 +33,10 @@ function AchievementWallContent() {
   const [category, setCategory] = useState<Category>("all");
   const allItems = useMemo(() => buildAchievementItems(achievementDefs, unlocked), [unlocked]);
   const items = useMemo(() => allItems.filter((item) => category === "all" || item.def.category === category), [allItems, category]);
+  const albumGroups = [
+    { title: "单次成就", items: items.filter((item) => item.tiers.length === 1) },
+    { title: "累积成就", items: items.filter((item) => item.tiers.length > 1) },
+  ];
   const unlockedCount = achievementDefs.filter((def) => unlocked[def.id]).length;
   const total = achievementDefs.length;
   return <div className={style.wall}>
@@ -63,8 +67,13 @@ function AchievementWallContent() {
     <p className={style.introduction}>{category === "all" ? "沿着兴趣探索，所有成就都可独立解锁。" : categoryIntroductions[category]}</p>
     <div className={style.workspace}>
       <div className={style.mainView}>
-        {mode === "graph" ? <AchievementGraph key={category} items={items} /> : <div className={style.grid}>
-          {items.map((item) => <AchievementCard key={item.key} item={item} />)}
+        {mode === "graph" ? <AchievementGraph key={category} items={items} /> : <div className={style.album}>
+          {albumGroups.filter((group) => group.items.length > 0).map((group) => <section key={group.title} aria-label={group.title}>
+            <h3 className={style.albumHeading}>{group.title}<span>{group.items.length}</span></h3>
+            <div className={style.grid}>
+              {group.items.map((item) => <AchievementCard key={item.key} item={item} />)}
+            </div>
+          </section>)}
         </div>}
       </div>
     </div>

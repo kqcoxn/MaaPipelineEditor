@@ -72,6 +72,9 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         removedIds.add(change.id);
       }
     });
+    const removedPipelineIds = [...removedIds].filter(
+      (id) => get().nodeById.get(id)?.type === NodeTypeEnum.Pipeline,
+    );
     // React Flow emits one position change for every pointer move. The nodes
     // array is the live layout source during the drag; defer the full node
     // index replacement until the final (dragging: false) change.
@@ -196,6 +199,13 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
 
       return updates;
     });
+
+    const deletedCount = removedPipelineIds.filter(
+      (id) => !get().nodeById.has(id),
+    ).length;
+    if (deletedCount > 0) {
+      emitAchievementEvent("achievement:node_deleted", { count: deletedCount });
+    }
 
     // 清理删除节点的顺序
     removedIds.forEach((id) => {

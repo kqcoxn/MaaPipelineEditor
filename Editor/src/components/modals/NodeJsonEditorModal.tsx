@@ -21,6 +21,9 @@ import {
   ensureMfwJsonCompletionProvider,
 } from "../json/mfwJsonCompletion";
 import { MfwJsonEditor } from "../json/MfwJsonEditor";
+import { isEqual } from "lodash";
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { recordNodeEdit } from "@/features/achievements/graphEvents";
 
 interface NodeJsonEditorModalProps {
   open: boolean;
@@ -124,8 +127,13 @@ export const NodeJsonEditorModal = memo(
 
       // 保存数据
       onSave(storeData);
+      const savedNode = useFlowStore.getState().nodeById.get(node.id);
+      if (savedNode && !isEqual(validationResult.data, convertNodeToMfwFormat(node)) && !isEqual(node.data, savedNode.data)) {
+        recordNodeEdit(node, savedNode);
+        emitAchievementEvent("achievement:node_json_saved");
+      }
       onClose();
-    }, [jsonValue, node, onSave, onClose]);
+    }, [jsonValue, node, onSave, onClose, convertNodeToMfwFormat]);
 
     // 获取节点类型显示名称
     const getNodeTypeLabel = (type: NodeTypeEnum): string => {

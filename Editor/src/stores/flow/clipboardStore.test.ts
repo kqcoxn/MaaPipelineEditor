@@ -4,6 +4,7 @@ import { message } from "antd";
 import { createPipelineNode } from ".";
 import { useClipboardStore } from "./clipboardStore";
 import { useProcessStore } from "@/stores/ui/processStore";
+import { subscribeAchievementEvents } from "@/features/achievements/bus";
 
 vi.mock("antd", async (importOriginal) => {
   const antd = await importOriginal<typeof import("antd")>();
@@ -18,6 +19,18 @@ vi.mock("antd", async (importOriginal) => {
 });
 
 describe("flow clipboard", () => {
+  it("一次复制超过50个节点才触发隐藏成就，复制不计作粘贴", async () => {
+    const events: string[] = [];
+    const dispose = subscribeAchievementEvents((event) => events.push(event.type));
+    try {
+      for (const count of [0, 50, 51]) {
+        await useClipboardStore.getState().copy(Array.from({ length: count }, (_, i) => createPipelineNode(`copy-${i}`)));
+      }
+      expect(events).toEqual(["achievement:bulk_copied"]);
+    } finally {
+      dispose();
+    }
+  });
   beforeEach(() => {
     useClipboardStore.setState({ clipboardNodes: [], clipboardEdges: [] });
     useProcessStore.setState({ entries: [] });

@@ -39,7 +39,13 @@
   i { display: inline-block; width: 22px; border-top: 1px dashed currentColor; vertical-align: middle; margin-right: 6px; }
 }
 .handle { opacity: 0; pointer-events: none; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; align-content: start; align-items: start; gap: 12px; padding: 16px; height: 100%; overflow: auto; box-sizing: border-box; background: var(--ant-color-fill-quaternary, #fafbfc); }
+.album { height: 100%; overflow: auto; padding: 16px; box-sizing: border-box; background: var(--ant-color-fill-quaternary, #fafbfc);
+  section + section { margin-top: 24px; }
+}
+.albumHeading { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-size: 13px; font-weight: 600;
+  span { color: var(--wall-muted); font-size: 11px; font-weight: 400; }
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); grid-auto-rows: max-content; align-content: start; align-items: start; gap: 12px; }
 .card { min-height: auto; display: flex; flex-direction: column; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--wall-border); border-radius: 8px; background: var(--wall-paper); color: inherit; font: inherit; box-sizing: border-box;
 }
 .earnedCard { border-color: #d5b76c80; }
@@ -68,7 +74,8 @@
   .summary { flex-wrap: wrap; gap: 12px; }
   .summaryProgress { flex-basis: 100%; max-width: none; }
   .toolbar > .eyebrow { display: none; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); padding: 12px; }
+  .album { padding: 12px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .card { transition: none; } }
 

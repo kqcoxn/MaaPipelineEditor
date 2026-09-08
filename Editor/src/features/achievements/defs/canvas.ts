@@ -1,91 +1,128 @@
 import type { AchievementDef } from "../types";
+import { countSeries } from "../countSeries";
+import { configurationVariety } from "../nodeConfiguration";
+
+const nodeCountTargets = [1, 50, 200, 1000, 5000, 20000];
+
 
 export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_first_node",
     title: "第一步",
-    subtitle: "万事开头，一个节点。",
+    subtitle: "年轻人的第一个节点",
     description: "创建第一个 Pipeline 节点",
     category: "canvas",
     trigger: {
       kind: "counter",
       counter: "node_created",
-      target: 1
-    }
+      target: 1,
+    },
   },
   {
     id: "canvas_rename",
-    title: "名字很重要",
-    subtitle: "让名字替你说明白。",
+    title: "改头换面",
+    subtitle: "int a1 = 0;",
     description: "首次修改 Pipeline 节点名称",
     category: "canvas",
     trigger: {
       kind: "counter",
       counter: "node_renamed",
-      target: 1
-    }
+      target: 1,
+    },
   },
   {
+    id: "canvas_recognition",
+    title: "慧眼识珠",
+    subtitle: "伯乐常有，而千里马不常有",
+    description: "首次配置非 DirectHit 的识别类型，并填写其必填参数",
+    category: "canvas",
+    trigger: { kind: "counter", counter: "recognition_configured", target: 1 },
+  },
+  {
+    id: "canvas_action",
+    title: "动起来",
+    subtitle: "在 MPE 里咱们就练~起~来~",
+    description: "首次配置非 DoNothing 的动作类型，并填写其必填参数",
+    category: "canvas",
+    trigger: { kind: "counter", counter: "action_configured", target: 1 },
+  },
+  ...countSeries({
+    category: "canvas",
     id: "canvas_field",
+    counter: "field_added",
     title: "细节决定成败",
-    subtitle: "再多想一个参数。",
-    description: "首次添加并填写一个可选字段",
+    subtitle: "机枪阵地向左移动五厘米！",
+    action: "添加可选字段",
+    targets: [1, 50, 500, 2000, 10000, 50000],
+  }),
+  {
+    id: "canvas_note",
+    title: "支援未来",
+    subtitle: "给未来的自己留句话。",
+    description: "首次为便签节点填写非空内容",
+    category: "canvas",
+    trigger: { kind: "counter", counter: "node_note", target: 1 },
+  },
+  {
+    id: "canvas_json",
+    title: "源码直达",
+    subtitle: "这一行，我来写。",
+    description: "首次通过节点 JSON 编辑器保存有效修改",
+    category: "canvas",
+    trigger: { kind: "counter", counter: "node_json_saved", target: 1 },
+  },
+  {
+    id: "canvas_variety",
+    title: "博采众长",
+    subtitle: "办法总比困难多。",
+    description:
+      "累计配置 5 种非 DirectHit 识别类型，或 5 种非 DoNothing 动作类型",
     category: "canvas",
     trigger: {
-      kind: "counter",
-      counter: "field_added",
-      target: 1
-    }
+      kind: "custom",
+      watch: [
+        "achievement:recognition_configured",
+        "achievement:action_configured",
+      ],
+      evaluate: configurationVariety,
+    },
   },
-  {
+  ...countSeries({
+    category: "canvas",
     id: "canvas_first_paste",
+    counter: "nodes_pasted",
     title: "拿来主义",
     subtitle: "拿来吧你！",
-    description: "首次粘贴节点",
-    category: "canvas",
-    trigger: {
-      kind: "counter",
-      counter: "nodes_pasted",
-      target: 1
-    }
-  },
+    action: "成功粘贴节点",
+    targets: [1, 50, 200, 1000],
+  }),
   {
-    id: "canvas_nodes_10",
-    title: "初具雏形",
-    description: "累计创建 10 个 Pipeline 节点",
+    id: "canvas_bulk_copy",
+    title: "全都要",
+    subtitle: "小孩子才做选择。",
+    description: "一次复制超过 50 个节点",
     category: "canvas",
-    series: "node_created",
-    tier: 1,
-    trigger: {
-      kind: "counter",
-      counter: "node_created",
-      target: 10
-    }
+    hidden: true,
+    trigger: { kind: "counter", counter: "bulk_copied", target: 1 },
   },
-  {
-    id: "canvas_nodes_50",
-    title: "渐成规模",
-    description: "累计创建 50 个 Pipeline 节点",
+  ...countSeries({
     category: "canvas",
-    series: "node_created",
-    tier: 2,
-    trigger: {
-      kind: "counter",
-      counter: "node_created",
-      target: 50
-    }
-  },
-  {
-    id: "canvas_nodes_200",
-    title: "积木成城",
-    description: "累计创建 200 个 Pipeline 节点",
+    id: "canvas_nodes",
+    counter: "node_created",
+    title: "积土成山",
+    subtitle: "金山银山，别是💩山",
+    action: "创建",
+    targets: [10, ...nodeCountTargets.slice(1)],
+    unit: "个 Pipeline 节点",
+  }),
+  ...countSeries({
     category: "canvas",
-    series: "node_created",
-    tier: 3,
-    trigger: {
-      kind: "counter",
-      counter: "node_created",
-      target: 200
-    }
-  }
+    id: "canvas_nodes_deleted",
+    counter: "node_deleted",
+    title: "推倒重来",
+    subtitle: "对吗？哦对的对的，哦不对不对",
+    action: "删除",
+    targets: nodeCountTargets,
+    unit: "个 Pipeline 节点",
+  }),
 ];

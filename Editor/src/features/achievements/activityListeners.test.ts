@@ -24,12 +24,45 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("批量删除按实际 Pipeline 数量累计，重复请求、便签、撤销重做和替换图不计数", () => {
+    const flow = useFlowStore.getState();
+    const first = flow.addNode();
+    const second = flow.addNode();
+    const sticker = flow.addNode({ type: NodeTypeEnum.Sticker });
+    vi.runOnlyPendingTimers();
+    flow.updateNodes([first, second, first, sticker, "missing"].map((id) => ({ type: "remove" as const, id })));
+    vi.runOnlyPendingTimers();
+    expect(useAchievementStore.getState().counters.node_deleted).toBe(2);
+    expect(unlocked("canvas_nodes_deleted")).toBe(true);
+    flow.updateNodes([{ type: "remove", id: first }]);
+    flow.undo(); flow.redo();
+    flow.replace([], [], { skipHistory: true, isFitView: false });
+    expect(useAchievementStore.getState().counters.node_deleted).toBe(2);
+  });
+
+  it("便签内容与完整识别配置从真实编辑入口解锁，重启保留类型去重记录", () => {
+    const flow = useFlowStore.getState();
+    const sticker = flow.addNode({ type: NodeTypeEnum.Sticker });
+    flow.setNodeData(sticker, "sticker", "content", "   ");
+    expect(unlocked("canvas_note")).toBe(false);
+    flow.setNodeData(sticker, "sticker", "content", "留给明天的说明");
+    expect(unlocked("canvas_note")).toBe(true);
+    const node = flow.addNode();
+    flow.setNodeData(node, "type", "recognition", "OCR");
+    expect(unlocked("canvas_recognition")).toBe(false);
+    flow.setNodeData(node, "recognition", "expected", ["测试"]);
+    expect(unlocked("canvas_recognition")).toBe(true);
+    dispose();
+    dispose = initializeAchievements();
+    expect(useAchievementStore.getState().counters["recognition_configured:OCR"]).toBe(1);
+    expect(useAchievementStore.getState().progress.canvas_variety).toBe(0.2);
+  });
   it("连续创建逐个计数，便签和分组不计入 Pipeline 节点数，撤销重做不重复计数", () => {
     for (let i = 0; i < 10; i++) useFlowStore.getState().addNode();
     useFlowStore.getState().addNode({ type: NodeTypeEnum.Sticker });
     vi.runOnlyPendingTimers();
     expect(useAchievementStore.getState().counters.node_created).toBe(10);
-    expect(unlocked("canvas_nodes_10")).toBe(true);
+    expect(unlocked("canvas_nodes")).toBe(true);
     useFlowStore.getState().undo(); useFlowStore.getState().redo();
     expect(useAchievementStore.getState().counters.node_created).toBe(10);
     expect(unlocked("explore_redo")).toBe(true);
@@ -89,8 +122,12 @@ describe("正式成就接线", () => {
     expect(new Set(achievementDefs.map((def) => def.id)).size).toBe(achievementDefs.length);
     const counters = new Set(counterRules.map((rule) => rule.counter));
     for (const def of achievementDefs) {
-      expect(def.trigger.kind).toBe("counter");
       if (def.trigger.kind === "counter") expect(counters.has(def.trigger.counter), def.id).toBe(true);
+      if (def.trigger.kind === "custom") {
+        for (const watched of def.trigger.watch) {
+          expect(counterRules.some((rule) => rule.on === watched || rule.counter === watched), def.id).toBe(true);
+        }
+      }
     }
   });
 });

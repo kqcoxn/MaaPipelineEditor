@@ -1,5 +1,6 @@
 import { message } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { cloneDeep } from "lodash";
 import type { NodeType, EdgeType } from "./types";
 import {
@@ -35,6 +36,7 @@ export const useClipboardStore = create<ClipboardState>()((set, get) => ({
       const clipboardEdges = cloneDeep(sourceEdges);
       updateProcess?.({ detail: "正在写入内部粘贴板", progress: 96 });
       set({ clipboardNodes, clipboardEdges });
+      if (clipboardNodes.length > 50) emitAchievementEvent("achievement:bulk_copied");
       message.success("已将选中节点加载至内部粘贴板");
     };
 
