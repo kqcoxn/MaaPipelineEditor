@@ -1,47 +1,41 @@
-import { act } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
-import {
-  notifyRetroactiveUnlocks,
-  startUnlockNotifier,
-} from "./notify";
+import { notifyRetroactiveUnlocks, startUnlockNotifier } from "./notify";
 
-describe("成就胶囊队列", () => {
+describe("成就胶囊通知", () => {
+  let dispose: (() => void) | undefined;
+
   beforeEach(() => {
-    vi.useFakeTimers();
-    useAchievementStore.setState({
-      counters: {},
-      unlocked: {},
-      progress: {},
-      wallOpen: false,
-      toast: null,
-    });
+    useAchievementStore.getState().resetAll();
+    dispose = startUnlockNotifier();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-    useAchievementStore.getState().setToast(null);
+  afterEach(() => dispose?.());
+
+  it("同时及连续解锁立即追加，重复解锁不重复通知", () => {
+    const store = useAchievementStore.getState();
+    store.applyEnginePatch({ unlock: ["canvas_first_node", "canvas_first_edge"] });
+    expect(useAchievementStore.getState().toasts).toHaveLength(2);
+    store.applyEnginePatch({ unlock: ["canvas_first_node", "another"] });
+    expect(useAchievementStore.getState().toasts.map((toast) =>
+      toast.kind === "unlock" ? toast.id : null,
+    )).toEqual(["canvas_first_node", "canvas_first_edge", "another"]);
   });
 
-  it("延迟后把新解锁送入胶囊队列", () => {
-    const dispose = startUnlockNotifier();
-    useAchievementStore.getState().applyEnginePatch({ unlock: ["canvas_first_node"] });
-    expect(useAchievementStore.getState().toast).toBeNull();
-
-    act(() => vi.advanceTimersByTime(600));
-    expect(useAchievementStore.getState().toast).toEqual({
-      kind: "unlock",
-      id: "canvas_first_node",
-    });
-    dispose();
-  });
-
-  it("补发走汇总胶囊而不是逐个解锁", () => {
+  it("补发汇总与新解锁共存", () => {
     notifyRetroactiveUnlocks(["canvas_first_node", "canvas_first_edge"]);
-    expect(useAchievementStore.getState().toast).toEqual({
-      kind: "retroactive",
-      ids: ["canvas_first_node", "canvas_first_edge"],
-    });
+    useAchievementStore.getState().applyEnginePatch({ unlock: ["another"] });
+    expect(useAchievementStore.getState().toasts).toMatchObject([
+      { kind: "retroactive", ids: ["canvas_first_node", "canvas_first_edge"] },
+      { kind: "unlock", id: "another" },
+    ]);
+  });
+
+  it("停止通知器清空胶囊并取消订阅", () => {
+    useAchievementStore.getState().applyEnginePatch({ unlock: ["first"] });
+    dispose?.();
+    useAchievementStore.getState().applyEnginePatch({ unlock: ["second"] });
+    expect(useAchievementStore.getState().toasts).toEqual([]);
   });
 });

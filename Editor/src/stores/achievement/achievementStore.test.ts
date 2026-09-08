@@ -13,7 +13,7 @@ describe("achievementStore", () => {
       unlocked: {},
       progress: {},
       wallOpen: false,
-      toast: null,
+      toasts: [],
     });
   });
 
@@ -114,7 +114,7 @@ describe("achievementStore", () => {
         counters: { a: 1 },
         unlocked: { b: { at: 1 } },
         progress: { c: 0.5 },
-        toast: { kind: "unlock", id: "b" },
+        toasts: [{ kind: "unlock", id: "b", key: 0 }],
       });
 
       useAchievementStore.getState().resetAll();
@@ -123,7 +123,7 @@ describe("achievementStore", () => {
       expect(state.counters).toEqual({});
       expect(state.unlocked).toEqual({});
       expect(state.progress).toEqual({});
-      expect(state.toast).toBeNull();
+      expect(state.toasts).toEqual([]);
     });
   });
 

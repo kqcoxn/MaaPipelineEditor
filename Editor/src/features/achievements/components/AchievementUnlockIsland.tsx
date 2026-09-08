@@ -4,7 +4,7 @@ import { TrophyFilled, GiftFilled } from "@ant-design/icons";
 
 import {
   useAchievementStore,
-  type AchievementToast,
+  type AchievementToastEntry,
 } from "@/stores/achievement/achievementStore";
 import { Island } from "@/components/island";
 import { celebrateAchievementUnlock } from "../celebrate";
@@ -12,23 +12,21 @@ import { ACHIEVEMENT_CATEGORY_LABELS } from "../types";
 import { getAchievementDef, NOTIFY_DURATION } from "../notify";
 import styles from "./AchievementUnlockIsland.module.less";
 
-function toastKey(toast: AchievementToast): string {
-  return toast.kind === "unlock"
-    ? `unlock:${toast.id}`
-    : `retroactive:${toast.ids.join(",")}`;
+export function AchievementUnlockIsland() {
+  const toasts = useAchievementStore((state) => state.toasts);
+  return toasts.map((toast) => (
+    <AchievementToastIsland key={toast.key} toast={toast} />
+  ));
 }
 
-export function AchievementUnlockIsland() {
-  const toast = useAchievementStore((state) => state.toast);
-  const setToast = useAchievementStore((state) => state.setToast);
+function AchievementToastIsland({ toast }: { toast: AchievementToastEntry }) {
+  const removeToast = useAchievementStore((state) => state.removeToast);
   const setWallOpen = useAchievementStore((state) => state.setWallOpen);
 
   useEffect(() => {
-    if (!toast || toast.kind !== "unlock") return;
+    if (toast.kind !== "unlock") return;
     celebrateAchievementUnlock();
   }, [toast]);
-
-  if (!toast) return null;
 
   const content =
     toast.kind === "unlock"
@@ -38,14 +36,12 @@ export function AchievementUnlockIsland() {
 
   const openWall = () => {
     setWallOpen(true);
-    setToast(null);
+    removeToast(toast.key);
   };
 
-  const key = toastKey(toast);
   return (
     <Island
-      key={key}
-      islandKey={key}
+      islandKey={String(toast.key)}
       className={styles.shell}
       tone="gold"
       indicator={content.icon}
@@ -75,7 +71,7 @@ export function AchievementUnlockIsland() {
         },
       ]}
       autoHide={{ enabled: true, durationMs: NOTIFY_DURATION * 1000 }}
-      onHidden={() => setToast(null)}
+      onHidden={() => removeToast(toast.key)}
     />
   );
 }

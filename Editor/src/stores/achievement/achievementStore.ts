@@ -29,10 +29,14 @@ export interface AchievementExportData {
   unlocked: Record<string, { at: number }>;
 }
 
-/**成就胶囊当前展示项：单次解锁或启动补发汇总 */
+/**成就胶囊通知内容：单次解锁或启动补发汇总 */
 export type AchievementToast =
   | { kind: "unlock"; id: string }
   | { kind: "retroactive"; ids: string[] };
+
+export type AchievementToastEntry = AchievementToast & { key: number };
+
+let nextToastKey = 0;
 
 interface AchievementState {
   counters: Record<string, number>;
@@ -41,11 +45,13 @@ interface AchievementState {
   /**成就墙弹窗开关（不持久化） */
   wallOpen: boolean;
   /**当前展示的成就胶囊（不持久化） */
-  toast: AchievementToast | null;
+  toasts: AchievementToastEntry[];
 
   applyEnginePatch: (patch: AchievementEnginePatch) => void;
   setWallOpen: (open: boolean) => void;
-  setToast: (toast: AchievementToast | null) => void;
+  addToast: (toast: AchievementToast) => void;
+  removeToast: (key: number) => void;
+  clearToasts: () => void;
   exportData: () => AchievementExportData;
   /**导入成就数据：unlocked 取并集（保留较早时间），counters 取较大值。返回是否有变化 */
   importData: (data: unknown) => boolean;
@@ -107,7 +113,7 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
   ...loadPersisted(),
   progress: {},
   wallOpen: false,
-  toast: null,
+  toasts: [],
 
   applyEnginePatch(patch) {
     set((state) => {
@@ -147,8 +153,17 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
     set({ wallOpen: open });
   },
 
-  setToast(toast) {
-    set({ toast });
+  addToast(toast) {
+    const entry = { ...toast, key: nextToastKey++ };
+    set((state) => ({ toasts: [...state.toasts, entry] }));
+  },
+
+  removeToast(key) {
+    set((state) => ({ toasts: state.toasts.filter((toast) => toast.key !== key) }));
+  },
+
+  clearToasts() {
+    set({ toasts: [] });
   },
 
   exportData() {
@@ -200,7 +215,7 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
   },
 
   resetAll() {
-    set({ counters: {}, unlocked: {}, progress: {}, toast: null });
+    set({ counters: {}, unlocked: {}, progress: {}, toasts: [] });
   },
 }));
 
