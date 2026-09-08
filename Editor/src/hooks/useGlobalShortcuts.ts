@@ -1,3 +1,4 @@
+import { matchesShortcut } from "@/utils/shortcuts";
 import { message } from "@/utils/ui/antdAppApi";
 import { useEffect } from "react";
 import { useFlowStore } from "../stores/flow";
@@ -67,14 +68,10 @@ function handleDeleteKeyRedirection(event: KeyboardEvent) {
 }
 
 /**
- * 处理撤销操作 (Ctrl+Z)
+ * 处理当前平台的撤销快捷键
  */
 function handleUndo(event: KeyboardEvent): boolean {
-  if (
-    !(event.ctrlKey || event.metaKey) ||
-    event.key !== "z" ||
-    event.shiftKey
-  ) {
+  if (!matchesShortcut(event, "undo")) {
     return false;
   }
 
@@ -103,13 +100,10 @@ function handleUndo(event: KeyboardEvent): boolean {
 }
 
 /**
- * 处理重做操作 (Ctrl+Y 或 Ctrl+Shift+Z)
+ * 处理当前平台的重做快捷键
  */
 function handleRedo(event: KeyboardEvent): boolean {
-  if (
-    !(event.ctrlKey || event.metaKey) ||
-    !(event.key === "y" || (event.key === "z" && event.shiftKey))
-  ) {
+  if (!matchesShortcut(event, "redo")) {
     return false;
   }
 

@@ -133,6 +133,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "调试时聚焦入口节点功能可进行配置（默认关闭）",
         "优化 MacOS 设备搜索界面的交互体验",
+        "使用 cmd 作为 MacOS 系统快捷组合键",
       ],
     },
   },

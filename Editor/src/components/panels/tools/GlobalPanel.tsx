@@ -1,3 +1,4 @@
+import { getShortcut } from "@/utils/shortcuts";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import {
   memo,
@@ -167,7 +168,7 @@ function GlobalPanel() {
         },
       },
       {
-        label: "复制 (Ctrl+C)",
+        label: `复制 (${getShortcut("copy").label})`,
         iconName: "icon-a-copyfubenfuzhi",
         iconSize: 25,
         disabled: debouncedSelectedNodes.length === 0,
@@ -175,7 +176,7 @@ function GlobalPanel() {
         onDisabledClick: () => message.error("未选中节点"),
       },
       {
-        label: "粘贴 (Ctrl+V)",
+        label: `粘贴 (${getShortcut("paste").label})`,
         iconName: "icon-niantie1",
         iconSize: 29,
         disabled: clipboardNodes.length === 0,
@@ -188,7 +189,7 @@ function GlobalPanel() {
         },
       },
       {
-        label: "撤销 (Ctrl+Z)",
+        label: `撤销 (${getShortcut("undo").label})`,
         iconName: "icon-fanhui",
         iconSize: 22,
         disabled: !historyState.canUndo,
@@ -201,7 +202,7 @@ function GlobalPanel() {
         },
       },
       {
-        label: "重做 (Ctrl+Y)",
+        label: `重做 (${getShortcut("redo").label})`,
         iconName: "icon-qianjin",
         iconSize: 22,
         disabled: !historyState.canRedo,

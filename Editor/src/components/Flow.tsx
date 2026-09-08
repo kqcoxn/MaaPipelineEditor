@@ -1,3 +1,4 @@
+import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Flow.module.less";
 import "@xyflow/react/dist/style.css";
 
@@ -102,7 +103,7 @@ const KeyListener = memo(
     );
 
     // 复制节点
-    const copyPressed = useKeyPress("Control+c", keyPressOptions);
+    const copyPressed = useKeyPress(getShortcut("copy").binding, keyPressOptions);
     useEffect(() => {
       if (
         !allowCopy ||
@@ -116,7 +117,7 @@ const KeyListener = memo(
     }, [allowCopy, copy, copyPressed, isTextEditorFocused, selectedEdges, selectedNodes]);
 
     // 粘贴节点
-    const pastePressed = useKeyPress("Control+v", keyPressOptions);
+    const pastePressed = useKeyPress(getShortcut("paste").binding, keyPressOptions);
     useEffect(() => {
       if (
         !allowCopy ||

@@ -1,3 +1,4 @@
+import { matchesShortcut } from "@/utils/shortcuts";
 import {
   flowToPipelineString,
   flowToSeparatedStrings,
@@ -337,7 +338,7 @@ export function registerEmbedProtocol(): Cleanup {
   );
 
   const handleSaveRequest = (event: KeyboardEvent) => {
-    if ((event.ctrlKey || event.metaKey) && event.key === "s") {
+    if (matchesShortcut(event, "save")) {
       event.preventDefault();
       requestHostSave();
     }

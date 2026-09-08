@@ -1,3 +1,4 @@
+import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Header.module.less";
 
 import {
@@ -401,7 +402,7 @@ function Header() {
                   <span>
                     发现新版本：{updateInfo.latestVersion}，点击前往下载
                     <br />
-                    在线使用时可按 Ctrl+R 快捷刷新页面缓存以更新
+                    在线使用时可按 {getShortcut("refresh").label} 快捷刷新页面缓存以更新
                   </span>
                 }
               >
