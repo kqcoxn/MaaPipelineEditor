@@ -72,6 +72,8 @@ export type AchievementTrigger =
 export interface AchievementDef {
   id: string;
   title: string;
+  /**轻松的个性文案，与准确的解锁条件分开 */
+  subtitle?: string;
   description: string;
   category: AchievementCategory;
   /**隐藏成就：未解锁时在成就墙中仅显示占位 */

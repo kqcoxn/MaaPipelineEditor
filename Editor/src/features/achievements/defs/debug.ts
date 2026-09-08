@@ -5,6 +5,7 @@ export const debugAchievements: AchievementDef[] = [
   {
     id: "debug_first_run",
     title: "点火成功",
+    subtitle: "跑起来了！",
     description: "完成第一次调试运行",
     category: "debug",
     trigger: { kind: "event", on: "debug:run:completed" },
@@ -12,6 +13,7 @@ export const debugAchievements: AchievementDef[] = [
   {
     id: "debug_runs_10",
     title: "轻车熟路",
+    subtitle: "再跑一遍，心里有底。",
     description: "累计完成 10 次调试运行",
     category: "debug",
     series: "debug_run",
@@ -21,6 +23,7 @@ export const debugAchievements: AchievementDef[] = [
   {
     id: "debug_runs_50",
     title: "百炼成钢",
+    subtitle: "真金还得反复跑。",
     description: "累计完成 50 次调试运行",
     category: "debug",
     series: "debug_run",

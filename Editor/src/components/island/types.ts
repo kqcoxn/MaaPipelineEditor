@@ -8,6 +8,8 @@ export interface IslandSummary {
   title: string;
   subtitle: string;
   owner?: string;
+  /**归属信息的展示形式，默认普通文本 */
+  ownerVariant?: "plain" | "tag";
 }
 
 export interface IslandAction {

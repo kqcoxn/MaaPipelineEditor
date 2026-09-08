@@ -52,6 +52,7 @@ export function AchievementUnlockIsland() {
       summary={{
         title: content.title,
         owner: content.owner,
+        ownerVariant: "tag",
         subtitle: content.subtitle,
       }}
       onOpen={openWall}

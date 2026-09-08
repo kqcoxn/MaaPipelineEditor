@@ -5,6 +5,7 @@ import { DownOutlined } from "@ant-design/icons";
 import { useIslandHost } from "./useIslandHost";
 import { useIslandLifecycle } from "./useIslandLifecycle";
 import type { IslandController, IslandProps, IslandRenderState } from "./types";
+import metadataTag from "@/styles/MetadataTag.module.less";
 import island from "@/styles/island/Island.module.less";
 
 function resolveSlot<T, A>(value: T | ((arg: A) => T) | undefined, arg: A): T | undefined {
@@ -103,7 +104,7 @@ export function Island({
                 {summary.title}
               </span>
               {summary.owner !== undefined && (
-                <span className={island.owner} title={summary.owner}>
+                <span className={summary.ownerVariant === "tag" ? metadataTag.tag : island.owner} title={summary.owner}>
                   {summary.owner}
                 </span>
               )}

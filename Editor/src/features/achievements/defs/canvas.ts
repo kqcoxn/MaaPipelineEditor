@@ -5,6 +5,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_first_node",
     title: "第一步",
+    subtitle: "万事开头，一个节点。",
     description: "创建第一个节点",
     category: "canvas",
     trigger: { kind: "event", on: "canvas:node:add" },
@@ -12,6 +13,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_nodes_10",
     title: "初窥门径",
+    subtitle: "有点意思，再来几个。",
     description: "累计创建 10 个节点",
     category: "canvas",
     series: "node_created",
@@ -21,6 +23,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_nodes_50",
     title: "渐入佳境",
+    subtitle: "这条管线，我熟。",
     description: "累计创建 50 个节点",
     category: "canvas",
     series: "node_created",
@@ -30,6 +33,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_nodes_200",
     title: "管线大师",
+    subtitle: "节点越来越多，思路越来越清楚。",
     description: "累计创建 200 个节点",
     category: "canvas",
     series: "node_created",
@@ -39,6 +43,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_first_edge",
     title: "牵针引线",
+    subtitle: "这下接上了。",
     description: "创建第一条连接",
     category: "canvas",
     trigger: { kind: "event", on: "canvas:edge:add" },
@@ -46,6 +51,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_edges_50",
     title: "千丝万缕",
+    subtitle: "关系网，也是一门手艺。",
     description: "累计创建 50 条连接",
     category: "canvas",
     trigger: { kind: "counter", counter: "edge_created", target: 50 },
@@ -53,6 +59,7 @@ export const canvasAchievements: AchievementDef[] = [
   {
     id: "canvas_first_paste",
     title: "拿来主义",
+    subtitle: "拿来吧你！",
     description: "首次粘贴节点",
     category: "canvas",
     trigger: { kind: "event", on: "canvas:graph:paste" },
