@@ -96,6 +96,17 @@ find_asset_url() {
     echo "$json" | tr '{' '\n' | grep 'browser_download_url' | grep "$pattern" | head -n 1 | sed -E 's/.*"browser_download_url": *"([^"]+)".*/\1/'
 }
 
+required_maafw_version() {
+    local config version
+    config=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/$1/Editor/src/stores/app/configStore.ts") || return 1
+    version=$(printf '%s\n' "$config" | sed -nE 's/^[[:space:]]*mfwVersion:[[:space:]]*"v?([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)".*/\1/p')
+    if [ -z "$version" ]; then
+        echo "❌ 无法读取 MPE $1 的 mfwVersion" >&2
+        return 1
+    fi
+    printf 'v%s\n' "$version"
+}
+
 require_command curl
 require_command unzip
 require_command find
@@ -123,6 +134,8 @@ if [ -z "$VERSION" ]; then
 fi
 
 echo "✅ 最新版本: $VERSION"
+MAAFW_REQUIRED_VERSION=$(required_maafw_version "$VERSION")
+echo "✅ 指定 MaaFramework 版本: $MAAFW_REQUIRED_VERSION"
 
 BINARY_NAME="mpelb-${OS}-${ARCH}"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$BINARY_NAME"
@@ -137,21 +150,15 @@ TMP_DIR=$(mktemp -d)
 install_maafw() {
     local maafw_release maafw_version installed_version maafw_asset_url
     local zip_path extract_dir lib_file bin_dir agent_source_dir staged_bin_dir staged_agent_dir backup_bin_dir backup_agent_dir had_existing_bin had_existing_agent
-    echo "📡 正在获取 MaaFramework 最新版本..."
-    maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/latest")
-    maafw_version=$(extract_json_value "$maafw_release" "tag_name")
-    if [ -z "$maafw_version" ]; then
-        echo "❌ 获取 MaaFramework 版本信息失败"
-        exit 1
-    fi
+    maafw_version="$MAAFW_REQUIRED_VERSION"
 
     installed_version=""
     if [ -f "$MAAFW_VERSION_FILE" ]; then
         installed_version=$(tr -d '\r\n' < "$MAAFW_VERSION_FILE")
     fi
 
-    if is_non_empty_dir "$MAAFW_BIN_DIR" && is_non_empty_dir "$MAAFW_AGENT_DIR" && [ "$installed_version" = "$maafw_version" ]; then
-        echo "✅ MaaFramework runtime 已是最新版本: $maafw_version"
+    if is_non_empty_dir "$MAAFW_BIN_DIR" && is_non_empty_dir "$MAAFW_AGENT_DIR" && [ "${installed_version#v}" = "${maafw_version#v}" ]; then
+        echo "✅ MaaFramework runtime 已匹配 mfwVersion: $maafw_version"
         return
     fi
 
@@ -162,6 +169,12 @@ install_maafw() {
         echo "🔄 MaaAgentBinary 缺失，正在修复 MaaFramework runtime"
     fi
 
+    echo "📡 正在获取 MaaFramework $maafw_version..."
+    maafw_release=$(release_api "https://api.github.com/repos/MaaXYZ/MaaFramework/releases/tags/$maafw_version")
+    if [ "$(extract_json_value "$maafw_release" "tag_name")" != "$maafw_version" ]; then
+        echo "❌ 无法获取指定 MaaFramework 版本: $maafw_version"
+        exit 1
+    fi
     maafw_asset_url=$(find_asset_url "$maafw_release" "MAA-${MAAFW_OS}-${MAAFW_ARCH}-.*\\.zip")
 
     if [ -z "$maafw_asset_url" ]; then
@@ -310,4 +323,4 @@ echo ""
 echo "更新 lb:"
 echo "  curl -fsSL https://raw.githubusercontent.com/$REPO/main/scripts/install/install.sh | bash"
 echo ""
-echo "注意: MaaFramework runtime 会自动更新，已有 OCR 资源仍会保留。"
+echo "注意: 自管理 MaaFramework runtime 会同步到 MPE mfwVersion 指定版本，已有 OCR 资源仍会保留。"

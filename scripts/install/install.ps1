@@ -33,12 +33,22 @@ function Invoke-Download($url, $outputPath) {
     Invoke-WebRequest -Uri $url -OutFile $outputPath -UseBasicParsing
 }
 
-function Get-GitHubLatestRelease($repo) {
+function Get-GitHubRelease($repo, $tag = "") {
     $headers = @{}
     if ($env:GITHUB_TOKEN) {
         $headers["Authorization"] = "token $env:GITHUB_TOKEN"
     }
-    return Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -Headers $headers
+    $endpoint = if ($tag) { "tags/$([Uri]::EscapeDataString($tag))" } else { "latest" }
+    return Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/$endpoint" -Headers $headers
+}
+
+function Get-RequiredMaaFrameworkVersion($mpeVersion) {
+    $ref = [Uri]::EscapeDataString($mpeVersion)
+    $config = (Invoke-WebRequest -Uri "https://raw.githubusercontent.com/$REPO/$ref/Editor/src/stores/app/configStore.ts" -UseBasicParsing).Content
+    if ($config -notmatch 'mfwVersion\s*:\s*"v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)"') {
+        throw "Failed to read mfwVersion for MPE $mpeVersion"
+    }
+    return "v$($Matches[1])"
 }
 
 function Copy-DirectoryContents($source, $destination) {
@@ -57,31 +67,28 @@ function Get-InstalledMaaFrameworkVersion() {
     return (Get-Content -LiteralPath $MAAFW_VERSION_PATH -Raw).Trim()
 }
 
-function Install-MaaFramework() {
-    Write-Host "Fetching latest MaaFramework release..." -ForegroundColor Yellow
-    $maafwRelease = Get-GitHubLatestRelease "MaaXYZ/MaaFramework"
-    $latestVersion = "$($maafwRelease.tag_name)".Trim()
-    if (!$latestVersion) {
-        Write-Host "Failed to read MaaFramework release version" -ForegroundColor Red
-        exit 1
-    }
-
+function Install-MaaFramework($requiredVersion) {
     $installedVersion = Get-InstalledMaaFrameworkVersion
     $hasExistingRuntime = Test-NonEmptyDirectory $MAAFW_BIN_DIR
     $hasExistingAgent = Test-NonEmptyDirectory $MAAFW_AGENT_DIR
-    if ($hasExistingRuntime -and $hasExistingAgent -and $installedVersion -eq $latestVersion) {
-        Write-Host "MaaFramework runtime is up to date: $latestVersion" -ForegroundColor Green
+    if ($hasExistingRuntime -and $hasExistingAgent -and $installedVersion.TrimStart('v') -eq $requiredVersion.TrimStart('v')) {
+        Write-Host "MaaFramework runtime matches mfwVersion: $requiredVersion" -ForegroundColor Green
         return
     }
 
     if ($hasExistingRuntime) {
         $versionLabel = if ($installedVersion) { $installedVersion } else { "unknown" }
-        Write-Host "Updating MaaFramework runtime: $versionLabel -> $latestVersion" -ForegroundColor Yellow
+        Write-Host "Syncing MaaFramework runtime: $versionLabel -> $requiredVersion" -ForegroundColor Yellow
     }
     if ($hasExistingRuntime -and !$hasExistingAgent) {
         Write-Host "MaaAgentBinary is missing; repairing MaaFramework runtime" -ForegroundColor Yellow
     }
 
+    Write-Host "Fetching MaaFramework $requiredVersion..." -ForegroundColor Yellow
+    $maafwRelease = Get-GitHubRelease "MaaXYZ/MaaFramework" $requiredVersion
+    if ($maafwRelease.tag_name -ne $requiredVersion) {
+        throw "MaaFramework release does not match mfwVersion: $requiredVersion"
+    }
     $asset = Find-MaaFrameworkAsset $maafwRelease
     if (!$asset) {
         Write-Host "MaaFramework Windows $PROCESSOR_ARCH runtime asset not found" -ForegroundColor Red
@@ -136,7 +143,7 @@ function Install-MaaFramework() {
             Move-Item -LiteralPath $stagedBinDir -Destination $MAAFW_BIN_DIR
             Ensure-Directory (Split-Path -Parent $MAAFW_AGENT_DIR)
             Move-Item -LiteralPath $stagedAgentDir -Destination $MAAFW_AGENT_DIR
-            Set-Content -LiteralPath $MAAFW_VERSION_PATH -Value $latestVersion -Encoding UTF8 -NoNewline
+            Set-Content -LiteralPath $MAAFW_VERSION_PATH -Value $requiredVersion -Encoding UTF8 -NoNewline
         } catch {
             if (Test-Path -LiteralPath $MAAFW_BIN_DIR) {
                 Remove-Item -LiteralPath $MAAFW_BIN_DIR -Recurse -Force -ErrorAction SilentlyContinue
@@ -154,7 +161,7 @@ function Install-MaaFramework() {
             throw
         }
 
-        Write-Host "MaaFramework runtime installed: $latestVersion" -ForegroundColor Green
+        Write-Host "MaaFramework runtime installed: $requiredVersion" -ForegroundColor Green
     } finally {
         if (Test-Path $tempRoot) {
             Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
@@ -217,7 +224,7 @@ Ensure-Directory $INSTALL_DIR
 
 Write-Host "Fetching latest MPE release..." -ForegroundColor Yellow
 try {
-    $release = Get-GitHubLatestRelease $REPO
+    $release = Get-GitHubRelease $REPO
     $version = $release.tag_name
     Write-Host "Latest version: $version" -ForegroundColor Green
 } catch {
@@ -240,6 +247,9 @@ if (!$asset) {
     exit 1
 }
 
+$requiredMaaFrameworkVersion = Get-RequiredMaaFrameworkVersion $version
+Write-Host "Required MaaFramework: $requiredMaaFrameworkVersion" -ForegroundColor Green
+
 Write-Host "Downloading: $($asset.name)" -ForegroundColor Yellow
 try {
     Invoke-Download $asset.browser_download_url $BIN_PATH
@@ -251,7 +261,7 @@ try {
 
 Write-Host ""
 Write-Host "Checking bundled runtime..." -ForegroundColor Cyan
-Install-MaaFramework
+Install-MaaFramework $requiredMaaFrameworkVersion
 Install-OCRAssets
 
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -280,6 +290,6 @@ Write-Host ""
 Write-Host "Update lb:" -ForegroundColor Cyan
 Write-Host "  irm https://raw.githubusercontent.com/$REPO/main/scripts/install/install.ps1 | iex" -ForegroundColor White
 Write-Host ""
-Write-Host "MaaFramework runtime is updated automatically; existing OCR assets are preserved." -ForegroundColor Yellow
+Write-Host "Managed MaaFramework runtime follows MPE mfwVersion; existing OCR assets are preserved." -ForegroundColor Yellow
 Write-Host "If mpelb is not found, restart the terminal or run:" -ForegroundColor Yellow
 Write-Host ('  $env:Path += ";' + $INSTALL_DIR + '"') -ForegroundColor White
