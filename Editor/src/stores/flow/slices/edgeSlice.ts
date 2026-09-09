@@ -1,4 +1,5 @@
 import type { StateCreator } from "zustand";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import {
   applyEdgeChanges,
   addEdge as addEdgeRF,
@@ -258,7 +259,8 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
   // 添加边
   addEdge(co: Connection, options) {
-    const { isCheck = true } = options || {};
+    const { isCheck = true, userInitiated = false } = options || {};
+    const beforeEdges = get().edges;
 
     set((state) => {
       // 检查冲突项
@@ -327,7 +329,11 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       };
     });
 
-    // 保存历史记录
+    // 仅实际成功的手动连接参与编排探索；导入和程序修改不走此事件。
+    const { nodes, edges } = get();
+    if (userInitiated && edges.length > beforeEdges.length) {
+      emitAchievementEvent("graph:manual-connected", { nodes, edges, beforeEdges });
+    }
     get().saveHistory(0, {
       category: "edge",
       action: "add",

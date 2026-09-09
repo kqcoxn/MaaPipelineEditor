@@ -24,6 +24,45 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("新编排成就仅手动成功连线触发，导入、重复连接及撤销重做不触发", () => {
+    const flow = useFlowStore.getState();
+    const nodes = Array.from({ length: 7 }, (_, index) => createPipelineNode(`manual-${index}`));
+    flow.replace(nodes, [], { skipHistory: true, isFitView: false });
+    flow.initHistory(nodes, []);
+    const connection = (index: number) => ({ source: nodes[0].id, target: nodes[index].id,
+      sourceHandle: SourceHandleTypeEnum.Next, targetHandle: TargetHandleTypeEnum.Target });
+    for (let index = 1; index <= 6; index++) {
+      flow.addEdge(connection(index));
+      vi.runOnlyPendingTimers();
+    }
+    expect(unlocked("connection_many_paths")).toBe(false);
+    flow.addEdge(connection(6), { userInitiated: true });
+    expect(unlocked("connection_many_paths")).toBe(false);
+    expect(flow.undo()).toBe(true);
+    expect(flow.redo()).toBe(true);
+    expect(unlocked("connection_many_paths")).toBe(false);
+    expect(flow.undo()).toBe(true);
+    expect(useFlowStore.getState().edges).toHaveLength(5);
+    flow.addEdge(connection(6), { userInitiated: true });
+    expect(unlocked("connection_many_paths")).toBe(true);
+  });
+
+  it("批量新增连接按条数累计，达到千丝万缕门槛", () => {
+    const flow = useFlowStore.getState();
+    const nodes = Array.from({ length: 11 }, (_, index) => createPipelineNode(`batch-${index}`));
+    flow.replace(nodes, [], { skipHistory: true, isFitView: false });
+    flow.initHistory(nodes, []);
+    for (let index = 1; index <= 10; index++) {
+      flow.addEdge({ source: nodes[0].id, target: nodes[index].id,
+        sourceHandle: SourceHandleTypeEnum.Next, targetHandle: TargetHandleTypeEnum.Target });
+    }
+    vi.runOnlyPendingTimers();
+    expect(useAchievementStore.getState().counters.edge_created).toBe(10);
+    expect(unlocked("connection_edges")).toBe(true);
+    flow.undo(); flow.redo();
+    expect(useAchievementStore.getState().counters.edge_created).toBe(10);
+  });
+
   it("批量删除按实际 Pipeline 数量累计，重复请求、便签、撤销重做和替换图不计数", () => {
     const flow = useFlowStore.getState();
     const first = flow.addNode();

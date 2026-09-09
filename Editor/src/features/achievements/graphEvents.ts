@@ -63,7 +63,7 @@ export interface CommittedGraph {
 export function recordGraphStructure({ beforeNodes, nodes, beforeEdges, edges }: CommittedGraph) {
   const previousEdges = new Map(beforeEdges.map((edge) => [edge.id, edge]));
   const addedEdges = edges.filter((edge) => !previousEdges.has(edge.id));
-  if (addedEdges.length) emitAchievementEvent("achievement:edge_created");
+  if (addedEdges.length) emitAchievementEvent("achievement:edge_created", { count: addedEdges.length });
   const changedEdges = edges.filter((edge) => {
     const previous = previousEdges.get(edge.id);
     return !previous || previous.source !== edge.source || previous.target !== edge.target || previous.sourceHandle !== edge.sourceHandle;

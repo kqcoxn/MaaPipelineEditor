@@ -369,7 +369,7 @@ export interface FlowEdgeState {
     sourceHandle: SourceHandleTypeEnum,
     orderedEdgeIds: string[],
   ) => void;
-  addEdge: (co: Connection, options?: { isCheck?: boolean }) => void;
+  addEdge: (co: Connection, options?: { isCheck?: boolean; userInitiated?: boolean }) => void;
   setEdges: (edges: EdgeType[]) => void;
   resetEdgeCounter: () => void;
   resetEdgeControls: (targetEdgeIds?: string[]) => void;

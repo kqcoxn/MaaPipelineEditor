@@ -1,4 +1,5 @@
 import type { AchievementDef } from "../types";
+import { countSeries } from "../countSeries";
 
 export const connectionAchievements: AchievementDef[] = [
   {
@@ -10,8 +11,8 @@ export const connectionAchievements: AchievementDef[] = [
     trigger: {
       kind: "counter",
       counter: "edge_created",
-      target: 1
-    }
+      target: 1,
+    },
   },
   {
     id: "connection_branch",
@@ -22,31 +23,105 @@ export const connectionAchievements: AchievementDef[] = [
     trigger: {
       kind: "counter",
       counter: "branch_created",
-      target: 1
-    }
+      target: 1,
+    },
   },
   {
     id: "connection_error",
-    title: "留条后路",
-    subtitle: "意料之外，也在计划之内。",
+    title: "留有后路",
+    subtitle: "这也是计划的一部分！",
     description: "首次创建 on_error 连接",
     category: "connection",
     trigger: {
       kind: "counter",
       counter: "error_edge_created",
-      target: 1
-    }
+      target: 1,
+    },
   },
   {
     id: "connection_external",
-    title: "隔空呼应",
-    subtitle: "隔着文件，也接得上话。",
+    title: "跳槽",
+    subtitle: "提桶跑路了兄弟",
     description: "通过外部节点建立跨文件连接，并成功解析目标",
     category: "connection",
     trigger: {
       kind: "counter",
       counter: "external_connected",
-      target: 1
-    }
-  }
+      target: 1,
+    },
+  },
+  ...countSeries({
+    category: "connection",
+    id: "connection_edges",
+    counter: "edge_created",
+    title: "赛博月老",
+    subtitle: "连完你的连你的",
+    action: "创建",
+    targets: [10, 50, 200, 1000, 5000, 20000],
+    unit: "条连接",
+  }),
+  ...countSeries({
+    category: "connection",
+    id: "connection_edges_deleted",
+    counter: "edge_deleted",
+    title: "优化一下",
+    subtitle: "不是你不够好，是业务调整。",
+    action: "删除",
+    targets: [1, 20, 100, 500, 2000, 10000],
+    unit: "条连接",
+  }),
+  {
+    id: "connection_reorder",
+    title: "插队有理",
+    subtitle: "明明是我先来的！",
+    description: "首次调整连接顺序并产生实际变化",
+    category: "connection",
+    trigger: { kind: "counter", counter: "edge_reordered", target: 1 },
+  },
+  {
+    id: "connection_chain",
+    title: "一气呵成",
+    subtitle: "然后，然后，然后……",
+    description: "手动连接形成超过 20 个不同 Pipeline 节点的连续 next 路径",
+    category: "connection",
+    trigger: { kind: "counter", counter: "connection_chain", target: 1 },
+  },
+  {
+    id: "connection_many_paths",
+    title: "条条大路通罗马",
+    hidden: true,
+    subtitle: "总有一条适合你。",
+    description:
+      "手动连接使同一 Pipeline 节点拥有至少 6 个不同的 Pipeline next 目标",
+    category: "connection",
+    trigger: { kind: "counter", counter: "connection_many_paths", target: 1 },
+  },
+  {
+    id: "connection_merge",
+    title: "殊途同归",
+    hidden: true,
+    subtitle: "怎么你也在这里？",
+    description:
+      "手动连接使 3 个不同 Pipeline 节点通过 next 指向同一个 Pipeline 节点",
+    category: "connection",
+    trigger: { kind: "counter", counter: "connection_merge", target: 1 },
+  },
+  {
+    id: "connection_cycle",
+    title: "又回来了",
+    hidden: true,
+    subtitle: "这个地方我来过。",
+    description: "手动连接形成包含至少 2 个不同 Pipeline 节点的 next 环路",
+    category: "connection",
+    trigger: { kind: "counter", counter: "connection_cycle", target: 1 },
+  },
+  {
+    id: "connection_error_chain",
+    title: "还有后手",
+    hidden: true,
+    subtitle: "你再看看你后面呢！",
+    description: "手动连接使 Pipeline 节点的 on_error 目标还有 on_error 连接",
+    category: "connection",
+    trigger: { kind: "counter", counter: "connection_error_chain", target: 1 },
+  },
 ];

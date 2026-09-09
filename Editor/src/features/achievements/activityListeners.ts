@@ -6,12 +6,15 @@ import type { DebugEvent, DebugRunMode } from "@/features/debug/types";
 import { emitAchievementEvent, subscribeAchievementEvents } from "./bus";
 import { createDebugAchievementTracker } from "./debugProgress";
 import { recordGraphStructure, type CommittedGraph } from "./graphEvents";
+import { recordManualConnection, type ManualConnectionGraph } from "./connectionProgress";
 
 export function subscribeAchievementActivity(): () => void {
   const award = (counter: string) => emitAchievementEvent(`achievement:${counter}`);
   const debug = createDebugAchievementTracker(award);
   const disposeBus = subscribeAchievementEvents((event) => {
-    if (event.type === "graph:committed") {
+    if (event.type === "graph:manual-connected") {
+      recordManualConnection(event.payload as ManualConnectionGraph);
+    } else if (event.type === "graph:committed") {
       const graph = event.payload as CommittedGraph;
       recordGraphStructure(graph);
       const previousEdges = new Map(graph.beforeEdges.map((edge) => [edge.id, edge]));

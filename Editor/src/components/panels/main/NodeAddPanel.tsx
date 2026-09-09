@@ -379,7 +379,7 @@ function NodeAddPanel({
           ...quickCreateConnection,
           target: nodeId,
           targetHandle: TargetHandleTypeEnum.Target,
-        });
+        }, { userInitiated: true });
       }
 
       onClose();
@@ -402,7 +402,7 @@ function NodeAddPanel({
         ...quickCreateConnection,
         target: targetNode.id,
         targetHandle: TargetHandleTypeEnum.Target,
-      });
+      }, { userInitiated: true });
     }
 
     onClose();

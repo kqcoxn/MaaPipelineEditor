@@ -598,7 +598,7 @@ const AddSuccessorInput: React.FC<AddSuccessorInputProps> = memo(
           sourceHandle: sourceHandle,
           target: targetId,
           targetHandle: TargetHandleTypeEnum.Target,
-        });
+        }, { userInitiated: true });
 
         setInputValue("");
       },

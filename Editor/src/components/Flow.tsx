@@ -368,7 +368,7 @@ function MainFlow() {
         return;
       }
       connectionCompletedRef.current = true;
-      addEdge(co);
+      addEdge(co, { userInitiated: true });
     },
     [addEdge, readOnly],
   );
