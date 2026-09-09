@@ -1,5 +1,6 @@
 import type { StateCreator } from "zustand";
 import { emitAchievementEvent } from "@/features/achievements/bus";
+import { recordEdgeOrderChange } from "@/features/achievements/graphEvents";
 import {
   applyEdgeChanges,
   addEdge as addEdgeRF,
@@ -36,6 +37,9 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
   // 更新边
   updateEdges(changes: EdgeChange[]) {
+    const removedIds = new Set(changes.flatMap((change) =>
+      change.type === "remove" && get().edgeById.has(change.id) ? [change.id] : [],
+    ));
     set((state) => {
       let edges = [...state.edges];
 
@@ -86,6 +90,9 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
         }),
       };
     });
+
+    const deletedCount = [...removedIds].filter((id) => !get().edgeById.has(id)).length;
+    if (deletedCount > 0) emitAchievementEvent("achievement:edge_deleted", { count: deletedCount });
 
     // 保存历史记录
     const hasRemove = changes.some((change) => change.type === "remove");
@@ -156,6 +163,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
 
   // 更新边顺序
   setEdgeLabel(id: string, newLabel: number) {
+    const beforeEdges = get().edges;
     set((state) => {
       const edgeIndex = state.edges.findIndex((e) => e.id === id);
       if (edgeIndex < 0) return {};
@@ -205,6 +213,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       };
     });
 
+    recordEdgeOrderChange(beforeEdges, get().edges);
     // 保存历史记录
     get().saveHistory(500, {
       category: "edge",
@@ -220,6 +229,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
     sourceHandle: SourceHandleTypeEnum,
     orderedEdgeIds: string[],
   ) {
+    const beforeEdges = get().edges;
     set((state) => {
       const edges = [...state.edges];
 
@@ -248,6 +258,7 @@ export const createEdgeSlice: StateCreator<FlowStore, [], [], FlowEdgeState> = (
       };
     });
 
+    recordEdgeOrderChange(beforeEdges, get().edges);
     // 保存历史记录（拖拽结束是一次性动作，立即落盘）
     get().saveHistory(0, {
       category: "edge",

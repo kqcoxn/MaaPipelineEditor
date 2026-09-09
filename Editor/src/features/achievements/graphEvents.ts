@@ -18,6 +18,11 @@ function hasValue(value: unknown): boolean {
 /**仅由实际字段编辑调用；导入、撤销、文件切换不会计为字段编辑。 */
 export function recordNodeEdit(before: NodeType | undefined, after: NodeType | undefined) {
   if (!before || !after) return;
+  if (before.type === NodeTypeEnum.Group && after.type === NodeTypeEnum.Group &&
+    "color" in before.data && "color" in after.data &&
+    before.data.color !== after.data.color) {
+    emitAchievementEvent("achievement:group_color_changed");
+  }
   if (before.type === NodeTypeEnum.Sticker && after.type === NodeTypeEnum.Sticker &&
     "content" in before.data && "content" in after.data &&
     before.data.content !== after.data.content && after.data.content.trim()) {
@@ -88,5 +93,13 @@ export function recordGraphStructure({ beforeNodes, nodes, beforeEdges, edges }:
   }
   if (nodes.some((node) => node.type === NodeTypeEnum.Group && groups.has(node.id) && (memberCounts.get(node.id) ?? 0) >= 2)) {
     emitAchievementEvent("achievement:group_organized");
+  }
+}
+
+/**只由主动排序入口调用，删除边造成的自动编号变化不计入。 */
+export function recordEdgeOrderChange(before: EdgeType[], after: EdgeType[]) {
+  const previous = new Map(before.map((edge) => [edge.id, edge.label]));
+  if (after.some((edge) => previous.has(edge.id) && previous.get(edge.id) !== edge.label)) {
+    emitAchievementEvent("achievement:edge_reordered");
   }
 }

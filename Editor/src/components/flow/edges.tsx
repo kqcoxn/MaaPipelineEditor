@@ -24,6 +24,7 @@ import {
   type AvoidanceRoutingContextValue,
 } from "./avoidanceRoutingContext";
 import { useCanvasMotionContext } from "./canvasMotionContext";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 
 // 判断位置是否为水平方向
 function isHorizontalPosition(position: string): boolean {
@@ -408,6 +409,7 @@ function MarkedEdge(props: EdgeProps) {
   // 处理拖拽移动
   useEffect(() => {
     if (!isDragging) return;
+    let positionChanged = false;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!dragStartRef.current) return;
@@ -425,6 +427,7 @@ function MarkedEdge(props: EdgeProps) {
 
       const deltaX = currentFlow.x - startFlow.x;
       const deltaY = currentFlow.y - startFlow.y;
+      positionChanged = deltaX !== 0 || deltaY !== 0;
 
       setControlOffset({
         x: initialOffsetRef.current.x + deltaX,
@@ -433,6 +436,9 @@ function MarkedEdge(props: EdgeProps) {
     };
 
     const handleMouseUp = () => {
+      if (positionChanged) {
+        emitAchievementEvent("achievement:edge_control_moved");
+      }
       endCanvasMotionPause("edge-control");
       setIsDragging(false);
       dragStartRef.current = null;

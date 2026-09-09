@@ -6,6 +6,8 @@ import { emitAchievementEvent } from "./bus";
 import { initializeAchievements } from "./listeners";
 import { achievementDefs, counterRules } from "./defs";
 import { recordPipelineExport } from "./exportEvents";
+import { LayoutHelper, AlignmentEnum } from "@/core/layout";
+import { createGroupNode } from "@/stores/flow/utils/nodeUtils";
 
 const context = vi.hoisted(() => ({ embedded: false }));
 vi.mock("@/utils/embedBridge", async (original) => ({ ...await original<object>(), isEmbedEnvironment: () => context.embedded }));
@@ -24,6 +26,96 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("保存模板按四档累计，使用模板只解锁老方新用", () => {
+    emitAchievementEvent("achievement:template_used");
+    expect(unlocked("organize_reuse")).toBe(true);
+    expect(unlocked("organize_template")).toBe(false);
+    for (let count = 1; count <= 100; count++) {
+      emitAchievementEvent("achievement:template_saved");
+      for (const target of [1, 5, 20, 100]) {
+        expect(unlocked(target === 1 ? "organize_template" : `organize_template_${target}`)).toBe(count >= target);
+      }
+    }
+    expect(achievementDefs.filter((def) => def.trigger.kind === "counter" && def.trigger.counter === "template_used")).toHaveLength(1);
+  });
+
+  it("对齐至少三个节点且位置改变才解锁，撤销重做不重复计数", () => {
+    const nodes = [0, 1, 2].map((index) => createPipelineNode(`align-${index}`, { position: { x: index * 100, y: 0 } }));
+    const flow = useFlowStore.getState();
+    flow.replace(nodes, [], { skipHistory: true, isFitView: false });
+    flow.initHistory(nodes, []);
+    LayoutHelper.align(AlignmentEnum.Top, useFlowStore.getState().nodes);
+    expect(unlocked("organize_align")).toBe(false);
+    LayoutHelper.align(AlignmentEnum.Left, useFlowStore.getState().nodes.slice(0, 2));
+    expect(unlocked("organize_align")).toBe(false);
+    LayoutHelper.align(AlignmentEnum.Left, useFlowStore.getState().nodes);
+    expect(unlocked("organize_align")).toBe(true);
+    LayoutHelper.align(AlignmentEnum.Left, useFlowStore.getState().nodes);
+    vi.runOnlyPendingTimers();
+    flow.undo(); flow.redo();
+    expect(useAchievementStore.getState().counters.nodes_aligned).toBe(1);
+  });
+
+  it("分组颜色实际编辑才解锁隐藏成就，导入和同色不计数", () => {
+    const flow = useFlowStore.getState();
+    const group = createGroupNode("group", { datas: { color: "green" } });
+    flow.replace([group], [], { skipHistory: true, isFitView: false });
+    flow.initHistory([group], []);
+    flow.setNodeData(group.id, "direct", "color", "green");
+    expect(unlocked("organize_group_color")).toBe(false);
+    flow.setNodeData(group.id, "direct", "color", "purple");
+    expect(unlocked("organize_group_color")).toBe(true);
+    flow.saveHistory(0);
+    flow.undo(); flow.redo();
+    expect(useAchievementStore.getState().counters.group_color_changed).toBe(1);
+    expect(achievementDefs.find((def) => def.id === "organize_group_color")?.hidden).toBe(true);
+  });
+
+  it("删除边按实际条数去重累计，自动编号、撤销重做和替换图不误计", () => {
+    const flow = useFlowStore.getState();
+    const source = flow.addNode();
+    for (let index = 0; index < 21; index++) {
+      flow.addEdge({ source, target: flow.addNode(), sourceHandle: SourceHandleTypeEnum.Next,
+        targetHandle: TargetHandleTypeEnum.Target });
+    }
+    vi.runOnlyPendingTimers();
+    const ids = useFlowStore.getState().edges.slice(0, 20).map((edge) => edge.id);
+    flow.updateEdges([...ids, ids[0], "missing"].map((id) => ({ type: "remove" as const, id })));
+    vi.runOnlyPendingTimers();
+    expect(useAchievementStore.getState().counters.edge_deleted).toBe(20);
+    expect(unlocked("connection_edges_deleted")).toBe(true);
+    expect(unlocked("connection_edges_deleted_20")).toBe(true);
+    expect(unlocked("connection_edges_deleted_100")).toBe(false);
+    expect(unlocked("connection_reorder")).toBe(false);
+    flow.updateEdges([{ type: "remove", id: ids[0] }]);
+    flow.undo(); flow.redo();
+    flow.replace([], [], { skipHistory: true, isFitView: false });
+    expect(useAchievementStore.getState().counters.edge_deleted).toBe(20);
+    expect(unlocked("connection_reorder")).toBe(false);
+  });
+
+  it.each(["label", "drag"])("%s 排序仅在实际变化时解锁，空操作和撤销重做不计数", (mode) => {
+    const flow = useFlowStore.getState();
+    const source = flow.addNode();
+    for (let index = 0; index < 2; index++) {
+      flow.addEdge({ source, target: flow.addNode(), sourceHandle: SourceHandleTypeEnum.Next,
+        targetHandle: TargetHandleTypeEnum.Target });
+    }
+    vi.runOnlyPendingTimers();
+    const ids = useFlowStore.getState().edges.map((edge) => edge.id);
+    flow.setEdgeLabel("missing", 1);
+    flow.setEdgeLabel(ids[0], 1);
+    flow.reorderEdges(source, SourceHandleTypeEnum.Next, ids);
+    flow.reorderEdges("missing", SourceHandleTypeEnum.Next, [...ids].reverse());
+    expect(unlocked("connection_reorder")).toBe(false);
+    if (mode === "label") flow.setEdgeLabel(ids[0], 2);
+    else flow.reorderEdges(source, SourceHandleTypeEnum.Next, [...ids].reverse());
+    expect(unlocked("connection_reorder")).toBe(true);
+    vi.runOnlyPendingTimers();
+    flow.undo(); flow.redo();
+    expect(useAchievementStore.getState().counters.edge_reordered).toBe(1);
+  });
+
   it("新编排成就仅手动成功连线触发，导入、重复连接及撤销重做不触发", () => {
     const flow = useFlowStore.getState();
     const nodes = Array.from({ length: 7 }, (_, index) => createPipelineNode(`manual-${index}`));

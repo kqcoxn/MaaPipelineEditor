@@ -241,6 +241,16 @@ export class LayoutHelper {
       type: "position",
       position: nextPositionById.get(node.id)!,
     })) as NodeChange[];
+    const previousNodes = nodes.flatMap((node) => {
+      const current = useFlowStore.getState().nodes.find((item) => item.id === node.id);
+      return current ? [{ id: current.id, position: { ...current.position } }] : [];
+    });
     useFlowStore.getState().updateNodes(changes);
+    if (new Set(previousNodes.map((node) => node.id)).size >= 3 && previousNodes.some((before) => {
+      const after = useFlowStore.getState().nodeById.get(before.id);
+      return after && (before.position.x !== after.position.x || before.position.y !== after.position.y);
+    })) {
+      emitAchievementEvent("achievement:nodes_aligned");
+    }
   }
 }
