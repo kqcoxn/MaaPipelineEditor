@@ -203,7 +203,13 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.String,
     required: true,
     default: "",
-    desc: "启动入口。必选。需要填入 package name 或 activity ，例如 com.hypergryph.arknights 或 com.hypergryph.arknights/com.u8.sdk.U8UnityContext 。",
+    desc: "启动入口。必选。ADB 使用包名或 activity，例如 com.hypergryph.arknights。Win32 使用可执行文件命令行，可携带参数；含空格的程序路径需用双引号包裹。PlayCover 不支持启动应用。",
+  },
+  stopPackage: {
+    key: "package",
+    type: FieldTypeEnum.String,
+    default: "",
+    desc: "要关闭的应用。ADB 填包名。Win32 填进程可执行文件名，例如 game.exe，将终止所有同名进程；留空时终止当前控制器窗口所属进程。",
   },
 
   // 命令相关

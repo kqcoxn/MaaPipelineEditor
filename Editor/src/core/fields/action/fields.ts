@@ -114,7 +114,7 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "启动 App 。",
   },
   StopApp: {
-    params: [actionFieldSchema.package],
+    params: [actionFieldSchema.stopPackage],
     desc: "关闭 App 。",
   },
   StopTask: {

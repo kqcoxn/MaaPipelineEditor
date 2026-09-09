@@ -29,7 +29,7 @@ const requiredActionFields: Record<string, string[]> = {
   KeyUp: ["key"],
   InputText: ["input_text"],
   StartApp: ["package"],
-  StopApp: ["package"],
+  StopApp: [],
   Command: ["exec"],
   Shell: ["cmd"],
   Custom: ["custom_action"],
