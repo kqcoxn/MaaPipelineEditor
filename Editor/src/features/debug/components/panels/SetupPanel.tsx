@@ -330,16 +330,19 @@ function ProjectInterfaceOption({ name, definition, value, onChange }: { name: s
     const selected = Array.isArray(value)
       ? value.filter((item): item is string => typeof item === "string")
       : [];
+    const min = typeof definition.min_count === "number" ? definition.min_count : 0;
+    const max = typeof definition.max_count === "number" ? definition.max_count : cases.length;
     return <Space orientation="vertical"><Text strong>{label}</Text><Space wrap>{cases.map((item) => {
       const caseName = String(item.name);
       return <Checkbox
         key={caseName}
         checked={selected.includes(caseName)}
+        disabled={!selected.includes(caseName) && selected.length >= max}
         onChange={(event) => onChange(toggleStringSelection(selected, caseName, event.target.checked))}
       >
         {String(item.label ?? item.name)}
       </Checkbox>;
-    })}</Space></Space>;
+    })}</Space><Text type={selected.length < min || selected.length > max ? "danger" : "secondary"}>已选 {selected.length} 项，需选择 {min} 至 {max} 项</Text></Space>;
   }
   if (type === "switch") {
     const yes = cases.find((item) => ["yes", "y"].includes(String(item.name).toLowerCase())) ?? cases[0];

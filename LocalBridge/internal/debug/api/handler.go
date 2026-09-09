@@ -754,6 +754,9 @@ func (h *Handler) prepareProjectInterfaceRun(req *protocol.RunRequest) error {
 		return err
 	}
 	req.Profile.ResourcePaths = append([]string(nil), plan.ResourcePaths...)
+	if err := projectinterface.ValidateCheckboxOptions(plan.Options, plan.OptionValues); err != nil {
+		return err
+	}
 	piOverrides := make([]protocol.PipelineOverride, 0, len(plan.PipelineOverrides))
 	for _, raw := range plan.PipelineOverrides {
 		runtimeName, _ := raw["runtimeName"].(string)
