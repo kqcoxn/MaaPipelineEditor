@@ -99,7 +99,7 @@ const pipelineGuideSections: Readonly<Record<string, string>> = Object.freeze({
   节点属性: `next/on_error 的 NodeAttr 可写成 { name, jump_back, anchor }，也可使用 [JumpBack]节点名或 [Anchor]锚点名。jump_back 命中后执行子链并回到父节点重新识别；错误处理路径不回跳。anchor 引用最后设置到该锚点的节点，未设置或已清除时跳过。节点自身 anchor 可为字符串、字符串数组或 { 锚点: 目标节点 }，空目标表示清除。`,
   结果排序方式: `Horizontal 按 x 后 y；Vertical 按 y 后 x；Score 按得分降序；Area 按面积降序；Length 按文本长度，仅 OCR；Random 随机；Expected 按 expected 中的声明顺序。index 支持负数索引，越界视为无结果。`,
   等待画面静止: `pre_wait_freezes、post_wait_freezes、repeat_wait_freezes 可为毫秒数或对象。对象字段：time，默认 1；target；target_offset；threshold，默认 0.95；method，默认 5；rate_limit，默认 1000；timeout，默认 20000，-1 表示无限等待。`,
-  节点通知: `focus 用于让上层 UI 在节点阶段展示通知，不属于 MaaFramework 原生执行能力。消息配置可由 MPE 支持的展示协议解释，不能假设所有运行环境都支持。`,
+  节点通知: `focus 配置随框架回调交给上层客户端处理。消息值可为字符串，或 {content?: string, display?: string|string[], trace?: boolean}；允许仅设置 trace。启用遥测的客户端默认上传 Node.PipelineNode.Failed，其余阶段默认不上传，trace 可显式覆盖。MPE 保留配置，不执行遥测上传。`,
 });
 
 const sectionNames = Object.keys(pipelineGuideSections);
