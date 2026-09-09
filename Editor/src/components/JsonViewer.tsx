@@ -1,4 +1,3 @@
-import { emitAchievementEvent } from "@/features/achievements/bus";
 import { useFlowStore } from "@/stores/flow";
 import { useFileStore } from "@/stores/project/fileStore";
 import { selectAndCenterNode } from "@/services/flowNavigationService";
@@ -118,7 +117,7 @@ const ViewerElem = memo(({ obj }: { obj: any }) => {
         const node = useFlowStore.getState().nodes.find((candidate) =>
           candidate.type === "pipeline" && nodeName === getFullNodeName(candidate.data.label, file.config.prefix),
         );
-        if (node && selectAndCenterNode(node.id)) emitAchievementEvent("achievement:preview_located");
+        if (node) selectAndCenterNode(node.id);
       }}
     />
   );

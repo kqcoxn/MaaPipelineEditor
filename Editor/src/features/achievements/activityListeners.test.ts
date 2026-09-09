@@ -333,3 +333,25 @@ it("全部调试累计六档，新单次成就与隐藏设置接线正确", () =
     expect(achievementDefs.find((def) => def.id === id)?.trigger).toMatchObject({ target: 1 });
   }
 });
+
+it("成果六档与两种导出成就按非空实际内容计数", () => {
+  recordPipelineExport({}, "partial");
+  recordPipelineExport({ $__mpe_config_file: {} }, "separated");
+  expect(unlocked("project_partial")).toBe(false);
+  expect(unlocked("project_separated")).toBe(false);
+  recordPipelineExport({ Node: {} }, "partial");
+  expect(unlocked("project_partial")).toBe(true);
+  expect(useAchievementStore.getState().counters.pipeline_saved).toBe(1);
+  recordPipelineExport('{"Node":{}}', "separated");
+  expect(unlocked("project_separated")).toBe(true);
+  expect(useAchievementStore.getState().counters.pipeline_saved).toBe(2);
+  for (const target of [20, 100, 500, 2000, 10000]) {
+    useAchievementStore.setState((state) => ({ counters: { ...state.counters, pipeline_saved: target - 1 } }));
+    expect(unlocked(`project_save_${target}`)).toBe(false);
+    recordPipelineExport({ Node: {} });
+    expect(unlocked(`project_save_${target}`)).toBe(true);
+  }
+  expect(achievementDefs.some((def) => def.id === "project_preview")).toBe(false);
+  expect(counterRules.some((rule) => rule.counter === "preview_located")).toBe(false);
+  expect(achievementDefs.find((def) => def.id === "project_harness")?.category).toBe("ai");
+});

@@ -891,7 +891,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       const ackSuccess = await ackPromise;
 
       if (ackSuccess) {
-        recordPipelineExport(savedPipeline);
+        recordPipelineExport(savedPipeline, configHandlingMode === "separated" && (!saveMode || saveMode === "all") ? "separated" : undefined);
         configUpdates.lastSyncTime = Date.now();
         updateFileConfigAfterSave(targetFile.fileName, configUpdates);
         return true;

@@ -74,7 +74,7 @@ export const achievementConnections: [string, string][] = [
   ["edge_created", "edge_deleted"], ["connection_branch", "connection_reorder"],
   ["connection_branch", "connection_many_paths"], ["connection_branch", "connection_merge"],
   ["connection_branch", "connection_cycle"], ["connection_error", "connection_error_chain"],
-  ["canvas_first_edge", "debug_first_run"], ["debug_first_run", "project_save"],
+  ["canvas_first_edge", "debug_first_run"], ["debug_first_run", "pipeline_saved"],
   ["organize_layout", "explore_group_master"], ["explore_group_master", "template_saved"],
   ["organize_layout", "organize_align"], ["explore_group_master", "organize_group_color"],
   ["organize_layout", "organize_edge_control"],
@@ -90,7 +90,8 @@ export const achievementConnections: [string, string][] = [
   ["debug_first_run", "debug_stop"], ["debug_details", "debug_image"],
   ["debug_retry", "explore_fix"],
   ["debug_first_run", "debug_details"], ["debug_details", "debug_retry"],
-  ["project_import", "project_preview"], ["project_preview", "project_save"],
+  ["project_import", "pipeline_saved"], ["pipeline_saved", "project_partial"],
+  ["pipeline_saved", "project_separated"],
   ["project_import", "project_harness"],
 ];
 
@@ -102,5 +103,6 @@ export const categoryIntroductions: Record<AchievementCategory, string> = {
   material: "连接现场，准备图像、文字与颜色。",
   debug: "让流程跑起来，循着结果验证每一步。",
   project: "接续已有项目，保存自己的成果。",
+  ai: "与 AI 一起，把想法变成流程。",
   explore: "开发中的小经历，也值得收藏。",
 };

@@ -128,11 +128,12 @@ export const ExportFileModal: React.FC<ExportFileModalProps> = ({
 
         if (exportTarget === "both" || exportTarget === "pipeline") {
           await exportFile(pipelineFileName, pipelineString, format);
-          recordPipelineExport(pipelineString);
+          if (exportTarget === "pipeline") recordPipelineExport(pipelineString);
         }
 
         if (exportTarget === "both" || exportTarget === "config") {
           await exportFile(configFileName, configString, "json");
+          if (exportTarget === "both") recordPipelineExport(pipelineString, "separated");
         }
 
         message.success(

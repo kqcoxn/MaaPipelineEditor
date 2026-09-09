@@ -13,7 +13,7 @@ describe("成就图布局", () => {
       if (nodes.find((node) => node.id === source)?.category !== nodes.find((node) => node.id === target)?.category) continue;
       expect(positions[target].x).toBeGreaterThan(positions[source].x + 280);
     }
-    expect(regions).toHaveLength(8);
+    expect(regions).toHaveLength(9);
     for (const node of nodes) {
       const region = regions.find((region) => region.category === node.category)!;
       expect(positions[node.id].x).toBeGreaterThan(region.x);

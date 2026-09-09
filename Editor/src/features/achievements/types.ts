@@ -17,6 +17,7 @@ export const ACHIEVEMENT_CATEGORY_LABELS = {
   material: "取材",
   debug: "验证",
   project: "成果",
+  ai: "AI",
   explore: "彩蛋",
 } as const;
 export type AchievementCategory = keyof typeof ACHIEVEMENT_CATEGORY_LABELS;

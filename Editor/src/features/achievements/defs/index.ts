@@ -6,6 +6,7 @@ import { organizeAchievements } from "./organize";
 import { materialAchievements } from "./material";
 import { debugAchievements } from "./debug";
 import { projectAchievements } from "./project";
+import { aiAchievements } from "./ai";
 import { exploreAchievements } from "./explore";
 
 export const achievementDefs: AchievementDef[] = [
@@ -16,6 +17,7 @@ export const achievementDefs: AchievementDef[] = [
   ...materialAchievements,
   ...debugAchievements,
   ...projectAchievements,
+  ...aiAchievements,
   ...exploreAchievements,
 ];
 

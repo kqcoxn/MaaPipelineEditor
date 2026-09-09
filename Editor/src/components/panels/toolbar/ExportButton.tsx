@@ -105,7 +105,7 @@ function StandaloneExportButton() {
     const pipeline = flowToPipeline({ nodes: selectedNodes, edges: selectedEdges });
     void ClipboardHelper.write(pipeline,
       { successMsg: "已将选中节点 Pipeline 导出到粘贴板" },
-    ).then((success) => { if (success) recordPipelineExport(pipeline); });
+    ).then((success) => { if (success) recordPipelineExport(pipeline, "partial"); });
   }, [selectedEdges, selectedNodes]);
 
   const handleExportPipeline = () => {

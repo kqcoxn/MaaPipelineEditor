@@ -47,7 +47,7 @@ export const counterRules: CounterRule[] = [
   { counter: "debug_retry_completed", on: "achievement:debug_retry_completed" },
   { counter: "pipeline_imported", on: "achievement:pipeline_imported" },
   { counter: "pipeline_saved", on: "achievement:pipeline_saved" },
-  { counter: "preview_located", on: "achievement:preview_located" },
+  ...["pipeline_partial_exported", "pipeline_separated_exported"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "harness_applied", on: "achievement:harness_applied" },
   { counter: "history_redone", on: "achievement:history_redone" },
   { counter: "debug_fix_completed", on: "achievement:debug_fix_completed" },
