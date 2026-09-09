@@ -1,3 +1,4 @@
+import { defaultLinuxOptions, type LinuxControllerOptions } from "@/services/protocols/linuxController";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useEffect, useState, useCallback, useMemo } from "react";
 import { usePersistedState } from "../../../hooks/usePersistedState";
@@ -25,7 +26,7 @@ import {
   useMFWStore,
   type AdbDevice,
   type Win32Window,
-  type WlRootsCompositor,
+  type LinuxCompositor,
 } from "@/stores/connection/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 import {
@@ -33,7 +34,7 @@ import {
   Win32WindowList,
   PlayCoverForm,
   GamepadForm,
-  WlRootsForm,
+  LinuxForm,
   MacOSForm,
   MethodConfig,
   detectPlatform,
@@ -74,7 +75,7 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
-      wlrootsCompositors: wlrootsSockets,
+      linuxCompositors: linuxSockets,
       errorMessage,
     } = useMFWStore();
 
@@ -86,15 +87,15 @@ export const ConnectionPanel = memo(
     );
 
     const [activeTab, setActiveTab] = useState<
-      "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos"
+      "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos"
     >(availableTabs[0]);
     const [selectedAdbDevice, setSelectedAdbDevice] =
       useState<AdbDevice | null>(null);
     const [selectedWin32Window, setSelectedWin32Window] =
       useState<Win32Window | null>(null);
-    const [selectedWlRootsSocket, setSelectedWlRootsSocket] =
-      useState<WlRootsCompositor | null>(null);
-    const [wlrootsSocketPath, setWlrootsSocketPath] = usePersistedState<string>(
+    const [selectedLinuxSocket, setSelectedLinuxSocket] =
+      useState<LinuxCompositor | null>(null);
+    const [linuxSocketPath, setLinuxSocketPath] = usePersistedState<string>(
       "wl_socket",
       "",
     );
@@ -157,9 +158,10 @@ export const ConnectionPanel = memo(
       MACOS_DEFAULT_METHODS.input[0],
     );
 
-    // WlRoots 连接参数
-    const [wlrootsUseWin32VkCode, setWlrootsUseWin32VkCode] = usePersistedState<boolean>(
-      "wlroots_use_win32_vkcode",
+    // Linux 连接参数
+    const [linuxOptions, setLinuxOptions] = usePersistedState<LinuxControllerOptions>("linux_options", defaultLinuxOptions);
+    const [linuxUseWin32VkCode, setLinuxUseWin32VkCode] = usePersistedState<boolean>(
+      "linux_use_win32_vkcode",
       true,
     );
 
@@ -206,8 +208,8 @@ export const ConnectionPanel = memo(
         mfwProtocol.refreshAdbDevices();
       } else if (activeTab === "win32") {
         mfwProtocol.refreshWin32Windows();
-      } else if (activeTab === "wlroots") {
-        mfwProtocol.refreshWlRootsSockets();
+      } else if (activeTab === "linux") {
+        mfwProtocol.refreshLinuxSockets();
       } else if (activeTab === "macos") {
         mfwProtocol.refreshWin32Windows();
       }
@@ -304,16 +306,16 @@ export const ConnectionPanel = memo(
             if (connectedWindow) {
               setSelectedWin32Window(connectedWindow);
             }
-          } else if (controllerType === "wlroots") {
-            setActiveTab("wlroots");
+          } else if (controllerType === "linux") {
+            setActiveTab("linux");
             const socketPath = (deviceInfo as any)?.socket_path || "";
-            setWlrootsSocketPath(socketPath);
+            setLinuxSocketPath(socketPath);
             // 尝试在列表中找到对应的 socket
-            const connectedSocket = wlrootsSockets.find(
+            const connectedSocket = linuxSockets.find(
               (s) => s.socket_path === socketPath,
             );
             if (connectedSocket) {
-              setSelectedWlRootsSocket(connectedSocket);
+              setSelectedLinuxSocket(connectedSocket);
             }
           } else if (controllerType === "macos") {
             setActiveTab("macos");
@@ -336,9 +338,9 @@ export const ConnectionPanel = memo(
       deviceInfo,
       adbDevices,
       win32Windows,
-      wlrootsSockets,
+      linuxSockets,
       activeTab,
-      setWlrootsSocketPath,
+      setLinuxSocketPath,
     ]);
 
     // macOS 控制器使用同一份桌面窗口列表；列表异步返回后再补选已连接窗口。
@@ -470,17 +472,18 @@ export const ConnectionPanel = memo(
           gamepad_type: gamepadType,
           screencap_method: gamepadScreencap || undefined,
         });
-      } else if (activeTab === "wlroots") {
-        // WlRoots 连接
+      } else if (activeTab === "linux") {
+        // Linux 连接
         const socketPath =
-          wlrootsSocketPath.trim() || selectedWlRootsSocket?.socket_path;
-        if (!socketPath) {
+          linuxSocketPath.trim() || selectedLinuxSocket?.socket_path;
+        if (!socketPath && (linuxOptions.screencap_method === "Wlr" || linuxOptions.input_method === "Wlr")) {
           message.warning("请选择或输入 socket 路径");
           return;
         }
-        mfwProtocol.createWlRootsController({
-          socket_path: socketPath,
-          use_win32_vk_code: wlrootsUseWin32VkCode
+        mfwProtocol.createLinuxController({
+          ...linuxOptions,
+          socket_path: socketPath ?? "",
+          use_win32_vk_code: linuxUseWin32VkCode
         });
       } else if (activeTab === "macos") {
         // macOS 连接
@@ -509,8 +512,8 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
-      selectedWlRootsSocket,
-      wlrootsSocketPath,
+      selectedLinuxSocket,
+      linuxSocketPath,
       customScreencap,
       customInput,
       customKeyboard,
@@ -522,7 +525,8 @@ export const ConnectionPanel = memo(
       gamepadScreencap,
       macosScreencap,
       macosInput,
-      wlrootsUseWin32VkCode,
+      linuxUseWin32VkCode,
+      linuxOptions,
       isAdbManualMode,
       manualAdbPath,
       manualAddress,
@@ -557,8 +561,8 @@ export const ConnectionPanel = memo(
           ? !!selectedWin32Window
           : activeTab === "playcover"
             ? !!(playCoverAddress.trim() && playCoverUUID.trim())
-            : activeTab === "wlroots"
-              ? !!(wlrootsSocketPath.trim() || selectedWlRootsSocket)
+            : activeTab === "linux"
+              ? !!(linuxSocketPath.trim() || selectedLinuxSocket || linuxOptions.screencap_method === "PipeWire")
               : activeTab === "gamepad"
                 ? true // Gamepad 不需要选择设备
                 : activeTab === "macos"
@@ -593,7 +597,7 @@ export const ConnectionPanel = memo(
         return true;
       } else if (activeTab === "gamepad") {
         return true; // Gamepad 不需要验证方法
-      } else if (activeTab === "wlroots") {
+      } else if (activeTab === "linux") {
         return true;
       } else if (activeTab === "macos") {
         return !!macosScreencap && !!macosInput;
@@ -633,8 +637,8 @@ export const ConnectionPanel = memo(
         return selectedWin32Window.hwnd === (deviceInfo as any)?.hwnd;
       } else if (activeTab === "playcover" && controllerType === "playcover") {
         return playCoverAddress === (deviceInfo as any)?.address;
-      } else if (activeTab === "wlroots" && controllerType === "wlroots") {
-        return wlrootsSocketPath === (deviceInfo as any)?.socket_path;
+      } else if (activeTab === "linux" && controllerType === "linux") {
+        return linuxSocketPath === (deviceInfo as any)?.socket_path;
       } else if (activeTab === "macos" && controllerType === "macos") {
         return selectedWin32Window?.hwnd === (deviceInfo as any)?.window_id;
       }
@@ -646,7 +650,7 @@ export const ConnectionPanel = memo(
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
-      wlrootsSocketPath,
+      linuxSocketPath,
       playCoverAddress,
     ]);
 
@@ -822,7 +826,7 @@ export const ConnectionPanel = memo(
                   | "win32"
                   | "playcover"
                   | "gamepad"
-                  | "wlroots"
+                  | "linux"
                   | "macos";
                 if (nextTab === "win32" || nextTab === "macos") {
                   setSelectedWin32Window(null);
@@ -882,14 +886,14 @@ export const ConnectionPanel = memo(
                       },
                     ]
                   : []),
-                ...(availableTabs.includes("wlroots")
+                ...(availableTabs.includes("linux")
                   ? [
                       {
-                        key: "wlroots",
+                        key: "linux",
                         label: (
                           <span>
                             <DesktopOutlined style={{ marginRight: 8 }} />
-                            WlRoots
+                            Linux
                           </span>
                         ),
                       },
@@ -946,15 +950,17 @@ export const ConnectionPanel = memo(
                 onUuidChange={setPlayCoverUUID}
                 onNameChange={setPlayCoverName}
               />
-            ) : activeTab === "wlroots" ? (
-              <WlRootsForm
-                sockets={wlrootsSockets}
-                selectedSocket={selectedWlRootsSocket}
-                onSelect={setSelectedWlRootsSocket}
-                manualPath={wlrootsSocketPath}
-                onManualPathChange={setWlrootsSocketPath}
-                useWin32VkCode={wlrootsUseWin32VkCode}
-                onUseWin32VkCodeChange={setWlrootsUseWin32VkCode}
+            ) : activeTab === "linux" ? (
+              <LinuxForm
+                options={linuxOptions}
+                onOptionsChange={setLinuxOptions}
+                sockets={linuxSockets}
+                selectedSocket={selectedLinuxSocket}
+                onSelect={setSelectedLinuxSocket}
+                manualPath={linuxSocketPath}
+                onManualPathChange={setLinuxSocketPath}
+                useWin32VkCode={linuxUseWin32VkCode}
+                onUseWin32VkCodeChange={setLinuxUseWin32VkCode}
                 loading={isRefreshing}
               />
             ) : activeTab === "macos" ? (

@@ -260,21 +260,24 @@ func (cm *ControllerManager) CreateGamepadController(hwnd, gamepadType, screenca
 	return controllerID, nil
 }
 
-// 创建 WlRoots 控制器
-func (cm *ControllerManager) CreateWlRootsController(socketPath string, useWin32VkCode bool) (string, error) {
-	logger.Debug("MFW", "创建 WlRoots 控制器: socketPath=%s, useWin32VkCode=%t", socketPath, useWin32VkCode)
+// 创建 Linux 控制器
+func (cm *ControllerManager) CreateLinuxController(options LinuxControllerOptions) (string, error) {
+	config, err := options.NativeConfig()
+	if err != nil {
+		return "", err
+	}
 
 	controllerID := uuid.New().String()
 
-	// 创建 WlRoots 控制器
-	ctrl, err := maa.NewWlRootsController(socketPath, useWin32VkCode)
+	// 创建 Linux 控制器
+	ctrl, err := maa.NewLinuxController(config)
 	if err != nil {
-		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create wlroots controller: "+err.Error(), nil)
+		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create linux controller: "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
 		ControllerID: controllerID,
-		Type:         "WlRoots",
+		Type:         "Linux",
 		Controller:   ctrl,
 		Connected:    false,
 		CreatedAt:    time.Now(),

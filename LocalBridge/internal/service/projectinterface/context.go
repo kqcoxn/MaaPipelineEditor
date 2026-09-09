@@ -399,7 +399,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 			if char >= '0' && char <= '9' {
 				return 7 + int(char-'0'), true
 			}
-		case "wlroots", "linux", "kwin":
+		case "linux":
 			if code, ok := linuxLetterCodes[char]; ok {
 				return code, true
 			}
@@ -423,7 +423,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 				return 0x6F + number, true
 			case "adb":
 				return 130 + number, true
-			case "wlroots", "linux", "kwin":
+			case "linux":
 				return 58 + number, true
 			}
 		}
@@ -434,7 +434,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 		table = map[string]int{"CTRL": 0x11, "SHIFT": 0x10, "ALT": 0x12, "ENTER": 0x0D, "ESC": 0x1B, "SPACE": 0x20, "TAB": 0x09, "BACKSPACE": 0x08, "DELETE": 0x2E, "UP": 0x26, "DOWN": 0x28, "LEFT": 0x25, "RIGHT": 0x27}
 	case "adb":
 		table = map[string]int{"CTRL": 113, "SHIFT": 59, "ALT": 57, "ENTER": 66, "ESC": 111, "SPACE": 62, "TAB": 61, "BACKSPACE": 67, "DELETE": 112, "UP": 19, "DOWN": 20, "LEFT": 21, "RIGHT": 22}
-	case "wlroots", "linux", "kwin":
+	case "linux":
 		table = map[string]int{"CTRL": 29, "SHIFT": 42, "ALT": 56, "ENTER": 28, "ESC": 1, "SPACE": 57, "TAB": 15, "BACKSPACE": 14, "DELETE": 111, "UP": 103, "DOWN": 108, "LEFT": 105, "RIGHT": 106}
 	case "macos", "playcover":
 		table = macKeyCodes

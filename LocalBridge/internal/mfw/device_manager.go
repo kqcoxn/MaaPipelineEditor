@@ -12,10 +12,10 @@ import (
 
 // 设备管理器
 type DeviceManager struct {
-	adbDevices         []AdbDeviceInfo
-	win32Windows       []Win32WindowInfo
-	wlrootsCompositors []WlRootsCompositorInfo
-	mu                 sync.RWMutex
+	adbDevices       []AdbDeviceInfo
+	win32Windows     []Win32WindowInfo
+	linuxCompositors []LinuxCompositorInfo
+	mu               sync.RWMutex
 }
 
 // 创建设备管理器
@@ -143,29 +143,29 @@ func (dm *DeviceManager) RefreshWin32Windows() ([]Win32WindowInfo, error) {
 	return dm.win32Windows, nil
 }
 
-// 刷新WlRoots合成器列表
-func (dm *DeviceManager) RefreshWlRootsSockets() ([]WlRootsCompositorInfo, error) {
-	logger.Debug("MFW", "开始刷新 WlRoots 合成器列表")
+// 刷新Linux合成器列表
+func (dm *DeviceManager) RefreshLinuxSockets() ([]LinuxCompositorInfo, error) {
+	logger.Debug("MFW", "开始刷新 Linux 合成器列表")
 
 	// FindDesktopWindows API
 	windows, err := maa.FindDesktopWindows()
 	if err != nil {
-		return nil, fmt.Errorf("查找 WlRoots 失败: %w", err)
+		return nil, fmt.Errorf("查找 Linux 失败: %w", err)
 	}
 
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
-	dm.wlrootsCompositors = make([]WlRootsCompositorInfo, 0, len(windows))
+	dm.linuxCompositors = make([]LinuxCompositorInfo, 0, len(windows))
 	for _, win := range windows {
-		info := WlRootsCompositorInfo{
+		info := LinuxCompositorInfo{
 			SocketPath: win.ClassName,
 		}
-		dm.wlrootsCompositors = append(dm.wlrootsCompositors, info)
+		dm.linuxCompositors = append(dm.linuxCompositors, info)
 	}
 
-	logger.Info("MFW", "发现 %d 个 WlRoots 合成器", len(dm.wlrootsCompositors))
-	return dm.wlrootsCompositors, nil
+	logger.Info("MFW", "发现 %d 个 Linux 合成器", len(dm.linuxCompositors))
+	return dm.linuxCompositors, nil
 }
 
 // 获取ADB设备列表

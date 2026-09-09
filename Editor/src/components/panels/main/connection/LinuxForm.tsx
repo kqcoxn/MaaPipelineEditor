@@ -1,20 +1,23 @@
-﻿import { List } from "../../../SimpleList";
+import { List } from "../../../SimpleList";
 import { memo, useMemo, useState } from "react";
-import { Typography, Input, Alert, Checkbox } from "antd";
+import { Typography, Input, InputNumber, Select, Alert, Checkbox, Space } from "antd";
+import type { LinuxControllerOptions } from "@/services/protocols/linuxController";
 import {
   DesktopOutlined,
   CheckCircleOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import type { WlRootsCompositor } from "@/stores/connection/mfwStore";
+import type { LinuxCompositor } from "@/stores/connection/mfwStore";
 import { filterControllerList } from "./listSearch";
 
 const { Text } = Typography;
 
-interface WlRootsFormProps {
-  sockets: WlRootsCompositor[];
-  selectedSocket: WlRootsCompositor | null;
-  onSelect: (socket: WlRootsCompositor) => void;
+interface LinuxFormProps {
+  options: LinuxControllerOptions;
+  onOptionsChange: (value: LinuxControllerOptions) => void;
+  sockets: LinuxCompositor[];
+  selectedSocket: LinuxCompositor | null;
+  onSelect: (socket: LinuxCompositor) => void;
   manualPath: string;
   onManualPathChange: (value: string) => void;
   useWin32VkCode: boolean;
@@ -22,8 +25,10 @@ interface WlRootsFormProps {
   loading: boolean;
 }
 
-export const WlRootsForm = memo(
+export const LinuxForm = memo(
   ({
+    options,
+    onOptionsChange,
     sockets,
     selectedSocket,
     onSelect,
@@ -32,7 +37,7 @@ export const WlRootsForm = memo(
     useWin32VkCode,
     onUseWin32VkCodeChange,
     loading,
-  }: WlRootsFormProps) => {
+  }: LinuxFormProps) => {
     const [searchText, setSearchText] = useState("");
     const filteredSockets = useMemo(
       () =>
@@ -43,7 +48,7 @@ export const WlRootsForm = memo(
       [searchText, sockets],
     );
 
-    const handleSelectPreset = (socket: WlRootsCompositor) => {
+    const handleSelectPreset = (socket: LinuxCompositor) => {
       onSelect(socket);
       onManualPathChange(""); // 清空手动输入
     };
@@ -60,6 +65,15 @@ export const WlRootsForm = memo(
 
     return (
       <div style={{ padding: "16px 24px" }}>
+        <Space orientation="vertical" style={{ width: "100%", marginBottom: 16 }}>
+          <Text>截图方式</Text>
+          <Select aria-label="Linux 截图方式" style={{ width: "100%" }} value={options.screencap_method} onChange={(value) => onOptionsChange({ ...options, screencap_method: value })} options={[{value:"Wlr",label:"Wlr"},{value:"PipeWire",label:"PipeWire daemon 节点"}]} />
+          <Text>输入方式</Text>
+          <Select aria-label="Linux 输入方式" style={{ width: "100%" }} value={options.input_method} onChange={(value) => onOptionsChange({ ...options, input_method: value })} options={["None","Wlr","UInput","Libei"].map((value) => ({value,label:value}))} />
+          {options.screencap_method === "PipeWire" && <><Text>PipeWire 节点 ID</Text><InputNumber aria-label="PipeWire 节点 ID" min={1} max={4294967295} precision={0} value={options.pw_node_id} onChange={(value) => onOptionsChange({...options,pw_node_id:value ?? undefined})} /><Text type="secondary">填写 gamescope 等会话 daemon 的节点 ID。桌面 portal 捕获需要在 LocalBridge 内建立授权会话，当前不提供。</Text></>}
+          {options.input_method === "Libei" && <><Text>EIS socket 路径</Text><Input value={options.eis_socket_path} placeholder="/run/user/1000/gamescope-0-ei" onChange={(event) => onOptionsChange({...options,eis_socket_path:event.target.value})} /></>}
+          {options.input_method === "UInput" && <><Text>UInput 设备路径</Text><Input value={options.uinput_path} placeholder="/dev/uinput" onChange={(event) => onOptionsChange({...options,uinput_path:event.target.value})} /><Text>UInput 屏幕宽 / 高</Text><Space><InputNumber aria-label="UInput 屏幕宽" min={1} precision={0} value={options.uinput_screen_width} onChange={(value) => onOptionsChange({...options,uinput_screen_width:value ?? undefined})} /><InputNumber aria-label="UInput 屏幕高" min={1} precision={0} value={options.uinput_screen_height} onChange={(value) => onOptionsChange({...options,uinput_screen_height:value ?? undefined})} /></Space></>}
+        </Space>
         {/* 预设列表 */}
         <div style={{ marginBottom: 16 }}>
           <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>

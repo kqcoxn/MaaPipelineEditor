@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"encoding/json"
 	"fmt"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
@@ -54,8 +55,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		h.handleRefreshAdbDevices(conn, msg)
 	case "/etl/mfw/refresh_win32_windows":
 		h.handleRefreshWin32Windows(conn, msg)
-	case "/etl/mfw/refresh_wlroots_sockets":
-		h.handleRefreshWlRootsSockets(conn, msg)
+	case "/etl/mfw/refresh_linux_sockets":
+		h.handleRefreshLinuxSockets(conn, msg)
 
 	// 控制器相关路由
 	case "/etl/mfw/create_adb_controller":
@@ -66,8 +67,8 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 		go h.handleCreatePlayCoverController(conn, msg)
 	case "/etl/mfw/create_gamepad_controller":
 		go h.handleCreateGamepadController(conn, msg)
-	case "/etl/mfw/create_wlroots_controller":
-		go h.handleCreateWlRootsController(conn, msg)
+	case "/etl/mfw/create_linux_controller":
+		go h.handleCreateLinuxController(conn, msg)
 	case "/etl/mfw/create_macos_controller":
 		go h.handleCreateMacosController(conn, msg)
 	case "/etl/mfw/disconnect_controller":
@@ -173,18 +174,18 @@ func (h *MFWHandler) handleRefreshWin32Windows(conn *server.Connection, msg mode
 	conn.Send(response)
 }
 
-func (h *MFWHandler) handleRefreshWlRootsSockets(conn *server.Connection, msg models.Message) {
-	logger.Info("MFW", "刷新WlRoots列表")
-	sockets, err := h.service.DeviceManager().RefreshWlRootsSockets()
+func (h *MFWHandler) handleRefreshLinuxSockets(conn *server.Connection, msg models.Message) {
+	logger.Info("MFW", "刷新Linux列表")
+	sockets, err := h.service.DeviceManager().RefreshLinuxSockets()
 	if err != nil {
-		logger.Error("MFW", "刷新WlRoots列表失败: %v", err)
-		h.sendMFWError(conn, mfw.ErrCodeDeviceNotFound, "刷新WlRoots列表", err.Error())
+		logger.Error("MFW", "刷新Linux列表失败: %v", err)
+		h.sendMFWError(conn, mfw.ErrCodeDeviceNotFound, "刷新Linux列表", err.Error())
 		return
 	}
 
 	// 发送窗体列表响应
 	response := models.Message{
-		Path: "/lte/mfw/wlroots_sockets",
+		Path: "/lte/mfw/linux_sockets",
 		Data: map[string]interface{}{
 			"compositors": sockets,
 		},
@@ -363,26 +364,29 @@ func (h *MFWHandler) handleCreateGamepadController(conn *server.Connection, msg 
 	conn.Send(response)
 }
 
-func (h *MFWHandler) handleCreateWlRootsController(conn *server.Connection, msg models.Message) {
+func (h *MFWHandler) handleCreateLinuxController(conn *server.Connection, msg models.Message) {
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
 		return
 	}
 
-	socket, _ := dataMap["socket_path"].(string)
-	useWin32VkCode, _ := dataMap["use_win32_vk_code"].(bool)
-
-	controllerID, err := h.service.ControllerManager().CreateWlRootsController(socket, useWin32VkCode)
+	raw, err := json.Marshal(dataMap)
+	var options mfw.LinuxControllerOptions
+	if err != nil || json.Unmarshal(raw, &options) != nil {
+		h.sendError(conn, errors.NewInvalidRequestError("Linux 控制器参数格式错误"))
+		return
+	}
+	controllerID, err := h.service.ControllerManager().CreateLinuxController(options)
 	if err != nil {
-		logger.Error("MFW", "创建WlRoots控制器失败: %v", err)
+		logger.Error("MFW", "创建Linux控制器失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeControllerCreateFail, "控制器创建失败", err.Error())
 		return
 	}
 
 	// 自动连接控制器
 	if err := h.service.ControllerManager().ConnectController(controllerID); err != nil {
-		logger.Error("MFW", "连接WlRoots控制器失败: %v", err)
+		logger.Error("MFW", "连接Linux控制器失败: %v", err)
 		h.sendMFWError(conn, mfw.ErrCodeControllerConnectFail, "控制器连接失败", err.Error())
 		return
 	}
@@ -393,7 +397,7 @@ func (h *MFWHandler) handleCreateWlRootsController(conn *server.Connection, msg 
 		Data: map[string]interface{}{
 			"success":       true,
 			"controller_id": controllerID,
-			"type":          "wlroots",
+			"type":          "linux",
 		},
 	}
 	conn.Send(response)

@@ -5,7 +5,7 @@ import type { AdbDevice, Win32Window } from "@/stores/connection/mfwStore";
 const { Text } = Typography;
 
 interface MethodConfigProps {
-  activeTab: "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos";
+  activeTab: "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos";
   selectedAdbDevice: AdbDevice | null;
   selectedWin32Window: Win32Window | null;
   adbDevices: AdbDevice[];
@@ -115,11 +115,11 @@ export const MethodConfig = memo(
       allMethods,
     ]);
 
-    // PlayCover、Gamepad、WlRoots 和 macOS 不显示方法配置
+    // PlayCover、Gamepad、Linux 和 macOS 不显示方法配置
     if (
       activeTab === "playcover" ||
       activeTab === "gamepad" ||
-      activeTab === "wlroots" ||
+      activeTab === "linux" ||
       activeTab === "macos"
     ) {
       return null;

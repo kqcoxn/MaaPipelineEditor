@@ -8,7 +8,7 @@ export type DeviceType =
   | "win32"
   | "playcover"
   | "gamepad"
-  | "wlroots"
+  | "linux"
   | "macos"
   | null;
 
@@ -47,9 +47,9 @@ export interface Win32Window {
 }
 
 /**
- * WlRoots 信息
+ * Linux 信息
  */
-export interface WlRootsCompositor {
+export interface LinuxCompositor {
   socket_path: string;
   name: string;
 }
@@ -93,7 +93,7 @@ export type DeviceInfo =
   | Partial<Win32Window>
   | Partial<PlayCoverDevice>
   | Partial<GamepadDevice>
-  | Partial<WlRootsCompositor>
+  | Partial<LinuxCompositor>
   | Partial<MacOSDevice>
   | null;
 
@@ -110,7 +110,7 @@ interface MFWState {
   // 设备列表
   adbDevices: AdbDevice[];
   win32Windows: Win32Window[];
-  wlrootsCompositors: WlRootsCompositor[];
+  linuxCompositors: LinuxCompositor[];
 
   // 错误信息
   errorMessage: string | null;
@@ -125,7 +125,7 @@ interface MFWState {
   updateDeviceInfo: (info: DeviceInfo) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
   updateWin32Windows: (windows: Win32Window[]) => void;
-  updateWlRootsCompositors: (compositors: WlRootsCompositor[]) => void;
+  updateLinuxCompositors: (compositors: LinuxCompositor[]) => void;
   setErrorMessage: (message: string | null) => void;
   clearConnection: () => void;
 }
@@ -141,7 +141,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
   deviceInfo: null,
   adbDevices: [],
   win32Windows: [],
-  wlrootsCompositors: [],
+  linuxCompositors: [],
   errorMessage: null,
 
   // 设置连接状态
@@ -175,10 +175,10 @@ export const useMFWStore = create<MFWState>()((set) => ({
       win32Windows: windows,
     }),
 
-  // 更新 WlRoots 合成器列表
-  updateWlRootsCompositors: (compositors) =>
+  // 更新 Linux 合成器列表
+  updateLinuxCompositors: (compositors) =>
     set({
-      wlrootsCompositors: compositors,
+      linuxCompositors: compositors,
     }),
 
   // 设置错误信息

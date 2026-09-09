@@ -40,15 +40,15 @@ type GamepadDeviceInfo struct {
 	ScreencapMethods []string `json:"screencap_methods"` // Win32截图方法列表
 }
 
-// WlRoots信息
-type WlRootsCompositorInfo struct {
+// Linux信息
+type LinuxCompositorInfo struct {
 	SocketPath string `json:"socket_path"` // 套接字路径
 }
 
 // 控制器实例信息
 type ControllerInfo struct {
 	ControllerID   string    `json:"controller_id"`
-	Type           string    `json:"type"` // ADB/Win32/WlRoots/Custom
+	Type           string    `json:"type"` // ADB/Win32/Linux/Custom
 	Controller     any       `json:"-"`    // *maa.Controller
 	Connected      bool      `json:"connected"`
 	UUID           string    `json:"uuid"`

@@ -1,6 +1,7 @@
 import { message } from "@/utils/ui/antdAppApi";
 
 import { BaseProtocol } from "./BaseProtocol";
+import type { LinuxControllerOptions } from "./linuxController";
 import type { LocalWebSocketServer } from "../server";
 import {
   useMFWStore,
@@ -8,7 +9,7 @@ import {
   type Win32Window,
   type PlayCoverDevice,
   type GamepadDevice,
-  type WlRootsCompositor,
+  type LinuxCompositor,
   type MacOSDevice,
   type DeviceInfo,
 } from "@/stores/connection/mfwStore";
@@ -29,7 +30,7 @@ type ControllerConnectionRequest =
   | { type: "win32" } & PersistedControllerConnection<Parameters<MFWProtocol["createWin32Controller"]>[0]>
   | { type: "playcover" } & PersistedControllerConnection<Parameters<MFWProtocol["createPlayCoverController"]>[0]>
   | { type: "gamepad" } & PersistedControllerConnection<Parameters<MFWProtocol["createGamepadController"]>[0]>
-  | { type: "wlroots" } & PersistedControllerConnection<Parameters<MFWProtocol["createWlRootsController"]>[0]>
+  | { type: "linux" } & PersistedControllerConnection<Parameters<MFWProtocol["createLinuxController"]>[0]>
   | { type: "macos" } & PersistedControllerConnection<Parameters<MFWProtocol["createMacosController"]>[0]>;
 
 type ControllerConnectionDevice =
@@ -37,7 +38,7 @@ type ControllerConnectionDevice =
   | Win32Window
   | PlayCoverDevice
   | GamepadDevice
-  | WlRootsCompositor
+  | LinuxCompositor
   | MacOSDevice;
 
 const LAST_CONTROLLER_STORAGE_KEY = "mpe_last_controller";
@@ -87,7 +88,7 @@ export class MFWProtocol extends BaseProtocol {
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32" | "playcover" | "gamepad" | "wlroots" | "macos";
+    type: "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos";
     deviceInfo: ControllerConnectionDevice;
   } | null = null;
   private lastConnectionRequest: ControllerConnectionRequest | null = null;
@@ -124,8 +125,8 @@ export class MFWProtocol extends BaseProtocol {
     this.wsClient.registerRoute("/lte/mfw/win32_windows", (data) =>
       this.handleWin32Windows(data),
     );
-    this.wsClient.registerRoute("/lte/mfw/wlroots_sockets", (data) =>
-      this.handleWlRootsSockets(data),
+    this.wsClient.registerRoute("/lte/mfw/linux_sockets", (data) =>
+      this.handleLinuxSockets(data),
     );
 
     // 注册控制器路由
@@ -367,22 +368,22 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
-   * 处理 WlRoots 合成器列表
-   * 路由: /lte/mfw/wlroots_sockets
+   * 处理 Linux 合成器列表
+   * 路由: /lte/mfw/linux_sockets
    */
-  private handleWlRootsSockets(data: any): void {
+  private handleLinuxSockets(data: any): void {
     try {
       const { compositors } = data;
 
       if (!Array.isArray(compositors)) {
-        console.error("[MFWProtocol] Invalid WlRoots sockets data:", data);
+        console.error("[MFWProtocol] Invalid Linux sockets data:", data);
         return;
       }
 
       const mfwStore = useMFWStore.getState();
-      mfwStore.updateWlRootsCompositors(compositors as WlRootsCompositor[]);
+      mfwStore.updateLinuxCompositors(compositors as LinuxCompositor[]);
     } catch (error) {
-      console.error("[MFWProtocol] Failed to handle WlRoots sockets:", error);
+      console.error("[MFWProtocol] Failed to handle Linux sockets:", error);
       message.error("设备列表更新失败");
     }
   }
@@ -617,15 +618,15 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
-   * 刷新 WlRoots 合成器列表
+   * 刷新 Linux 合成器列表
    */
-  public refreshWlRootsSockets(): boolean {
+  public refreshLinuxSockets(): boolean {
     if (!this.wsClient) {
       console.error("[MFWProtocol] WebSocket client not initialized");
       return false;
     }
 
-    return this.wsClient.send("/etl/mfw/refresh_wlroots_sockets", {});
+    return this.wsClient.send("/etl/mfw/refresh_linux_sockets", {});
   }
 
   /**
@@ -724,17 +725,17 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   /**
-   * 创建 WlRoots 控制器
+   * 创建 Linux 控制器
    */
-  public createWlRootsController(params: { socket_path: string, use_win32_vk_code: boolean }): boolean {
+  public createLinuxController(params: LinuxControllerOptions): boolean {
     const path = params.socket_path.split("/");
     const name = path[path.length - 1];
     return this.sendControllerConnection(
-      "/etl/mfw/create_wlroots_controller",
-      { type: "wlroots", params },
+      "/etl/mfw/create_linux_controller",
+      { type: "linux", params },
       {
         socket_path: params.socket_path,
-        name: `WlRoots ${name}`,
+        name: `Linux ${name}`,
       },
     );
   }
@@ -802,7 +803,7 @@ export class MFWProtocol extends BaseProtocol {
       case "win32": sent = this.createWin32Controller(request.params); break;
       case "playcover": sent = this.createPlayCoverController(request.params); break;
       case "gamepad": sent = this.createGamepadController(request.params); break;
-      case "wlroots": sent = this.createWlRootsController(request.params); break;
+      case "linux": sent = this.createLinuxController(request.params); break;
       case "macos": sent = this.createMacosController(request.params); break;
     }
     if (!sent) this.isAutoConnecting = false;
