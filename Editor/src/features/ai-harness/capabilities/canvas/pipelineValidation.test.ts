@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { validatePipelineDefinition } from "./pipelineValidation";
 
 describe("validatePipelineDefinition", () => {
+  it("允许神经网络下标与标签混用，拒绝非整数下标", () => {
+    for (const type of ["NeuralNetworkClassify", "NeuralNetworkDetect"]) {
+      expect(validatePipelineDefinition({ recognition: { type, param: { model: "model.onnx", expected: [0, "猫", "123"] } } })).toEqual([]);
+      expect(validatePipelineDefinition({ recognition: { type, param: { model: "model.onnx", expected: [1.2] } } })).toContain("recognition.param.expected 类型不符合 Pipeline 协议");
+    }
+  });
   it("支持合法的 Pipeline v1、v2 和混合格式", () => {
     expect(
       validatePipelineDefinition({

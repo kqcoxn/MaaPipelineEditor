@@ -27,6 +27,14 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 
   try {
     switch (type) {
+      case FieldTypeEnum.IntOrString:
+        if (typeof value === "string" || Number.isInteger(value)) return value;
+        break;
+      case FieldTypeEnum.IntOrStringList:
+        if (Array.isArray(value) && value.every((item) => typeof item === "string" || Number.isInteger(item))) {
+          return [...value];
+        }
+        break;
       // 整型
       case FieldTypeEnum.Int:
         temp = Number(value);

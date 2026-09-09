@@ -22,7 +22,7 @@ const LocalTextArea = memo(
   }) => {
     // 将值转为字符串显示：字符串直接显示，对象/数组转 JSON
     const displayValue =
-      typeof value === "string"
+      typeof value === "string" && placeholder !== FieldTypeEnum.IntOrStringList
         ? value
         : (JsonHelper.objToString(value) ?? String(value ?? ""));
     const [localValue, setLocalValue] = useState(displayValue);

@@ -58,7 +58,7 @@ export type RecognitionParamType = {
   lower?: number[][];
   upper?: number[][];
   connected?: boolean;
-  expected?: string[] | number[];
+  expected?: string | number | (string | number)[];
   replace?: [string, string][];
   only_rec?: boolean;
   model?: string;

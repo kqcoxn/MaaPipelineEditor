@@ -203,11 +203,10 @@ export const recoFieldSchema: Record<string, FieldType> = {
   },
   neuralNetworkExpected: {
     key: "expected",
-    type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
+    type: [FieldTypeEnum.IntOrStringList, FieldTypeEnum.IntOrString],
     required: true,
     default: [0],
-    step: 1,
-    desc: `期望的分类下标。必选。`,
+    desc: `期望的分类下标或 labels 中的标签名。必选，支持整数、字符串及混合数组，例如 [0, "猫"]。数字标签名需使用引号，例如 "123"。`,
   },
   neuralNetworkDetectModel: {
     key: "model",

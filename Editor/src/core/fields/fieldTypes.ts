@@ -8,6 +8,8 @@ export enum FieldTypeEnum {
   Bool = "bool",
   String = "string",
   IntList = "list<int, >",
+  IntOrString = "int | string",
+  IntOrStringList = "list<int | string>",
   IntListList = "list<list<int, >>",
   DoubleList = "list<double, >",
   StringList = "list<string, >",

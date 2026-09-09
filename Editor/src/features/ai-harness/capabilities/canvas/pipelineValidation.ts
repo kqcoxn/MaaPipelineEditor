@@ -192,6 +192,10 @@ function matchesType(value: unknown, type: FieldTypeEnum): boolean {
     (isIntegerArray(item) && (item.length === 2 || item.length === 4));
 
   switch (type) {
+    case FieldTypeEnum.IntOrString:
+      return Number.isInteger(value) || typeof value === "string";
+    case FieldTypeEnum.IntOrStringList:
+      return Array.isArray(value) && value.every((item) => Number.isInteger(item) || typeof item === "string");
     case FieldTypeEnum.Int:
       return Number.isInteger(value);
     case FieldTypeEnum.Double:
