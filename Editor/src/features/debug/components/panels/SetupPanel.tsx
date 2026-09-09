@@ -293,8 +293,9 @@ function ProjectInterfaceResourceSection({ controller }: { controller: DebugModa
           options={pi.resources.map((item) => ({ value: String(item.name), label: String(item.label ?? item.name) }))}
           placeholder="Resource"
         />
-        <Tag color={pi.context ? "green" : "processing"}>{pi.context ? "上下文已就绪" : "正在解析"}</Tag>
+        <Tag color={pi.error ? "error" : pi.context ? "green" : "processing"}>{pi.error ? "配置需要处理" : pi.context ? "上下文已就绪" : "正在解析"}</Tag>
       </Space>
+      {pi.error && <Alert type="error" showIcon title={pi.error} />}
       {options.length > 0 && (
         <DebugSection title="Project Interface 选项">
           <Space orientation="vertical" size={12} style={{ width: "100%" }}>
@@ -356,6 +357,8 @@ function ProjectInterfaceOption({ name, definition, value, onChange }: { name: s
       const fieldName = String(field.name);
       return <Input
         key={fieldName}
+        type={field.password === true ? "password" : "text"}
+        autoComplete={field.password === true ? "new-password" : undefined}
         value={String(values[fieldName] ?? "")}
         placeholder={String(field.label ?? field.name)}
         readOnly={type === "hotkey"}

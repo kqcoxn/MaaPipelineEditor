@@ -359,7 +359,7 @@ export function useDebugModalController() {
     input?: DebugRunRequest["input"],
   ): Promise<void> => {
     clearProtocolError();
-    if (projectInterface.mode === "project_interface" && !piContext) {
+    if (projectInterface.mode === "project_interface" && (!piContext || projectInterface.error)) {
       message.error(projectInterface.error ?? "Project Interface 上下文尚未就绪，请刷新配置或切换到手动模式");
       return;
     }

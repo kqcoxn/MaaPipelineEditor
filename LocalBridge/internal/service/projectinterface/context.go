@@ -63,6 +63,9 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 		return nil, err
 	}
 	controllerType, _ := controller["type"].(string)
+	if err := ValidateDebugPasswords(objectMap(localized.Document["option"]), req.OptionValues); err != nil {
+		return nil, err
+	}
 	values, activeOptions, overrides, diagnostics := resolveOptions(localized.Document, controllerName, controllerType, resourceName, req.OptionValues)
 	if hasErrorDiagnostics(diagnostics) {
 		return nil, &loadError{Diagnostics: diagnostics}
