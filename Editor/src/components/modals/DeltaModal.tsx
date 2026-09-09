@@ -1,3 +1,5 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Space, InputNumber, Radio } from "antd";
@@ -23,6 +25,7 @@ interface Point {
 export const DeltaModal = memo(
   ({ open, onClose, onConfirm, initialMode = "dx" }: DeltaModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
     const [startPoint, setStartPoint] = useState<Point | null>(null);
     const [endPoint, setEndPoint] = useState<Point | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -214,6 +217,8 @@ export const DeltaModal = memo(
 
       const delta = getDelta();
       onConfirm(delta, mode);
+      emitAchievementEvent("achievement:delta_measured");
+      recordUploadedMaterial(uploaded.current);
       onClose();
     }, [startPoint, endPoint, getDelta, onConfirm, onClose, mode]);
 
@@ -300,7 +305,7 @@ export const DeltaModal = memo(
         confirmDisabled={!startPoint || !endPoint}
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >

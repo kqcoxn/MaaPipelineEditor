@@ -1,3 +1,5 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Space, InputNumber, Button, Tooltip } from "antd";
@@ -32,6 +34,7 @@ type DrawingTarget = "source" | "target";
 export const ROIOffsetModal = memo(
   ({ open, onClose, onConfirm, initialROI }: ROIOffsetModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
     // 原 ROI（来源区域）
     const [sourceRect, setSourceRect] = useState<Rectangle | null>(null);
     // 期望 ROI（目标区域）
@@ -377,6 +380,8 @@ export const ROIOffsetModal = memo(
       }
 
       onConfirm(offset);
+      emitAchievementEvent("achievement:roi_offset_measured");
+      recordUploadedMaterial(uploaded.current);
       onClose();
     }, [offset, sourceRect, targetRect, onConfirm, onClose]);
 
@@ -536,7 +541,7 @@ export const ROIOffsetModal = memo(
         onConfirm={handleConfirm}
         renderToolbar={renderToolbar}
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >

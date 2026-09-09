@@ -1,3 +1,4 @@
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
@@ -41,6 +42,7 @@ type DrawTool = "none" | "select" | "brush" | "eraser";
 export const TemplateModal = memo(
   ({ open, onClose, onConfirm, initialROI }: TemplateModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [currentTool, setCurrentTool] = useState<DrawTool>("select");
     const [brushSize, setBrushSize] = useState(15);
@@ -379,6 +381,7 @@ export const TemplateModal = memo(
 
     // 保存模板
     const handleSave = useCallback(async () => {
+      const usingUploadedImage = uploaded.current;
       if (!rectangle || !imageRef.current) {
         message.warning("请先框选模板区域");
         return;
@@ -459,6 +462,7 @@ export const TemplateModal = memo(
 
           const filename = fileHandle.name;
           emitAchievementEvent("achievement:screenshot_saved");
+          recordUploadedMaterial(usingUploadedImage);
           message.success("模板已保存");
 
           // 存储待确认的数据
@@ -485,6 +489,7 @@ export const TemplateModal = memo(
         URL.revokeObjectURL(url);
 
         emitAchievementEvent("achievement:screenshot_saved");
+        recordUploadedMaterial(usingUploadedImage);
         message.success("模板已保存");
 
         // 存储待确认的数据并尝试解析
@@ -638,7 +643,7 @@ export const TemplateModal = memo(
         onConfirm={handleSave}
         renderToolbar={renderToolbar}
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >

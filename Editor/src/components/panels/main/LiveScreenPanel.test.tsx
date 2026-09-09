@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import LiveScreenPanel from "./LiveScreenPanel";
 
@@ -48,7 +49,20 @@ vi.mock("../../../services/server", () => ({
   mfwProtocol: { requestScreencap },
 }));
 
+vi.mock("@/features/achievements/bus", () => ({ emitAchievementEvent: vi.fn() }));
+
 describe("LiveScreenPanel", () => {
+  it("仅手动收起触发隐藏成就，展开和初次显示不触发", () => {
+    requestScreencap.mockReturnValue(new Promise(() => undefined));
+    const { unmount } = render(<LiveScreenPanel />);
+    expect(emitAchievementEvent).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "折叠实时画面" }));
+    expect(emitAchievementEvent).toHaveBeenCalledExactlyOnceWith("achievement:live_preview_collapsed");
+    fireEvent.click(screen.getByRole("button", { name: "展开实时画面" }));
+    expect(emitAchievementEvent).toHaveBeenCalledTimes(1);
+    unmount();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

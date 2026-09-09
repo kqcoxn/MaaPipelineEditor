@@ -26,6 +26,49 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("工具截图六档只由工具截图事件累计", () => {
+    for (const target of [10, 50, 200, 1000, 5000, 20000]) {
+      const id = target === 10 ? "material_tool_screenshots" : `material_tool_screenshots_${target}`;
+      useAchievementStore.setState((state) => ({ counters: { ...state.counters, tool_screenshot_captured: target - 1 } }));
+      expect(unlocked(id)).toBe(false);
+      emitAchievementEvent("achievement:tool_screenshot_captured");
+      expect(unlocked(id)).toBe(true);
+    }
+    expect(unlocked("material_capture")).toBe(false);
+  });
+
+  it.each([["material_offset", "roi_offset_measured"], ["material_delta", "delta_measured"], ["material_preview_collapsed", "live_preview_collapsed"]])("%s 首次有效操作解锁", (id, counter) => {
+    expect(unlocked(id)).toBe(false);
+    emitAchievementEvent(`achievement:${counter}`);
+    expect(unlocked(id)).toBe(true);
+    expect(achievementDefs.find((def) => def.id === id)?.hidden ?? false).toBe(id === "material_preview_collapsed");
+  });
+
+  it.each([
+    ["material_capture", "screenshot_saved"],
+    ["material_roi", "roi_applied"],
+    ["material_ocr", "ocr_recognized"],
+  ])("%s 按五档独立累计", (id, counter) => {
+    for (let count = 1; count <= 2000; count++) {
+      emitAchievementEvent(`achievement:${counter}`);
+      if ([1, 19, 20, 99, 100, 499, 500, 1999, 2000].includes(count)) {
+        for (const target of [1, 20, 100, 500, 2000]) {
+          expect(unlocked(target === 1 ? id : `${id}_${target}`)).toBe(count >= target);
+        }
+      }
+    }
+    expect(unlocked("material_uploaded")).toBe(false);
+    expect(unlocked("material_tolerance")).toBe(false);
+  });
+
+  it("两个取材彩蛋为隐藏成就，由实际操作事件解锁", () => {
+    for (const [id, counter] of [["material_uploaded", "uploaded_material_used"], ["material_tolerance", "color_tolerance_applied"]]) {
+      expect(achievementDefs.find((def) => def.id === id)?.hidden).toBe(true);
+      emitAchievementEvent(`achievement:${counter}`);
+      expect(unlocked(id)).toBe(true);
+    }
+  });
+
   it("保存模板按四档累计，使用模板只解锁老方新用", () => {
     emitAchievementEvent("achievement:template_used");
     expect(unlocked("organize_reuse")).toBe(true);

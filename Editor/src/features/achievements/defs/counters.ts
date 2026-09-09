@@ -34,6 +34,7 @@ export const counterRules: CounterRule[] = [
   { counter: "template_saved", on: "achievement:template_saved" },
   { counter: "template_used", on: "achievement:template_used" },
   { counter: "device_connected", on: "achievement:device_connected" },
+  ...["uploaded_material_used", "color_tolerance_applied", "roi_offset_measured", "delta_measured", "tool_screenshot_captured", "live_preview_collapsed"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "screenshot_saved", on: "achievement:screenshot_saved" },
   { counter: "roi_applied", on: "achievement:roi_applied" },
   { counter: "ocr_recognized", on: "achievement:ocr_recognized" },

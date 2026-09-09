@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { StrictMode } from "react";
 import { render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +30,23 @@ vi.mock("../../services/server", () => ({
   mfwProtocol: { requestScreencap },
 }));
 
+vi.mock("@/features/achievements/bus", () => ({ emitAchievementEvent: vi.fn() }));
+
 describe("ScreenshotModalBase", () => {
+  it.each([true, false])("截图成功状态为 %s 时仅成功取图计数", async (success) => {
+    requestScreencap.mockResolvedValue({ success, image: success ? "data:image/png;base64,test" : undefined });
+    const changed = vi.fn();
+    const { unmount } = render(<ScreenshotModalBase open onClose={vi.fn()} title="截图" onConfirm={vi.fn()} renderCanvas={() => null} onScreenshotChange={changed} />);
+    await waitFor(() => expect(requestScreencap).toHaveBeenCalledTimes(1));
+    if (success) {
+      await waitFor(() => expect(changed).toHaveBeenCalledWith("data:image/png;base64,test", "device"));
+      expect(emitAchievementEvent).toHaveBeenCalledExactlyOnceWith("achievement:tool_screenshot_captured");
+    } else {
+      expect(emitAchievementEvent).not.toHaveBeenCalled();
+    }
+    unmount();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

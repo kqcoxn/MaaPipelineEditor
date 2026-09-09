@@ -1,3 +1,5 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useRef, useEffect } from "react";
 import { Radio, Space, InputNumber, Button } from "antd";
@@ -24,6 +26,7 @@ interface ColorModalProps {
 export const ColorModal = memo(
   ({ open, onClose, onConfirm, targetKey, initialMethod, initialLower, initialUpper }: ColorModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
 
     // 检测初始颜色模式
     const getInitialColorMode = useCallback((): ColorMode => {
@@ -34,6 +37,8 @@ export const ColorModal = memo(
 
     const [colorMode, setColorMode] = useState<ColorMode>(getInitialColorMode);
     const [pickedColor, setPickedColor] = useState<ColorValue | null>(null);
+
+    const adjustedBound = useRef<ColorValue | null>(null);
 
     // 颜色范围预览状态
     const [lowerBound, setLowerBound] = useState<number[]>([0, 0, 0]);
@@ -51,6 +56,7 @@ export const ColorModal = memo(
         const mode = getInitialColorMode();
         setColorMode(mode);
         setPickedColor(null);
+        adjustedBound.current = null;
 
         // 初始化颜色范围预览边界
         const channelCount = mode === "GRAY" ? 1 : 3;
@@ -78,6 +84,7 @@ export const ColorModal = memo(
     // 取色后自动填入对应边界
     useEffect(() => {
       if (pickedColor) {
+        adjustedBound.current = null;
         if (targetKey === "lower") {
           setLowerBound([...pickedColor]);
         } else if (targetKey === "upper") {
@@ -215,19 +222,20 @@ export const ColorModal = memo(
         value: number | null
       ) => {
         if (value === null) return;
+        const current = bound === "lower" ? lowerBound : upperBound;
+        const next = current.map((item, index) => index === channelIndex ? Math.round(value) : item);
+        if (bound === targetKey && next.some((item, index) => item !== current[index])) {
+          adjustedBound.current = next as ColorValue;
+        }
         const setter = bound === "lower" ? setLowerBound : setUpperBound;
-        setter((prev) => {
-          const next = [...prev];
-          next[channelIndex] = Math.round(value);
-          return next;
-        });
+        setter(next);
         // 修改边界后清除旧预览
         if (previewActive) {
           setPreviewActive(false);
           setMatchedPixelCount(null);
         }
       },
-      [previewActive]
+      [previewActive, lowerBound, upperBound, targetKey]
     );
 
     // 计算颜色范围预览
@@ -402,7 +410,12 @@ export const ColorModal = memo(
         return;
       }
 
-      onConfirm(pickedColor);
+      const adjusted = adjustedBound.current;
+      onConfirm(adjusted ?? pickedColor);
+      recordUploadedMaterial(uploaded.current);
+      if (adjusted && adjusted.some((value, index) => value !== pickedColor[index])) {
+        emitAchievementEvent("achievement:color_tolerance_applied");
+      }
       onClose();
     }, [pickedColor, onConfirm, onClose]);
 
@@ -410,6 +423,7 @@ export const ColorModal = memo(
     const handleReset = useCallback(() => {
       setScreenshot(null);
       setPickedColor(null);
+      adjustedBound.current = null;
       setColorMode(getInitialColorMode());
       imageRef.current = null;
       canvasRef.current = null;
@@ -428,6 +442,7 @@ export const ColorModal = memo(
     // 切换颜色模式时转换已选颜色
     const handleColorModeChange = useCallback(
       (mode: ColorMode) => {
+        adjustedBound.current = null;
         if (!pickedColor) {
           setColorMode(mode);
           return;
@@ -448,6 +463,7 @@ export const ColorModal = memo(
           // 异常情况重置
           setColorMode(mode);
           setPickedColor(null);
+          adjustedBound.current = null;
           return;
         }
 
@@ -637,7 +653,7 @@ export const ColorModal = memo(
         confirmDisabled={!pickedColor}
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleCanvasInit}
         onReset={handleReset}
       >

@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/LiveScreenPanel.module.less";
 
@@ -254,7 +255,10 @@ const LiveScreenPanel = memo(() => {
               icon={isCollapsed ? <DownOutlined /> : <UpOutlined />}
               size="small"
               type="text"
-              onClick={() => setIsCollapsed((collapsed) => !collapsed)}
+              onClick={() => {
+                if (!isCollapsed) emitAchievementEvent("achievement:live_preview_collapsed");
+                setIsCollapsed(!isCollapsed);
+              }}
             />
           </Tooltip>
         </div>

@@ -1,64 +1,109 @@
+import { countSeries } from "../countSeries";
+
 import type { AchievementDef } from "../types";
 
 export const materialAchievements: AchievementDef[] = [
   {
     id: "material_device",
     title: "接通现场",
-    subtitle: "画布之外，信号已接通。",
+    subtitle: "喂，听得到吗？",
     description: "首次成功连接设备",
     category: "material",
     trigger: {
       kind: "counter",
       counter: "device_connected",
-      target: 1
-    }
+      target: 1,
+    },
   },
-  {
+  ...countSeries({
     id: "material_capture",
-    title: "定格这一刻",
-    subtitle: "就是这一帧。",
-    description: "首次成功保存模板截图",
     category: "material",
-    trigger: {
-      kind: "counter",
-      counter: "screenshot_saved",
-      target: 1
-    }
-  },
-  {
+    counter: "screenshot_saved",
+    title: "有图有真相",
+    subtitle: "证据我都截下来了。",
+    action: "成功保存模板截图",
+    targets: [1, 20, 100, 500, 2000],
+  }),
+  ...countSeries({
     id: "material_roi",
+    category: "material",
+    counter: "roi_applied",
     title: "圈定范围",
-    subtitle: "目光放在关键处。",
-    description: "使用 ROI 工具将结果应用到字段",
-    category: "material",
-    trigger: {
-      kind: "counter",
-      counter: "roi_applied",
-      target: 1
-    }
-  },
-  {
+    subtitle: "重点圈起来，这道题只看这里。",
+    action: "将 ROI 结果应用到字段",
+    targets: [1, 20, 100, 500, 2000],
+  }),
+  ...countSeries({
     id: "material_ocr",
-    title: "字里行间",
-    subtitle: "屏幕上的字，读懂了。",
-    description: "使用 OCR 工具识别出非空文字",
     category: "material",
-    trigger: {
-      kind: "counter",
-      counter: "ocr_recognized",
-      target: 1
-    }
-  },
+    counter: "ocr_recognized",
+    title: "字里行间",
+    subtitle: "我不识字，但我的 OCR 识字。",
+    action: "使用 OCR 识别出非空文字",
+    targets: [1, 20, 100, 500, 2000],
+  }),
   {
     id: "material_color",
     title: "本色出演",
-    subtitle: "找到这一抹颜色。",
+    subtitle: "给你点颜色看看！",
     description: "将取色结果应用到字段",
     category: "material",
     trigger: {
       kind: "counter",
       counter: "color_applied",
-      target: 1
-    }
-  }
+      target: 1,
+    },
+  },
+  {
+    id: "material_uploaded",
+    title: "另辟图源",
+    subtitle: "没有现场，也能办案。",
+    description: "首次使用上传的底图完成一次取材操作",
+    category: "material",
+    hidden: true,
+    trigger: { kind: "counter", counter: "uploaded_material_used", target: 1 },
+  },
+  {
+    id: "material_tolerance",
+    title: "差不多得了",
+    subtitle: "颜色不用卡得那么死。",
+    description: "首次手动调整取色边界，并将修改后的结果应用到字段",
+    category: "material",
+    hidden: true,
+    trigger: { kind: "counter", counter: "color_tolerance_applied", target: 1 },
+  },
+  {
+    id: "material_offset",
+    title: "几何糕手",
+    subtitle: "精确制导",
+    description: "首次使用偏移测量工具确认有效测量结果",
+    category: "material",
+    trigger: { kind: "counter", counter: "roi_offset_measured", target: 1 },
+  },
+  {
+    id: "material_delta",
+    title: "原来差在这",
+    subtitle: "这就是你与我的差距！",
+    description: "首次使用位移差值工具确认有效测量结果",
+    category: "material",
+    trigger: { kind: "counter", counter: "delta_measured", target: 1 },
+  },
+  ...countSeries({
+    id: "material_tool_screenshots",
+    category: "material",
+    counter: "tool_screenshot_captured",
+    title: "摄影师已就位",
+    subtitle: "咔嚓",
+    action: "通过小工具成功获取设备截图",
+    targets: [10, 50, 200, 1000, 5000, 20000],
+  }),
+  {
+    id: "material_preview_collapsed",
+    title: "关闭电视",
+    subtitle: "你吵到我眼睛了！",
+    description: "首次手动收起实时画面",
+    category: "material",
+    hidden: true,
+    trigger: { kind: "counter", counter: "live_preview_collapsed", target: 1 },
+  },
 ];

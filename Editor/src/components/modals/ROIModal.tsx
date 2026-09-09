@@ -1,3 +1,4 @@
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Space, InputNumber, Tooltip } from "antd";
@@ -21,6 +22,7 @@ interface ROIModalProps {
 export const ROIModal = memo(
   ({ open, onClose, onConfirm, initialROI }: ROIModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPoint, setStartPoint] = useState<{
@@ -229,6 +231,7 @@ export const ROIModal = memo(
         Math.round(rectangle.height),
       ];
       onConfirm(roi);
+      recordUploadedMaterial(uploaded.current);
       onClose();
     }, [rectangle, onConfirm, onClose]);
 
@@ -310,7 +313,7 @@ export const ROIModal = memo(
         confirmDisabled={!rectangle}
         onConfirm={handleConfirm}
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >

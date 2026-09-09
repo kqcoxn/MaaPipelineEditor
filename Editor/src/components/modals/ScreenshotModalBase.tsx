@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
@@ -75,7 +76,7 @@ interface ScreenshotModalBaseProps {
   children?: ReactNode;
 
   // 截图变化回调
-  onScreenshotChange?: (screenshot: string | null) => void;
+  onScreenshotChange?: (screenshot: string | null, source?: "device" | "upload") => void;
 
   // 图片加载完成回调
   onImageLoaded?: (img: HTMLImageElement) => void;
@@ -163,9 +164,10 @@ export const ScreenshotModalBase = memo(
         if (abortController.signal.aborted) return;
 
         if (result.success && result.image) {
+          emitAchievementEvent("achievement:tool_screenshot_captured");
           setScreenshot(result.image);
           setImageLoaded(false);
-          onScreenshotChangeRef.current?.(result.image);
+          onScreenshotChangeRef.current?.(result.image, "device");
         } else {
           message.error(result.error || "截图失败");
         }
@@ -204,7 +206,7 @@ export const ScreenshotModalBase = memo(
           const dataUrl = reader.result as string;
           setScreenshot(dataUrl);
           setImageLoaded(false);
-          onScreenshotChangeRef.current?.(dataUrl);
+          onScreenshotChangeRef.current?.(dataUrl, "upload");
         };
         reader.onerror = () => {
           message.error("图片读取失败");

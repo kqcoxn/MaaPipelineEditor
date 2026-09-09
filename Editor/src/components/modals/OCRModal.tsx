@@ -1,3 +1,4 @@
+import { useMaterialSource, recordUploadedMaterial } from "@/features/achievements/useMaterialSource";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import { memo, useState, useCallback, useEffect, useRef } from "react";
@@ -59,6 +60,8 @@ type OCRMode = "native" | "frontend";
 export const OCRModal = memo(
   ({ open, onClose, onConfirm, initialROI }: OCRModalProps) => {
     const [screenshot, setScreenshot] = useState<string | null>(null);
+    const { uploaded, onScreenshotChange } = useMaterialSource(setScreenshot);
+    const nativeUploaded = useRef(false);
     const [isOCRing, setIsOCRing] = useState(false);
     const [rectangle, setRectangle] = useState<Rectangle | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -99,6 +102,7 @@ export const OCRModal = memo(
     // 前端 OCR 识别
     const requestFrontendOCR = useCallback(
       async (roi: Rectangle) => {
+        const usingUploadedImage = uploaded.current;
         if (!screenshot || !canvasRef.current) return;
 
         setIsOCRing(true);
@@ -244,7 +248,10 @@ export const OCRModal = memo(
             .trim();
 
           setOcrText(processedText);
-          if (processedText.length > 0) emitAchievementEvent("achievement:ocr_recognized");
+          if (processedText.length > 0) {
+            emitAchievementEvent("achievement:ocr_recognized");
+            recordUploadedMaterial(usingUploadedImage);
+          }
           setOcrSuccess(processedText.length > 0 && confidence > 50);
         } catch (error) {
           message.error(
@@ -272,6 +279,7 @@ export const OCRModal = memo(
         }
 
         setIsOCRing(true);
+        nativeUploaded.current = uploaded.current;
         mfwProtocol.requestOCR({
           base_image: screenshot,
           roi: [
@@ -305,7 +313,10 @@ export const OCRModal = memo(
         setIsOCRing(false);
         if (data.success) {
           setOcrText(data.text ?? "");
-          if (!data.no_content && data.text?.trim()) emitAchievementEvent("achievement:ocr_recognized");
+          if (!data.no_content && data.text?.trim()) {
+            emitAchievementEvent("achievement:ocr_recognized");
+            recordUploadedMaterial(nativeUploaded.current);
+          }
           if (data.no_content) {
             setOcrSuccess(false);
           } else {
@@ -712,7 +723,7 @@ export const OCRModal = memo(
           </Button>
         }
         renderCanvas={renderCanvas}
-        onScreenshotChange={setScreenshot}
+        onScreenshotChange={onScreenshotChange}
         onImageLoaded={handleImageLoaded}
         onReset={handleReset}
       >
