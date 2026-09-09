@@ -13,7 +13,7 @@ interface Failure {
 export function createDebugAchievementTracker(award: (counter: string) => void) {
   const failures = new Map<string, Failure>();
   const startedRuns = new Set<string>();
-  let active: { run: Pick<DebugRunStarted, "runId" | "sessionId" | "mode" | "entry">; key: string; retry?: Failure; recognitionReported: boolean; fileIds: Set<string> } | undefined;
+  let active: { run: Pick<DebugRunStarted, "runId" | "sessionId" | "mode" | "entry">; key: string; retry?: Failure; recognitionReported: boolean; manualStop?: boolean; fileIds: Set<string> } | undefined;
   return {
     start(run: Pick<DebugRunStarted, "runId" | "sessionId" | "mode" | "entry">, fileId: string, resourcePaths: string[]) {
       const identity = `${run.sessionId}:${run.runId}`;
@@ -24,6 +24,9 @@ export function createDebugAchievementTracker(award: (counter: string) => void) 
       active = { run, key, retry: failures.get(key), recognitionReported: false, fileIds: new Set([fileId]) };
       // 开始运行后再做的编辑，不属于这次验证。
       if (active.retry) active.retry = { ...active.retry };
+    },
+    requestStop(sessionId: string, runId: string) {
+      if (active?.run.sessionId === sessionId && active.run.runId === runId) active.manualStop = true;
     },
     edit(fileId: string, nodeId: string) {
       for (const failure of failures.values()) {
@@ -52,6 +55,10 @@ export function createDebugAchievementTracker(award: (counter: string) => void) 
       if (event.kind !== "session") return;
       const status = event.status === "stopped" ? "stopped" : event.phase ?? event.status;
       if (status !== "completed" && status !== "failed" && status !== "stopped") return;
+      const executable = ["run-from-node", "single-node-run", "recognition-only", "action-only"].includes(run.mode);
+      if (executable && status === "completed") award("debug_completed");
+      if (executable && status === "stopped" && active.manualStop) award("debug_manual_stopped");
+      if (run.mode === "action-only" && status === "completed") award("debug_action_completed");
       if (run.mode === "single-node-run" && status === "completed") award("debug_single_completed");
       if (run.mode === "run-from-node") {
         if (status === "completed") {

@@ -39,6 +39,7 @@ export const counterRules: CounterRule[] = [
   { counter: "roi_applied", on: "achievement:roi_applied" },
   { counter: "ocr_recognized", on: "achievement:ocr_recognized" },
   { counter: "color_applied", on: "achievement:color_applied" },
+  ...["debug_completed", "debug_action_completed", "debug_manual_stopped", "debug_image_opened"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "debug_run_completed", on: "achievement:debug_run_completed" },
   { counter: "debug_single_completed", on: "achievement:debug_single_completed" },
   { counter: "debug_recognition_result", on: "achievement:debug_recognition_result" },

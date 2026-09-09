@@ -13,18 +13,5 @@ export const exploreAchievements: AchievementDef[] = [
       counter: "history_redone",
       target: 1
     }
-  },
-  {
-    id: "explore_fix",
-    title: "原来是这里",
-    subtitle: "找到了，就好办了。",
-    description: "从失败节点详情定位回画布，修改该节点后，下一次同入口流程调试成功（同次打开编辑器期间）",
-    category: "explore",
-    hidden: true,
-    trigger: {
-      kind: "counter",
-      counter: "debug_fix_completed",
-      target: 1
-    }
   }
 ];

@@ -41,6 +41,9 @@ export function subscribeAchievementActivity(): () => void {
           useFileStore.getState().currentFile.fileName, useDebugRunProfileStore.getState().profile.resourcePaths);
       }
       debug.event(liveEvent);
+    } else if (event.type === "debug:stop-requested") {
+      const { sessionId, runId } = event.payload as { sessionId: string; runId: string };
+      debug.requestStop(sessionId, runId);
     } else if (event.type === "debug:failure:focused") {
       const { runId, fileId, nodeId } = event.payload as { runId: string; fileId: string; nodeId: string };
       debug.focusFailure(runId, fileId, nodeId);

@@ -21,7 +21,7 @@ describe("调试成就因果链", () => {
     start("single", "single-node-run"); tracker.event(event("single", "completed"));
     start("replay", "replay"); tracker.event(event("replay", "completed"));
     start("stop"); tracker.event(event("stop", "completed", { status: "stopped" }));
-    expect(award.mock.calls.flat()).toEqual(["debug_run_completed", "debug_single_completed"]);
+    expect(award.mock.calls.flat()).toEqual(["debug_completed", "debug_run_completed", "debug_completed", "debug_single_completed"]);
   });
 
   it("仅识别需要实际识别结果，未命中也算结果但不算流程成功", () => {
@@ -43,7 +43,7 @@ describe("调试成就因果链", () => {
     tracker.focusFailure("failed", "remote", "node");
     tracker.edit("remote", "node");
     start("success"); tracker.event(event("success", "completed"));
-    expect(award.mock.calls.flat()).toEqual(["debug_run_completed", "debug_retry_completed", "debug_fix_completed"]);
+    expect(award.mock.calls.flat()).toEqual(["debug_completed", "debug_run_completed", "debug_retry_completed", "debug_fix_completed"]);
   });
 
   it("无编辑、无关文件编辑和其他入口都不能解锁重试", () => {
@@ -54,7 +54,7 @@ describe("调试成就因果链", () => {
     start("failed2"); tracker.event(event("failed2", "failed"));
     tracker.edit("file", "node");
     start("other", "run-from-node", "Other"); tracker.event(event("other", "completed"));
-    expect(award.mock.calls.flat()).toEqual(["debug_run_completed", "debug_run_completed"]);
+    expect(award.mock.calls.flat()).toEqual(["debug_completed", "debug_run_completed", "debug_completed", "debug_run_completed"]);
   });
 
   it("运行开始之后的编辑、修改其他节点不满足修复彩蛋", () => {
@@ -65,7 +65,7 @@ describe("调试成就因果链", () => {
     start("success");
     tracker.edit("file", "broken");
     tracker.event(event("success", "completed"));
-    expect(award.mock.calls.flat()).toEqual(["debug_run_completed", "debug_retry_completed"]);
+    expect(award.mock.calls.flat()).toEqual(["debug_completed", "debug_run_completed", "debug_retry_completed"]);
   });
 
   it("下一次同入口运行失败或停止会消耗修复彩蛋机会", () => {
@@ -78,4 +78,24 @@ describe("调试成就因果链", () => {
       expect(award.mock.calls.flat()).not.toContain("debug_fix_completed");
     }
   });
+});
+
+it.each(["run-from-node", "single-node-run", "recognition-only", "action-only"] as const)("%s 成功仅累计一次，失败与停止不累计", (mode) => {
+  const { tracker, award, start } = setup();
+  start("ok", mode); tracker.event(event("ok", "completed")); tracker.event(event("ok", "completed"));
+  start("fail", mode); tracker.event(event("fail", "failed"));
+  start("stop", mode); tracker.event(event("stop", "completed", { status: "stopped" }));
+  expect(award.mock.calls.flat().filter((counter) => counter === "debug_completed")).toHaveLength(1);
+  expect(award.mock.calls.flat().includes("debug_action_completed")).toBe(mode === "action-only");
+});
+it("仅同次运行的手动停止收到成功终态后解锁", () => {
+  const { tracker, award, start } = setup();
+  start("auto"); tracker.event(event("auto", "completed", { status: "stopped" }));
+  start("wrong"); tracker.requestStop("other", "wrong"); tracker.event(event("wrong", "completed", { status: "stopped" }));
+  start("natural"); tracker.requestStop("session", "natural"); tracker.event(event("natural", "completed"));
+  expect(award.mock.calls.flat()).not.toContain("debug_manual_stopped");
+  start("manual"); tracker.requestStop("session", "manual");
+  tracker.event(event("manual", "completed", { status: "stopped" }));
+  tracker.event(event("manual", "completed", { status: "stopped" }));
+  expect(award.mock.calls.flat().filter((counter) => counter === "debug_manual_stopped")).toHaveLength(1);
 });

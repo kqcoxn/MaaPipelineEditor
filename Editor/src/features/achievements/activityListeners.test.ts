@@ -305,3 +305,31 @@ describe("正式成就接线", () => {
     }
   });
 });
+
+it("全部调试累计六档，新单次成就与隐藏设置接线正确", () => {
+  for (const target of [10, 50, 200, 1000, 5000, 20000]) {
+    const id = target === 10 ? "debug_runs" : `debug_runs_${target}`;
+    useAchievementStore.setState((state) => ({ counters: { ...state.counters, debug_completed: target - 1 } }));
+    expect(unlocked(id)).toBe(false);
+    emitAchievementEvent("achievement:debug_completed");
+    expect(unlocked(id)).toBe(true);
+  }
+  expect(unlocked("debug_first_run")).toBe(false);
+  for (const [id, counter, hidden] of [
+    ["debug_action", "debug_action_completed", false],
+    ["debug_stop", "debug_manual_stopped", true],
+    ["debug_image", "debug_image_opened", false],
+    ["debug_retry", "debug_retry_completed", true],
+    ["explore_fix", "debug_fix_completed", true],
+  ] as const) {
+    emitAchievementEvent(`achievement:${counter}`);
+    expect(unlocked(id)).toBe(true);
+    const def = achievementDefs.find((item) => item.id === id)!;
+    expect(def.category).toBe("debug");
+    expect(def.hidden ?? false).toBe(hidden);
+  }
+  for (const id of ["debug_single", "debug_recognition"]) {
+    expect(achievementDefs.filter((def) => def.id.startsWith(id))).toHaveLength(1);
+    expect(achievementDefs.find((def) => def.id === id)?.trigger).toMatchObject({ target: 1 });
+  }
+});

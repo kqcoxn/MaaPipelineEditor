@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { useEffect, useRef, useState } from "react";
 import { debugProtocolClient } from "@/services/server";
 import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
@@ -40,6 +41,7 @@ export function useDebugStopControl() {
       runId: activeRun.runId,
       reason: "user_stop",
     });
+    if (sent) emitAchievementEvent("debug:stop-requested", { sessionId: session.sessionId, runId: activeRun.runId });
     if (!sent) {
       stopRequestLock.current = undefined;
       setPendingStopRunId(undefined);

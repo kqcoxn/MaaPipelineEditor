@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 ﻿import {
   useEffect,
   useMemo,
@@ -83,6 +84,7 @@ export function DebugImageViewer({
   overlays = [],
   src,
 }: DebugImageViewerProps) {
+  const reportedImage = useRef<string | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{
     width: number;
@@ -176,7 +178,13 @@ export function DebugImageViewer({
               metadata={metadata}
               overlays={visibleOverlays}
               src={src}
-              onNaturalSizeChange={setNaturalSize}
+              onNaturalSizeChange={(size) => {
+                setNaturalSize(size);
+                if (size.width > 0 && size.height > 0 && reportedImage.current !== src) {
+                  reportedImage.current = src;
+                  emitAchievementEvent("achievement:debug_image_opened");
+                }
+              }}
               onOverlayFocus={setFocusedOverlayId}
               onOverlayHover={setHoveredOverlayId}
             />
