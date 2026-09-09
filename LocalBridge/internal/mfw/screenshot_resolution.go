@@ -14,6 +14,21 @@ func DefaultScreenshotResolution() ScreenshotResolution {
 }
 
 func ParseOptionalScreenshotResolution(values map[string]interface{}) (*ScreenshotResolution, error) {
+	var expand [2]int32
+	_, hasExpand := values["target_expand"]
+	if hasExpand {
+		items, ok := values["target_expand"].([]interface{})
+		if !ok || len(items) != 2 {
+			return nil, fmt.Errorf("target_expand 必须是 [width, height]")
+		}
+		for i, item := range items {
+			value, _, err := positiveInt32Option(map[string]interface{}{"target_expand": item}, "target_expand")
+			if err != nil {
+				return nil, err
+			}
+			expand[i] = value
+		}
+	}
 	longSide, hasLongSide, err := positiveInt32Option(values, "target_long_side")
 	if err != nil {
 		return nil, err
@@ -29,7 +44,7 @@ func ParseOptionalScreenshotResolution(values map[string]interface{}) (*Screensh
 	hasRawMode := hasUseRawSize && useRawSize
 
 	modeCount := 0
-	for _, enabled := range []bool{hasLongSide, hasShortSide, hasRawMode} {
+	for _, enabled := range []bool{hasLongSide, hasShortSide, hasRawMode, hasExpand} {
 		if enabled {
 			modeCount++
 		}
@@ -42,6 +57,7 @@ func ParseOptionalScreenshotResolution(values map[string]interface{}) (*Screensh
 	}
 
 	return &ScreenshotResolution{
+		TargetExpand:    expand,
 		TargetLongSide:  longSide,
 		TargetShortSide: shortSide,
 		UseRawSize:      hasRawMode,
@@ -73,6 +89,11 @@ func ApplyScreenshotResolution(controller *maa.Controller, resolution Screenshot
 	}
 
 	switch {
+	case resolution.TargetExpand[0] > 0 && resolution.TargetExpand[1] > 0:
+		if err := controller.SetScreenshot(maa.WithScreenshotUseRawSize(false)); err != nil {
+			return err
+		}
+		return controller.SetScreenshot(maa.WithScreenshotTargetExpand(resolution.TargetExpand[0], resolution.TargetExpand[1]))
 	case resolution.UseRawSize:
 		return controller.SetScreenshot(maa.WithScreenshotUseRawSize(true))
 	case resolution.TargetLongSide > 0:

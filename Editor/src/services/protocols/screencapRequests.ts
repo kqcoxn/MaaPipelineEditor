@@ -7,6 +7,7 @@ export interface ScreencapRequestParams {
   use_cache?: boolean;
   background?: boolean;
   target_long_side?: number;
+  target_expand?: [number, number];
   target_short_side?: number;
   use_raw_size?: boolean;
   output_long_side?: number;

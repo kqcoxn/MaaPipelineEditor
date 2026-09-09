@@ -665,6 +665,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
       { value: "default", label: "默认 (短边 720)" },
       { value: "shortSide", label: "自定义短边" },
       { value: "longSide", label: "自定义长边" },
+      { value: "expand", label: "Expand 参考分辨率" },
       { value: "raw", label: "原始分辨率" },
     ],
     controlWidth: 150,
@@ -687,6 +688,16 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 8,
   },
 
+  ...(["Width", "Height"] as const).map((dimension) => ({
+    key: `screenshotExpand${dimension}` as "screenshotExpandWidth" | "screenshotExpandHeight",
+    category: "local-service" as const,
+    label: dimension === "Width" ? "Expand 参考宽度" : "Expand 参考高度",
+    tipTitle: "Expand 参考分辨率",
+    tipContent: "保持截图宽高比，使输出宽高均不小于参考分辨率；不裁剪，不拉伸。",
+    type: "inputNumber" as const,
+    min: 1, max: 8192, addonAfter: "px", order: 9,
+    visible: (configs: ConfigState["configs"]) => configs.screenshotResolutionMode === "expand",
+  })),
   // ==================== AI (ai) ====================
   {
     key: "aiProviderType",

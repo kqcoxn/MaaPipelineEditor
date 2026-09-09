@@ -108,6 +108,8 @@ export const ScreenshotModalBase = memo(
     const resolutionValue = useConfigStore(
       (state) => state.configs.screenshotResolutionValue,
     );
+    const expandWidth = useConfigStore((state) => state.configs.screenshotExpandWidth);
+    const expandHeight = useConfigStore((state) => state.configs.screenshotExpandHeight);
     const [screenshot, setScreenshot] = useState<string | null>(null);
     const [imageLoaded, setImageLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -157,6 +159,8 @@ export const ScreenshotModalBase = memo(
             ...getScreenshotResolutionParams({
               screenshotResolutionMode: resolutionMode,
               screenshotResolutionValue: resolutionValue,
+              screenshotExpandWidth: expandWidth,
+              screenshotExpandHeight: expandHeight,
             }),
           },
           abortController.signal,
@@ -181,7 +185,7 @@ export const ScreenshotModalBase = memo(
           setIsLoading(false);
         }
       }
-    }, [connectionStatus, controllerId, resolutionMode, resolutionValue]);
+    }, [connectionStatus, controllerId, resolutionMode, resolutionValue, expandWidth, expandHeight]);
 
     // 上传本地图片作为底图
     const handleUploadClick = useCallback(() => {

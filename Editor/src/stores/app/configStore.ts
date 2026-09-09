@@ -187,10 +187,12 @@ export type ScreenshotResolutionMode =
   | "default"
   | "shortSide"
   | "longSide"
+  | "expand"
   | "raw";
 
 /**截图请求分辨率参数 */
 export interface ScreenshotResolutionParams {
+  target_expand?: [number, number];
   target_short_side?: number;
   target_long_side?: number;
   use_raw_size?: boolean;
@@ -199,11 +201,11 @@ export interface ScreenshotResolutionParams {
 type ScreenshotResolutionConfig = Pick<
   ConfigState["configs"],
   "screenshotResolutionMode" | "screenshotResolutionValue"
->;
+> & { screenshotExpandWidth?: number; screenshotExpandHeight?: number };
 
 /**
  * 根据配置生成截图请求的分辨率参数。
- * maafw 三种模式互斥，每次请求只发送一种；后端负责清理其他模式的残留状态。
+ * maafw 缩放模式互斥，每次请求只发送一种；后端负责清理其他模式的残留状态。
  * default 模式显式回落到短边 720（maafw 默认）。
  */
 export const getScreenshotResolutionParams = (
@@ -211,6 +213,8 @@ export const getScreenshotResolutionParams = (
 ): ScreenshotResolutionParams => {
   const value = configs.screenshotResolutionValue;
   switch (configs.screenshotResolutionMode) {
+    case "expand":
+      return { target_expand: [configs.screenshotExpandWidth ?? 1280, configs.screenshotExpandHeight ?? 720] };
     case "shortSide":
       return { target_short_side: value };
     case "longSide":
@@ -293,6 +297,8 @@ const defaultConfigs = {
   showOpenLocalButton: true,
   // 截图分辨率模式
   screenshotResolutionMode: "default" as ScreenshotResolutionMode,
+  screenshotExpandWidth: 1280,
+  screenshotExpandHeight: 720,
   // 截图分辨率值（短边/长边长度）
   screenshotResolutionValue: 720,
 };
@@ -373,6 +379,8 @@ export type ConfigState = {
     showOpenLocalButton: boolean;
     // 截图分辨率模式
     screenshotResolutionMode: ScreenshotResolutionMode;
+    screenshotExpandWidth: number;
+    screenshotExpandHeight: number;
     // 截图分辨率值（短边/长边长度）
     screenshotResolutionValue: number;
     // 字段排序配置

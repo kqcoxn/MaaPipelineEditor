@@ -83,6 +83,7 @@ type TaskInfo struct {
 }
 
 type ScreenshotResolution struct {
+	TargetExpand    [2]int32
 	TargetLongSide  int32
 	TargetShortSide int32
 	UseRawSize      bool

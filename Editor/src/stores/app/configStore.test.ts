@@ -7,6 +7,7 @@ import {
   DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
   getExportableConfigs,
   getLiveScreenFrameInterval,
+  getScreenshotResolutionParams,
   initializeConfigCache,
   useConfigStore,
 } from "@/stores/app/configStore";
@@ -17,6 +18,10 @@ beforeEach(() => {
 });
 
 describe("config cache", () => {
+  it("uses the same Expand dimensions for screenshots and debug profiles", () => {
+    expect(getScreenshotResolutionParams({ ...configDefaults, screenshotResolutionMode: "expand", screenshotExpandWidth: 1920, screenshotExpandHeight: 1080 })).toEqual({ target_expand: [1920, 1080] });
+    expect(getScreenshotResolutionParams({ ...configDefaults, screenshotResolutionMode: "raw" })).toEqual({ use_raw_size: true });
+  });
   it("shows node shadows by default", () => {
     expect(configDefaults.showNodeShadows).toBe(true);
   });
