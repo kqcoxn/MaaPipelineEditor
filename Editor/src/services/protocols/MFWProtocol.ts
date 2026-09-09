@@ -667,6 +667,7 @@ export class MFWProtocol extends BaseProtocol {
     hwnd: string;
     screencap_method: string;
     input_method: string;
+    keyboard_method?: string;
   }): boolean {
     const mfwStore = useMFWStore.getState();
     const window = mfwStore.win32Windows.find((w) => w.hwnd === params.hwnd);

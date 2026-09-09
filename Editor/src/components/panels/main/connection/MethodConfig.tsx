@@ -12,6 +12,8 @@ interface MethodConfigProps {
   win32Windows: Win32Window[];
   customScreencap: string | string[] | undefined;
   customInput: string | string[] | undefined;
+  customKeyboard: string;
+  onKeyboardChange: (value: string) => void;
   onScreencapChange: (value: string | string[]) => void;
   onInputChange: (value: string | string[]) => void;
   isAdbManualMode?: boolean;
@@ -26,6 +28,8 @@ export const MethodConfig = memo(
     win32Windows,
     customScreencap,
     customInput,
+    customKeyboard,
+    onKeyboardChange,
     onScreencapChange,
     onInputChange,
     isAdbManualMode = false,
@@ -193,6 +197,12 @@ export const MethodConfig = memo(
             />
           </div>
         </div>
+        {activeTab === "win32" && <div style={{ marginTop: 12 }}>
+          <Text type="secondary">键盘输入方式</Text>
+          <Select aria-label="键盘输入方式" style={{ width: "100%" }} value={customKeyboard} onChange={onKeyboardChange}
+            options={selectedDeviceMethods.input.filter((name) => name !== "AnchoredTouch").map((name) => ({ value: name, label: name }))} />
+          {customInput === "AnchoredTouch" && <Alert type="info" showIcon title="AnchoredTouch 仅支持点击和滑动，不支持滚轮。需要 Windows 10 1809 或更新系统；目标窗口遮挡时可能短暂闪烁。" />}
+        </div>}
         {usesInterception && (
           <Alert
             type="warning"

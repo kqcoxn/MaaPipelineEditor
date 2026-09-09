@@ -256,9 +256,10 @@ func (h *MFWHandler) handleCreateWin32Controller(conn *server.Connection, msg mo
 	hwnd, _ := dataMap["hwnd"].(string)
 	screencapMethod, _ := dataMap["screencap_method"].(string)
 	inputMethod, _ := dataMap["input_method"].(string)
+	keyboardMethod, _ := dataMap["keyboard_method"].(string)
 
 	controllerID, err := h.service.ControllerManager().CreateWin32Controller(
-		hwnd, screencapMethod, inputMethod,
+		hwnd, screencapMethod, inputMethod, keyboardMethod,
 	)
 	if err != nil {
 		logger.Error("MFW", "创建Win32控制器失败: %v", err)

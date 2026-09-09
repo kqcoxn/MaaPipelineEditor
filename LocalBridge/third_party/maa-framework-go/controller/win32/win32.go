@@ -1,3 +1,4 @@
+// MPE modifications (2026-09-09): add AnchoredTouch input method.
 package win32
 
 import (
@@ -40,6 +41,7 @@ const (
 	InputSendMessageWithWindowPos InputMethod = 1 << 7
 	InputPostMessageWithWindowPos InputMethod = 1 << 8
 	InputInterception             InputMethod = 1 << 9
+	InputAnchoredTouch            InputMethod = 1 << 10
 )
 
 const (
@@ -118,6 +120,8 @@ func (m InputMethod) String() string {
 		return inputPostMessageWithWindowPosStr
 	case InputInterception:
 		return inputInterceptionStr
+	case InputAnchoredTouch:
+		return "AnchoredTouch"
 	}
 	return strconv.FormatUint(uint64(m), 10)
 }
@@ -179,6 +183,8 @@ func ParseInputMethod(s string) (InputMethod, error) {
 		return InputPostMessageWithWindowPos, nil
 	case strings.EqualFold(inputInterceptionStr, s):
 		return InputInterception, nil
+	case strings.EqualFold("AnchoredTouch", s):
+		return InputAnchoredTouch, nil
 	default:
 		i, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {

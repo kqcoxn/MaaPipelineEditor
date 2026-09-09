@@ -172,6 +172,7 @@ export const ConnectionPanel = memo(
     >(undefined);
 
     // 是否处于 ADB 手动连接模式
+    const [customKeyboard, setCustomKeyboard] = useState("SendMessage");
     const isAdbManualMode =
       manualAdbPath.trim().length > 0 || manualAddress.trim().length > 0;
 
@@ -441,6 +442,7 @@ export const ConnectionPanel = memo(
         }
 
         mfwProtocol.createWin32Controller({
+          keyboard_method: customKeyboard,
           hwnd: selectedWin32Window.hwnd,
           screencap_method: screencapMethod,
           input_method: inputMethod,
@@ -511,6 +513,7 @@ export const ConnectionPanel = memo(
       wlrootsSocketPath,
       customScreencap,
       customInput,
+      customKeyboard,
       playCoverAddress,
       playCoverUUID,
       playCoverName,
@@ -802,6 +805,8 @@ export const ConnectionPanel = memo(
             win32Windows={win32Windows}
             customScreencap={customScreencap}
             customInput={customInput}
+            customKeyboard={customKeyboard}
+            onKeyboardChange={setCustomKeyboard}
             onScreencapChange={setCustomScreencap}
             onInputChange={setCustomInput}
             isAdbManualMode={isAdbManualMode}

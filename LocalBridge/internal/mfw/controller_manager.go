@@ -127,7 +127,7 @@ func parseWin32ScreencapMethod(name string) (win32.ScreencapMethod, error) {
 }
 
 // 创建 Win32 控制器
-func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputMethod string) (string, error) {
+func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputMethod, keyboardInputMethod string) (string, error) {
 	logger.Debug("MFW", "创建 Win32 控制器: %s", hwnd)
 
 	controllerID := uuid.New().String()
@@ -155,7 +155,11 @@ func (cm *ControllerManager) CreateWin32Controller(hwnd, screencapMethod, inputM
 	}
 
 	// 创建 Win32 控制器
-	ctrl, err := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, mouseMethod)
+	keyboardMethod, err := parseWin32KeyboardMethod(keyboardInputMethod)
+	if err != nil {
+		return "", err
+	}
+	ctrl, err := maa.NewWin32Controller(hwndPtr, scMethod, mouseMethod, keyboardMethod)
 	if err != nil {
 		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create win32 controller: "+err.Error(), nil)
 	}
