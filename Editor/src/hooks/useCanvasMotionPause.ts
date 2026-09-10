@@ -22,8 +22,14 @@ export interface CanvasMotionController {
 const updateMotionAttribute = (
   element: HTMLElement,
   activeReasons: ReadonlySet<CanvasMotionReason>,
+  pauseMotion: boolean,
 ) => {
-  element.dataset.canvasMotion = activeReasons.size > 0 ? "paused" : "idle";
+  element.dataset.canvasMotion = pauseMotion && activeReasons.size > 0 ? "paused" : "idle";
+  element.dataset.canvasDragging = String(
+    activeReasons.has("node-drag") ||
+      activeReasons.has("selection-drag") ||
+      activeReasons.has("viewport"),
+  );
 };
 
 export const createCanvasMotionController = (
@@ -32,6 +38,7 @@ export const createCanvasMotionController = (
     request: window.requestAnimationFrame.bind(window),
     cancel: window.cancelAnimationFrame.bind(window),
   },
+  pauseMotion = true,
 ): CanvasMotionController => {
   const activeReasons = new Set<CanvasMotionReason>();
   const pendingFrames = new Map<CanvasMotionReason, number>();
@@ -46,7 +53,7 @@ export const createCanvasMotionController = (
   const begin = (reason: CanvasMotionReason) => {
     cancelPendingFrame(reason);
     activeReasons.add(reason);
-    updateMotionAttribute(element, activeReasons);
+    updateMotionAttribute(element, activeReasons, pauseMotion);
   };
 
   const end = (reason: CanvasMotionReason) => {
@@ -56,7 +63,7 @@ export const createCanvasMotionController = (
     const frameId = scheduler.request(() => {
       pendingFrames.delete(reason);
       activeReasons.delete(reason);
-      updateMotionAttribute(element, activeReasons);
+      updateMotionAttribute(element, activeReasons, pauseMotion);
     });
     pendingFrames.set(reason, frameId);
   };
@@ -65,15 +72,17 @@ export const createCanvasMotionController = (
     pendingFrames.forEach((frameId) => scheduler.cancel(frameId));
     pendingFrames.clear();
     activeReasons.clear();
+    updateMotionAttribute(element, activeReasons, pauseMotion);
   };
 
-  updateMotionAttribute(element, activeReasons);
+  updateMotionAttribute(element, activeReasons, pauseMotion);
   return { begin, end, destroy };
 };
 
 export const useCanvasMotionPause = (
   rootRef: RefObject<HTMLElement | null>,
   enabled = true,
+  hideEdgesOnDrag = false,
 ) => {
   const controllerRef = useRef<CanvasMotionController | null>(null);
 
@@ -81,13 +90,14 @@ export const useCanvasMotionPause = (
     const element = rootRef.current;
     if (!element) return;
 
-    if (!enabled) {
+    if (!enabled && !hideEdgesOnDrag) {
       element.dataset.canvasMotion = "idle";
+      element.dataset.canvasDragging = "false";
       controllerRef.current = null;
       return;
     }
 
-    const controller = createCanvasMotionController(element);
+    const controller = createCanvasMotionController(element, undefined, enabled);
     controllerRef.current = controller;
 
     const updatePageVisibility = () => {
@@ -106,7 +116,7 @@ export const useCanvasMotionPause = (
       controller.destroy();
       controllerRef.current = null;
     };
-  }, [enabled, rootRef]);
+  }, [enabled, hideEdgesOnDrag, rootRef]);
 
   const beginCanvasMotionPause = useCallback((reason: CanvasMotionReason) => {
     controllerRef.current?.begin(reason);

@@ -70,9 +70,56 @@ describe("createCanvasMotionController", () => {
 
     expect(scheduler.cancel).toHaveBeenCalledTimes(1);
   });
+
+  test("keeps edges hidden until all node and viewport drags end", () => {
+    const element = document.createElement("div");
+    const { scheduler, flush } = createScheduler();
+    const controller = createCanvasMotionController(element, scheduler);
+
+    controller.begin("node-drag");
+    controller.begin("selection-drag");
+    controller.begin("viewport");
+    expect(element.dataset.canvasDragging).toBe("true");
+    controller.end("node-drag");
+    controller.end("selection-drag");
+    flush();
+    expect(element.dataset.canvasDragging).toBe("true");
+    controller.end("viewport");
+    flush();
+    expect(element.dataset.canvasDragging).toBe("false");
+  });
+
+  test("does not hide edges for connection editing or a hidden page", () => {
+    const element = document.createElement("div");
+    const { scheduler } = createScheduler();
+    const controller = createCanvasMotionController(element, scheduler);
+    controller.begin("connection");
+    controller.begin("edge-control");
+    controller.begin("page-hidden");
+    expect(element.dataset.canvasDragging).toBe("false");
+    controller.begin("viewport");
+    expect(element.dataset.canvasDragging).toBe("true");
+    controller.destroy();
+    expect(element.dataset.canvasDragging).toBe("false");
+  });
 });
 
 describe("useCanvasMotionPause", () => {
+  test("tracks dragging independently of animation pause and clears it when disabled", () => {
+    const element = document.createElement("div");
+    const rootRef = { current: element };
+    const { result, rerender } = renderHook(
+      ({ hideEdges }) => useCanvasMotionPause(rootRef, false, hideEdges),
+      { initialProps: { hideEdges: true } },
+    );
+    act(() => result.current.beginCanvasMotionPause("node-drag"));
+    expect(element.dataset.canvasDragging).toBe("true");
+    expect(element.dataset.canvasMotion).toBe("idle");
+    rerender({ hideEdges: false });
+    expect(element.dataset.canvasDragging).toBe("false");
+    expect(element.dataset.canvasMotion).toBe("idle");
+  });
+
   test("clears a previous pause state when the feature is disabled", () => {
     const element = document.createElement("div");
     element.dataset.canvasMotion = "paused";

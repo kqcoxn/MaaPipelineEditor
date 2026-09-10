@@ -7,6 +7,13 @@
   &[data-canvas-motion="paused"] {
     --mpe-canvas-animation-play-state: paused;
   }
+
+  &[data-hide-edges-on-drag="true"][data-canvas-dragging="true"] {
+    :global(.react-flow__edges),
+    :global(.react-flow__edgelabel-renderer) {
+      display: none;
+    }
+  }
 }
 
 .islandHost {

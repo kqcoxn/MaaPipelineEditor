@@ -475,6 +475,18 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 4,
   },
   {
+    key: "hideEdgesOnDrag",
+    category: "canvas",
+    label: "拖动时隐藏所有边",
+    tipTitle: "拖动时隐藏所有边",
+    tipContent:
+      "拖动节点（含多选拖动）或平移/缩放画布时隐藏所有连线、连线标签和控制点，结束后恢复显示，以减少大图的绘制开销。默认关闭，可独立于动画暂停开关使用。",
+    type: "switch",
+    checkedChildren: "开启",
+    unCheckedChildren: "关闭",
+    order: 5,
+  },
+  {
     key: "enableLiveScreen",
     category: "component",
     label: "实时画面预览",

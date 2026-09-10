@@ -246,6 +246,9 @@ function MainFlow() {
   const enableCanvasMotionPause = useConfigStore(
     (state) => state.configs.enableCanvasMotionPause,
   );
+  const hideEdgesOnDrag = useConfigStore(
+    (state) => state.configs.hideEdgesOnDrag,
+  );
 
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
@@ -259,7 +262,7 @@ function MainFlow() {
 
   const ref = useRef<HTMLDivElement>(null);
   const { beginCanvasMotionPause, endCanvasMotionPause } =
-    useCanvasMotionPause(ref, enableCanvasMotionPause);
+    useCanvasMotionPause(ref, enableCanvasMotionPause, hideEdgesOnDrag);
   const canvasMotionContext = useMemo(
     () => ({ beginCanvasMotionPause, endCanvasMotionPause }),
     [beginCanvasMotionPause, endCanvasMotionPause],
@@ -669,6 +672,7 @@ function MainFlow() {
       id="mpe-main-canvas"
       className={style.editor}
       data-node-shadows={showNodeShadows}
+      data-hide-edges-on-drag={hideEdgesOnDrag}
       ref={ref}
     >
       <div id="mpe-island-host" className={style.islandHost} />

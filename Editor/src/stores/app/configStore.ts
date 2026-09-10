@@ -117,6 +117,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   focusOpacity: "canvas",
   useDarkMode: "canvas",
   enableCanvasMotionPause: "canvas",
+  hideEdgesOnDrag: "canvas",
   // 组件配置
   saveFilesBeforeDebug: "component",
   autoFocusNodeOnDebugRun: "component",
@@ -274,6 +275,8 @@ const defaultConfigs = {
   canvasBackgroundMode: "eyecare" as CanvasBackgroundMode,
   // 交互期间暂停装饰动画
   enableCanvasMotionPause: true,
+  // 拖动节点或移动视口时隐藏连线
+  hideEdgesOnDrag: false,
   // 字段面板模式
   fieldPanelMode: "fixed" as FieldPanelMode,
   // 内嵌面板缩放比例
@@ -356,6 +359,8 @@ export type ConfigState = {
     canvasBackgroundMode: CanvasBackgroundMode;
     // 交互期间暂停装饰动画
     enableCanvasMotionPause: boolean;
+    // 拖动节点或移动视口时隐藏连线
+    hideEdgesOnDrag: boolean;
     // 字段面板模式
     fieldPanelMode: FieldPanelMode;
     // 内嵌面板缩放比例

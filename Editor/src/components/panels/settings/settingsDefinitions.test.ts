@@ -18,6 +18,11 @@ describe("node settings", () => {
 });
 
 describe("canvas settings", () => {
+  it("exposes the hide edges on drag switch", () => {
+    expect(settingsDefinitions.find((item) => item.key === "hideEdgesOnDrag"))
+      .toMatchObject({ category: "canvas", type: "switch" });
+  });
+
   it("exposes the canvas motion pause switch", () => {
     const motionPauseItem = settingsDefinitions.find(
       (item) => item.key === "enableCanvasMotionPause",

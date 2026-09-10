@@ -18,6 +18,13 @@ beforeEach(() => {
 });
 
 describe("config cache", () => {
+  it("keeps edges visible by default and exports the hide-on-drag preference", () => {
+    expect(configDefaults.hideEdgesOnDrag).toBe(false);
+    expect(useConfigStore.getState().configs.hideEdgesOnDrag).toBe(false);
+    expect(getExportableConfigs({ ...configDefaults, hideEdgesOnDrag: true })
+      .hideEdgesOnDrag).toBe(true);
+  });
+
   it("uses the same Expand dimensions for screenshots and debug profiles", () => {
     expect(getScreenshotResolutionParams({ ...configDefaults, screenshotResolutionMode: "expand", screenshotExpandWidth: 1920, screenshotExpandHeight: 1080 })).toEqual({ target_expand: [1920, 1080] });
     expect(getScreenshotResolutionParams({ ...configDefaults, screenshotResolutionMode: "raw" })).toEqual({ use_raw_size: true });
