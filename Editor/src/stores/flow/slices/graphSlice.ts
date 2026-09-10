@@ -269,7 +269,11 @@ export const createGraphSlice: StateCreator<
         delete (node as any)._originalParentId;
       });
 
-      const pastedEdges = cloneDeep(sourceEdgesToPaste);
+      // 选中的边可能跨越复制范围，仅复制两端都能映射到副本的内部边。
+      const sourceNodeIds = new Set(sourceNodesToPaste.map((node) => node.id));
+      const pastedEdges = cloneDeep(sourceEdgesToPaste.filter((edge) =>
+        sourceNodeIds.has(edge.source) && sourceNodeIds.has(edge.target),
+      ));
       const existingEdgeIds = new Set(originEdges.map((edge) => edge.id));
       pastedEdges.forEach((edge) => {
         const idAllocation = allocateEdgeId(

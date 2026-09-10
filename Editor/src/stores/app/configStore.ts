@@ -63,7 +63,7 @@ export function normalizeAIContextCompactionThreshold(value: number): number {
 export const globalConfig = {
   dev: true,
   version: `2.0.0`,
-  betaIteration: 2,
+  betaIteration: 3,
   mfwVersion: "5.13.0",
   protocolVersion: "1.5.0",
 };
@@ -215,7 +215,12 @@ export const getScreenshotResolutionParams = (
   const value = configs.screenshotResolutionValue;
   switch (configs.screenshotResolutionMode) {
     case "expand":
-      return { target_expand: [configs.screenshotExpandWidth ?? 1280, configs.screenshotExpandHeight ?? 720] };
+      return {
+        target_expand: [
+          configs.screenshotExpandWidth ?? 1280,
+          configs.screenshotExpandHeight ?? 720,
+        ],
+      };
     case "shortSide":
       return { target_short_side: value };
     case "longSide":

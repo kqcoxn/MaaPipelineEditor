@@ -80,4 +80,39 @@ describe("useNodeFlowItems", () => {
       variant: "anchor",
     });
   });
+
+  it("pastes only internal edges and shows no empty next items after connecting", async () => {
+    const state = useFlowStore.getState();
+    // 选中节点时也可能选中了跨越复制范围的入边、出边。
+    const copiedNodes = state.nodes.filter((node) => node.id !== "second");
+    const copiedEdges = [
+      ...state.edges,
+      { ...createEdge("incoming", "source", 1), source: "second" },
+    ];
+    let pastedNodes: typeof copiedNodes = [];
+    await act(async () => {
+      pastedNodes = await state.paste(copiedNodes, copiedEdges);
+    });
+    const [source, first] = pastedNodes;
+    const { result } = renderHook(() => useNodeFlowItems(source.id));
+    act(() => {
+      useFlowStore.getState().addEdge({
+        source: source.id,
+        sourceHandle: SourceHandleTypeEnum.Next,
+        target: "second",
+        targetHandle: TargetHandleTypeEnum.Target,
+      });
+    });
+    expect(result.current.nextItems).toEqual([
+      { label: first.data.label, variant: "normal" },
+      { label: "Second", variant: "normal" },
+    ]);
+    expect(useFlowStore.getState().edges.every((edge) =>
+      useFlowStore.getState().nodeById.has(edge.source) &&
+      useFlowStore.getState().nodeById.has(edge.target),
+    )).toBe(true);
+    expect(copiedEdges.map((edge) => edge.target)).toEqual([
+      "second", "first", "source",
+    ]);
+  });
 });
