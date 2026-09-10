@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO="kqcoxn/MaaPipelineEditor"
-INSTALL_DIR="$HOME/.local/bin"
+INSTALL_DIR="${MPELB_REINSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="mpelb"
 BIN_PATH="$INSTALL_DIR/$BIN_NAME"
 RUNTIME_DIR="$INSTALL_DIR/runtime"
@@ -115,6 +115,7 @@ require_command grep
 
 mkdir -p "$INSTALL_DIR"
 
+if [ -z "${MPELB_REINSTALL:-}" ]; then
 # 获取最新版本
 echo "📡 正在获取最新版本..."
 LATEST_RELEASE=$(release_api "https://api.github.com/repos/$REPO/releases/latest")
@@ -144,6 +145,15 @@ echo "⬇️  正在下载: $BINARY_NAME"
 download_file "$DOWNLOAD_URL" "$BIN_PATH"
 chmod +x "$BIN_PATH"
 echo "✅ 下载完成"
+else
+    case "$MPELB_REINSTALL" in all|mfw|ocr) ;; *) echo '无效重装目标' >&2; exit 1 ;; esac
+    case "${MPELB_REINSTALL_DIR:-}" in /*) ;; *) echo '重装目录必须是绝对路径' >&2; exit 1 ;; esac
+    MAAFW_REQUIRED_VERSION="${MPELB_MFW_VERSION:-}"
+    if [ "$MPELB_REINSTALL" != ocr ] && [[ ! "$MAAFW_REQUIRED_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+        echo '无效 mfwVersion' >&2
+        exit 1
+    fi
+fi
 
 TMP_DIR=$(mktemp -d)
 
@@ -153,11 +163,11 @@ install_maafw() {
     maafw_version="$MAAFW_REQUIRED_VERSION"
 
     installed_version=""
-    if [ -f "$MAAFW_VERSION_FILE" ]; then
+    if [ -z "${MPELB_REINSTALL:-}" ] && [ -f "$MAAFW_VERSION_FILE" ]; then
         installed_version=$(tr -d '\r\n' < "$MAAFW_VERSION_FILE")
     fi
 
-    if is_non_empty_dir "$MAAFW_BIN_DIR" && is_non_empty_dir "$MAAFW_AGENT_DIR" && [ "${installed_version#v}" = "${maafw_version#v}" ]; then
+    if [ -z "${MPELB_REINSTALL:-}" ] && is_non_empty_dir "$MAAFW_BIN_DIR" && is_non_empty_dir "$MAAFW_AGENT_DIR" && [ "${installed_version#v}" = "${maafw_version#v}" ]; then
         echo "✅ MaaFramework runtime 已匹配 mfwVersion: $maafw_version"
         return
     fi
@@ -266,7 +276,7 @@ install_maafw() {
 }
 
 install_ocr() {
-    if is_non_empty_dir "$OCR_DIR"; then
+    if [ -z "${MPELB_REINSTALL:-}" ] && is_non_empty_dir "$OCR_DIR"; then
         echo "✅ OCR 资源已存在，跳过下载: $OCR_DIR"
         return
     fi
@@ -292,15 +302,26 @@ install_ocr() {
         exit 1
     fi
 
-    mkdir -p "$OCR_DIR"
-    cp -R "$model_dir"/. "$OCR_DIR"/
+    local staged_ocr backup_ocr had_ocr
+    staged_ocr="$TMP_DIR/staged-ocr"
+    backup_ocr="$TMP_DIR/previous-ocr"
+    mkdir -p "$staged_ocr" "$(dirname "$OCR_DIR")"
+    cp -R "$model_dir"/. "$staged_ocr"/
+    had_ocr=0
+    if [ -e "$OCR_DIR" ]; then mv "$OCR_DIR" "$backup_ocr"; had_ocr=1; fi
+    if ! mv "$staged_ocr" "$OCR_DIR"; then
+        if [ "$had_ocr" -eq 1 ]; then mv "$backup_ocr" "$OCR_DIR"; fi
+        return 1
+    fi
     echo "✅ OCR 资源已安装: $OCR_DIR"
 }
 
 echo ""
 echo "🔧 正在检查附属运行环境..."
-install_maafw
-install_ocr
+# MPELB_REINSTALL_V1: dependency-only entry used by mpelb deps reinstall.
+if [ "${MPELB_REINSTALL:-}" != ocr ]; then install_maafw; fi
+if [ "${MPELB_REINSTALL:-}" != mfw ]; then install_ocr; fi
+if [ -n "${MPELB_REINSTALL:-}" ]; then exit 0; fi
 
 if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
     echo ""

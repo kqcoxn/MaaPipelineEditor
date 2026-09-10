@@ -146,7 +146,7 @@ export const updateLogs: UpdateLogItem[] = [
         "更新 PI 协议定义",
         "密码输入支持掩码显示，拦截包含密码的不安全调试执行",
         "完善 Win32 应用动作字段说明",
-        "更新 mpelb 时自动更新到 mpe 当前版本推荐依赖",
+        "更新 mpelb 时自动更新到 mpe 当前版本推荐依赖，提供重新安装指令",
       ],
       fixes: ["调试前校验 checkbox 选择数量", "修复页面缓存失效的问题"],
     },

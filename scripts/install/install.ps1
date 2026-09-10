@@ -4,7 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 $REPO = "kqcoxn/MaaPipelineEditor"
-$INSTALL_DIR = "$env:LOCALAPPDATA\mpelb"
+$INSTALL_DIR = if ($env:MPELB_REINSTALL_DIR) { $env:MPELB_REINSTALL_DIR } else { "$env:LOCALAPPDATA\mpelb" }
+$forceReinstall = $env:MPELB_REINSTALL -in @('all', 'mfw', 'ocr')
 $BIN_PATH = "$INSTALL_DIR\mpelb.exe"
 $RUNTIME_DIR = "$INSTALL_DIR\runtime"
 $MAAFW_ROOT_DIR = "$RUNTIME_DIR\maafw"
@@ -68,10 +69,10 @@ function Get-InstalledMaaFrameworkVersion() {
 }
 
 function Install-MaaFramework($requiredVersion) {
-    $installedVersion = Get-InstalledMaaFrameworkVersion
+    $installedVersion = if ($forceReinstall) { "" } else { Get-InstalledMaaFrameworkVersion }
     $hasExistingRuntime = Test-NonEmptyDirectory $MAAFW_BIN_DIR
     $hasExistingAgent = Test-NonEmptyDirectory $MAAFW_AGENT_DIR
-    if ($hasExistingRuntime -and $hasExistingAgent -and $installedVersion.TrimStart('v') -eq $requiredVersion.TrimStart('v')) {
+    if (!$forceReinstall -and $hasExistingRuntime -and $hasExistingAgent -and $installedVersion.TrimStart('v') -eq $requiredVersion.TrimStart('v')) {
         Write-Host "MaaFramework runtime matches mfwVersion: $requiredVersion" -ForegroundColor Green
         return
     }
@@ -170,7 +171,7 @@ function Install-MaaFramework($requiredVersion) {
 }
 
 function Install-OCRAssets() {
-    if (Test-NonEmptyDirectory $OCR_DIR) {
+    if (!$forceReinstall -and (Test-NonEmptyDirectory $OCR_DIR)) {
         Write-Host "OCR assets already exist, skip: $OCR_DIR" -ForegroundColor Green
         return
     }
@@ -211,13 +212,37 @@ function Install-OCRAssets() {
             exit 1
         }
 
-        Copy-DirectoryContents $modelDirPath $OCR_DIR
+        $stagedOCR = Join-Path $tempRoot 'staged-ocr'
+        $backupOCR = Join-Path $tempRoot 'previous-ocr'
+        Copy-DirectoryContents $modelDirPath $stagedOCR
+        Ensure-Directory (Split-Path -Parent $OCR_DIR)
+        $hadOCR = Test-Path -LiteralPath $OCR_DIR
+        if ($hadOCR) { Move-Item -LiteralPath $OCR_DIR -Destination $backupOCR }
+        try {
+            Move-Item -LiteralPath $stagedOCR -Destination $OCR_DIR
+        } catch {
+            if ($hadOCR) { Move-Item -LiteralPath $backupOCR -Destination $OCR_DIR }
+            throw
+        }
         Write-Host "OCR assets installed: $OCR_DIR" -ForegroundColor Green
     } finally {
         if (Test-Path $tempRoot) {
             Remove-Item -Path $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+}
+
+# MPELB_REINSTALL_V1: dependency-only entry used by mpelb deps reinstall.
+if ($env:MPELB_REINSTALL) {
+    if (!$forceReinstall -or !$env:MPELB_REINSTALL_DIR -or ![IO.Path]::IsPathRooted($INSTALL_DIR)) {
+        throw 'Invalid dependency reinstall target or directory'
+    }
+    if ($env:MPELB_REINSTALL -ne 'ocr') {
+        if ($env:MPELB_MFW_VERSION -notmatch '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw 'Invalid mfwVersion' }
+        Install-MaaFramework $env:MPELB_MFW_VERSION
+    }
+    if ($env:MPELB_REINSTALL -ne 'mfw') { Install-OCRAssets }
+    return
 }
 
 Ensure-Directory $INSTALL_DIR

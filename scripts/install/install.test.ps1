@@ -42,3 +42,26 @@ foreach ($case in @(
     if ($script:requested -ne $case.Download) { throw "Wrong decision: $($case | ConvertTo-Json -Compress)" }
 }
 Write-Host 'MaaFramework version selection tests passed.'
+
+$forceReinstall = $true
+$script:installed = 'v5.13.0'
+$script:hasAgent = $true
+$script:requested = $false
+try { Install-MaaFramework 'v5.13.0' } catch {
+    if ($_.Exception.Message -ne 'DownloadRequired') { throw }
+}
+if (!$script:requested) { throw 'Forced reinstall skipped an existing matching MFW' }
+
+# OCR 已有文件时，强制重装仍必须进入下载分支。
+function Test-NonEmptyDirectory($path) { return $true }
+function Ensure-Directory($path) {}
+function Invoke-Download($url, $outputPath) { throw 'OCRDownloadRequired' }
+$OCR_DIR = 'existing-ocr'
+$OCR_URL = 'mock-ocr'
+$downloaded = $false
+try { Install-OCRAssets } catch {
+    if ($_.Exception.Message -ne 'OCRDownloadRequired') { throw }
+    $downloaded = $true
+}
+if (!$downloaded) { throw 'Forced reinstall skipped existing OCR' }
+Write-Host 'Forced dependency reinstall tests passed.'

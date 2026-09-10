@@ -33,3 +33,22 @@ for installed in v5.13.0 5.13.0 v5.12.0 v5.14.0 ''; do
     done
 done
 echo 'MaaFramework Bash version selection tests passed.'
+
+export MPELB_REINSTALL=all installed=v5.13.0 has_agent=yes
+status=0
+bash -euo pipefail -c install_maafw || status=$?
+[ "$status" -eq 42 ] || { echo 'Forced MFW reinstall was skipped'; exit 1; }
+
+eval "$(sed -n '/^install_ocr() {$/,/^}$/p' install.sh)"
+OCR_DIR=existing-ocr
+OCR_URL=mock-ocr
+TMP_DIR=unused-temp
+is_non_empty_dir() { return 0; }
+mkdir() { :; }
+download_file() { exit 43; }
+export OCR_DIR OCR_URL TMP_DIR
+export -f install_ocr is_non_empty_dir mkdir download_file
+status=0
+bash -euo pipefail -c install_ocr || status=$?
+[ "$status" -eq 43 ] || { echo 'Forced OCR reinstall was skipped'; exit 1; }
+echo 'Forced Bash dependency reinstall tests passed.'
