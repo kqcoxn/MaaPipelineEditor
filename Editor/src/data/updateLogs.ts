@@ -146,7 +146,7 @@ export const updateLogs: UpdateLogItem[] = [
         "完善 Win32 应用动作字段说明",
         "更新 mpelb 时自动更新到 mpe 当前版本推荐依赖",
       ],
-      fixes: ["调试前校验 checkbox 选择数量"],
+      fixes: ["调试前校验 checkbox 选择数量", "修复页面缓存失效的问题"],
     },
   },
   {

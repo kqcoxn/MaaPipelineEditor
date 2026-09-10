@@ -124,4 +124,22 @@ describe("file cache persistence", () => {
     ]);
     expect(useFileStore.getState().currentFile.fileName).toBe("second");
   });
+
+  it.each([0, 2000])("restores an added node after leaving at %i ms", async (delay) => {
+    const original = initializeFile();
+    const dispose = initializeFileCachePersistence();
+    useFlowStore.getState().addNode({ position: { x: 100, y: 80 } });
+    const expectedIds = useFlowStore.getState().nodes.map((node) => node.id);
+    expect(expectedIds).toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(delay);
+    window.dispatchEvent(new PageTransitionEvent("pagehide"));
+    dispose();
+    // Let the optional IndexedDB attempt settle before simulating a reload.
+    await Promise.resolve();
+    resetFileCacheForTests();
+    useFileStore.getState().replace([original], original.fileName);
+
+    await expect(restoreFileCache()).resolves.toBe(true);
+    expect(useFlowStore.getState().nodes.map((node) => node.id)).toEqual(expectedIds);
+  });
 });

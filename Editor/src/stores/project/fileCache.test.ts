@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FileType } from "./fileStore";
 import {
   flushFileCache,
+  flushFileCacheSync,
+  primeRestoredFileCache,
   readCachedFiles,
   resetFileCacheForTests,
   scheduleFileCache,
@@ -70,6 +72,7 @@ describe("file cache", () => {
         { fileName: "second" },
       ],
     });
+    setItem.mockRestore();
   });
 
   it("removes records for closed files", async () => {
@@ -109,7 +112,7 @@ describe("file cache", () => {
     const onError = vi.fn();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     setFileCacheErrorHandler(onError);
-    vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+    const setItem = vi.spyOn(localStorage, "setItem").mockImplementation(() => {
       throw new DOMException("quota", "QuotaExceededError");
     });
 
@@ -120,5 +123,65 @@ describe("file cache", () => {
     expect(onError.mock.calls[0][0]).toMatchObject({
       name: "QuotaExceededError",
     });
+    setItem.mockRestore();
+  });
+
+  it.each(["leave", "fallback"])(
+    "keeps all IndexedDB files current in the local %s snapshot",
+    async (mode) => {
+      const oldFile = createFile("first", "old");
+      scheduleFileCache([oldFile], "first");
+      await flushFileCache();
+
+      // Model a newer snapshot already persisted in IndexedDB. Local storage
+      // still contains the previous session's synchronous backup.
+      resetFileCacheForTests();
+      const first = createFile("first", "new node saved");
+      const second = createFile("second", "only in IndexedDB");
+      primeRestoredFileCache({
+        files: [first, second],
+        currentFileName: "second",
+        source: "indexeddb",
+        updatedAt: Date.now() + 100,
+      });
+      scheduleFileCache([first, second], "second");
+      if (mode === "leave") flushFileCacheSync();
+      else await flushFileCache();
+
+      await expect(readCachedFiles()).resolves.toMatchObject({
+        files: [first, second],
+        currentFileName: "second",
+        source: "local",
+      });
+    },
+  );
+
+  it("backs up edits synchronously while IndexedDB is still opening", async () => {
+    vi.stubGlobal("indexedDB", { open: () => ({}) });
+    const file = createFile("first", "latest edit");
+    scheduleFileCache([file], "first");
+    // The asynchronous flush removes pending writes before IndexedDB opens.
+    void flushFileCache();
+    scheduleFileCache([file], "first");
+    flushFileCacheSync();
+
+    expect(JSON.parse(localStorage.getItem("_mpe_file:first") ?? "null"))
+      .toMatchObject(file);
+  });
+
+  it("does not overwrite a newer leave snapshot when an older async write fails", async () => {
+    const request: { onerror?: () => void } = {};
+    vi.stubGlobal("indexedDB", { open: () => request });
+    vi.spyOn(Date, "now").mockReturnValue(1000);
+    scheduleFileCache([createFile("first", "old")], "first");
+    const pendingFlush = flushFileCache();
+    const latest = createFile("first", "latest");
+    scheduleFileCache([latest], "first");
+    flushFileCacheSync();
+    request.onerror?.();
+    await pendingFlush;
+
+    expect(JSON.parse(localStorage.getItem("_mpe_file:first") ?? "null"))
+      .toMatchObject(latest);
   });
 });

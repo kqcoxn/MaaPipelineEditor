@@ -23,6 +23,9 @@ type FileCacheManifest = {
 type PendingWrite = { fileName: string; value: FileType };
 
 let knownFiles = new Map<string, FileType>();
+// IndexedDB and localStorage have independent records. An IndexedDB write
+// does not make the synchronous local backup current.
+let localKnownFiles = new Map<string, FileType>();
 let pendingWrites = new Map<string, PendingWrite>();
 let pendingDeletes = new Set<string>();
 let scheduledTimer: ReturnType<typeof setTimeout> | null = null;
@@ -124,17 +127,19 @@ function readLocalCachedFiles(): FileCacheSnapshot | null {
 }
 
 function writeLocalCache(
-  writes: PendingWrite[],
+  files: FileType[],
   deletes: string[],
   manifest: FileCacheManifest,
 ): void {
   const storage = getStorage();
   if (!storage) throw new Error("localStorage unavailable");
-  for (const write of writes) {
-    storage.setItem(cacheKey(write.fileName), JSON.stringify(write.value));
+  for (const file of files) {
+    if (localKnownFiles.get(file.fileName) === file) continue;
+    storage.setItem(cacheKey(file.fileName), JSON.stringify(serializeFileForCache(file)));
   }
   for (const fileName of deletes) storage.removeItem(cacheKey(fileName));
   storage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
+  localKnownFiles = new Map(files.map((file) => [file.fileName, file]));
 }
 
 function openDatabase(): Promise<IDBDatabase | null> {
@@ -306,17 +311,21 @@ async function flushPending(): Promise<void> {
     return;
   }
   isManifestDirty = false;
-  lastManifestTimestamp = 0;
+  const manifest = latestManifest;
+  const files = [...knownFiles.values()];
   const serializedWrites = writes.map((write) => ({
     ...write,
     value: serializeFileForCache(write.value),
   }));
   try {
-    const success = await writeIndexedDb(serializedWrites, deletes, latestManifest);
+    const success = await writeIndexedDb(serializedWrites, deletes, manifest);
     if (success) {
       getStorage()?.removeItem(LEGACY_KEY);
     } else {
-      writeLocalCache(serializedWrites, deletes, latestManifest);
+      // A newer synchronous backup may have been committed while awaiting IDB.
+      if ((readManifest()?.updatedAt ?? -1) < manifest.updatedAt) {
+        writeLocalCache(files, deletes, manifest);
+      }
     }
   } catch (error) {
     console.error("[fileCache] 缓存写入失败:", error);
@@ -366,7 +375,7 @@ export function flushFileCacheSync(): void {
     value: serializeFileForCache(write.value),
   }));
   try {
-    writeLocalCache(serializedWrites, deletes, latestManifest);
+    writeLocalCache([...knownFiles.values()], deletes, latestManifest);
     void writeIndexedDb(serializedWrites, deletes, latestManifest);
   } catch (error) {
     console.error("[fileCache] 关闭前缓存写入失败:", error);
@@ -387,10 +396,12 @@ export function setFileCacheErrorHandler(
 export function resetFileCacheForTests(): void {
   clearSchedule();
   knownFiles = new Map();
+  localKnownFiles = new Map();
   pendingWrites = new Map();
   pendingDeletes = new Set();
   latestManifest = null;
   isManifestDirty = false;
+  lastManifestTimestamp = 0;
   dbPromise = null;
   errorHandler = null;
 }
