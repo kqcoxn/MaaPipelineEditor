@@ -11,22 +11,16 @@ yarn update:mfw
 
 ## 选择实际使用的目录
 
-默认对应 `yarn server`：LocalBridge 启动目录为 `LocalBridge`，可执行文件目录为 `LocalBridge/build`。
+默认对应 `yarn server`，固定更新 `LocalBridge/build/runtime/maafw`。LocalBridge 始终从可执行文件旁的 `runtime` 目录加载依赖。
 
-- 可执行文件旁存在 `config` 目录时，优先读取其中的 `default.json`，否则读取 `config.json`。
-- 没有该目录时，读取系统用户数据目录下 `MaaPipelineEditor/LocalBridge/config/config.json`，与 LocalBridge 默认路径规则一致。
-- `maafw.lib_dir` 有效时优先使用；配置路径无效时尝试可执行文件旁的 `runtime/maafw/bin`。两者都不存在时使用非空的配置路径，否则创建附带运行时目录。
-- 配置中的相对 `lib_dir` 按 LocalBridge 启动目录解析。命令参数中的相对路径按运行命令的当前目录解析。
-
-先核对预览的动态库目录与 LocalBridge 日志中实际加载的目录。使用不同的构建位置或配置时，显式传参：
+使用不同的构建位置时，指定可执行文件目录：
 
 ```bash
-yarn update:mfw --binary-dir /path/to/lb --cwd /path/to/working-directory --config /path/to/config.json --dry-run
-yarn update:mfw --lib-dir /path/to/MaaFramework/bin --dry-run
+yarn update:mfw --binary-dir /path/to/lb --dry-run
 yarn update:mfw --version 5.13.0 --dry-run
 ```
 
-确认预览后移除 `--dry-run` 执行。`--config` 支持 JSON；`--lib-dir` 优先于配置，但不会改写配置。更新目标必须是 MaaFramework 发行包专用的 `bin` 目录，其全部内容会被替换；不要指向系统命令目录或混放其他应用文件的目录。`--version` 只覆盖本次下载版本，不修改源码中的版本要求。
+确认预览后移除 `--dry-run` 执行。`--version` 只覆盖本次下载版本，不修改源码中的版本要求。
 
 ## 更新与恢复
 

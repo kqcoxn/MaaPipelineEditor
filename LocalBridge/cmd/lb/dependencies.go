@@ -13,7 +13,7 @@ func init() {
 	deps.AddCommand(&cobra.Command{
 		Use:       "reinstall [all|mfw|ocr]",
 		Short:     "强制重新下载并安装依赖（默认全部）",
-		Long:      "强制重装 mpelb 同目录 runtime 中的依赖，不检查本地版本或已有文件。\nMFW 包含 MaaAgentBinary，版本遵循当前 MPE 的 mfwVersion。\n不更新 mpelb 本体，不修改配置或外部自定义依赖目录。请先停止使用这些依赖的服务。",
+		Long:      "强制重装 mpelb 同目录 runtime 中的依赖，不检查本地版本或已有文件。\nMFW 包含 MaaAgentBinary，版本遵循当前 MPE 的 mfwVersion。\n不更新 mpelb 本体，不修改配置。请先停止使用这些依赖的服务。",
 		ValidArgs: []string{"all", "mfw", "ocr"},
 		Args:      cobra.MatchAll(cobra.MaximumNArgs(1), cobra.OnlyValidArgs),
 		RunE: func(cmd *cobra.Command, args []string) error {

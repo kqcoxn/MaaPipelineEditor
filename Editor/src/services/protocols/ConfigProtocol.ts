@@ -25,8 +25,6 @@ export interface BackendConfig {
   };
   maafw: {
     enabled: boolean;
-    lib_dir: string;
-    resource_dir: string;
   };
   interface: {
     path: string;

@@ -97,7 +97,7 @@ func Reinstall(ctx context.Context, version, target, exeDir string, output, erro
 	if err := command.Run(); err != nil {
 		return fmt.Errorf("依赖重装失败（如文件被占用，请停止其他 LocalBridge 进程后重试）: %w", err)
 	}
-	fmt.Fprintln(output, "依赖重装完成。外部自定义依赖路径保持不变。")
+	fmt.Fprintln(output, "自带依赖重装完成。")
 	return nil
 }
 

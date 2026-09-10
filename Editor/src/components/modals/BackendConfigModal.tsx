@@ -79,8 +79,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           log_dir: data.config.log.dir,
           log_push_to_client: data.config.log.push_to_client,
           maafw_enabled: data.config.maafw.enabled,
-          maafw_lib_dir: data.config.maafw.lib_dir,
-          maafw_resource_dir: data.config.maafw.resource_dir,
           interface_path: data.config.interface?.path ?? "",
         });
         setConfigPath(data.config_path);
@@ -169,8 +167,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         },
         maafw: {
           enabled: values.maafw_enabled,
-          lib_dir: values.maafw_lib_dir,
-          resource_dir: values.maafw_resource_dir,
         },
         interface: {
           path: values.interface_path ?? "",
@@ -431,38 +427,6 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             valuePropName="checked"
           >
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
-          </Form.Item>
-
-          <Form.Item
-            name="maafw_lib_dir"
-            label={
-              <span>
-                Lib 目录
-                <Tooltip title="MaaFramework Release 包的 bin 目录路径">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <Input placeholder="MaaFramework bin 目录路径" />
-          </Form.Item>
-
-          <Form.Item
-            name="maafw_resource_dir"
-            label={
-              <span>
-                OCR 资源目录
-                <Tooltip title="仅用于获取 OCR 辅助，需指定包含 OCR 的资源目录（包含 pipeline、model 等文件夹的目录，一般在 /resource 或 /base 文件夹）。可不含具体 pipeline，也不会检索；指定 pipeline 检索目录请配置根目录。">
-                  <InfoCircleOutlined
-                    style={{ marginLeft: 4, color: "#8c8c8c" }}
-                  />
-                </Tooltip>
-              </span>
-            }
-          >
-            <Input placeholder="OCR 资源目录路径" />
           </Form.Item>
 
           <Divider orientation="left" plain>

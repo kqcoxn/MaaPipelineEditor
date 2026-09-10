@@ -138,8 +138,8 @@ func TestSavingAfterCLIOverrideDoesNotPersistRuntimeRoot(t *testing.T) {
 	if err := cfg.OverrideFromFlags(runtimeRoot, "", "", "", 0, true, false); err != nil {
 		t.Fatalf("OverrideFromFlags() error = %v", err)
 	}
-	if err := cfg.SetMaaFWLibDir(filepath.Join(t.TempDir(), "lib")); err != nil {
-		t.Fatalf("SetMaaFWLibDir() error = %v", err)
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("Save() error = %v", err)
 	}
 
 	data, err := os.ReadFile(configPath)

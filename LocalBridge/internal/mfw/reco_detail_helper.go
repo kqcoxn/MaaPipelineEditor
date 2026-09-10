@@ -93,11 +93,11 @@ func initNativeAPI() error {
 func doInitNativeAPI() error {
 	// 获取库路径
 	cfg := config.GetGlobal()
-	if cfg == nil || cfg.MaaFW.LibDir == "" {
-		return fmt.Errorf("MaaFramework 库路径未配置")
+	if cfg == nil || cfg.ResolvedMaaFWLibDir() == "" {
+		return fmt.Errorf("自带 MaaFramework 依赖缺失，请运行 'mpelb deps reinstall mfw' 修复")
 	}
 
-	libDir := cfg.MaaFW.LibDir
+	libDir := cfg.ResolvedMaaFWLibDir()
 
 	// 获取库文件名
 	var libName string

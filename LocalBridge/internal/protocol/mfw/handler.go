@@ -41,10 +41,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 	// 检查 MFW 服务是否已初始化
 	if !h.service.IsInitialized() {
 		logger.Warn("MFW", "服务未初始化，拒绝请求")
-		logger.Error("MFW", "MaaFramework 库路径未配置，请运行 'mpelb config set-lib' 并按提示输入后重启服务")
+		logger.Error("MFW", "MaaFramework 未初始化，请确认已启用 MaaFW；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
 		h.sendMFWError(conn, mfw.ErrCodeNotInitialized,
 			"MaaFramework 未初始化",
-			"请在后端运行 'mpelb config set-lib' 设置 MaaFramework 库路径后重启服务")
+			"请确认已启用 MaaFW；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
 		return nil
 	}
 
@@ -206,14 +206,13 @@ func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg mode
 	screencapMethods, _ := dataMap["screencap_methods"].([]interface{})
 	inputMethods, _ := dataMap["input_methods"].([]interface{})
 	config, _ := dataMap["config"].(string)
-	agentPath, _ := dataMap["agent_path"].(string)
 
 	// 转换方法列表
 	screencapMethodsStr := h.convertInterfaceSliceToStringSlice(screencapMethods)
 	inputMethodsStr := h.convertInterfaceSliceToStringSlice(inputMethods)
 
 	controllerID, err := h.service.ControllerManager().CreateAdbController(
-		adbPath, address, screencapMethodsStr, inputMethodsStr, config, agentPath,
+		adbPath, address, screencapMethodsStr, inputMethodsStr, config,
 	)
 	if err != nil {
 		logger.Error("MFW", "创建ADB控制器失败: %v", err)

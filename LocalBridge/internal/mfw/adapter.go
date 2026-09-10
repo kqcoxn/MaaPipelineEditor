@@ -14,6 +14,7 @@ import (
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
+	mpeconfig "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -63,8 +64,8 @@ func NewMaaFWAdapter() *MaaFWAdapter {
 // ============================================================================
 
 // ConnectADB 连接 ADB 控制器
-// screencapMethods/inputMethods 为方法名数组, config 为配置 JSON, agentPath 为 agent 路径
-func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inputMethods []string, config, agentPath string) error {
+// screencapMethods/inputMethods 为方法名数组, config 为配置 JSON，使用自带 MaaAgentBinary
+func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inputMethods []string, config string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -85,6 +86,7 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 	}
 
 	// 创建 ADB 控制器
+	agentPath := (&mpeconfig.Config{}).ResolvedMaaFWAgentDir()
 	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
 	if err != nil {
 		return fmt.Errorf("创建 ADB 控制器失败: %w", err)

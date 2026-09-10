@@ -30,7 +30,7 @@ func NewControllerManager() *ControllerManager {
 }
 
 // 创建ADB控制器
-func (cm *ControllerManager) CreateAdbController(adbPath, address string, screencapMethod, inputMethod []string, config, agentPath string) (string, error) {
+func (cm *ControllerManager) CreateAdbController(adbPath, address string, screencapMethod, inputMethod []string, config string) (string, error) {
 	logger.Debug("MFW", "创建 ADB 控制器: %s @ %s", adbPath, address)
 
 	controllerID := uuid.New().String()
@@ -50,14 +50,10 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 		inMethod |= parsed
 	}
 
-	if strings.TrimSpace(agentPath) == "" {
-		if cfg := mpeconfig.GetGlobal(); cfg != nil {
-			agentPath = cfg.ResolvedMaaFWAgentDir()
-		}
-	}
+	agentPath := (&mpeconfig.Config{}).ResolvedMaaFWAgentDir()
 	warning := ""
 	if strings.TrimSpace(agentPath) == "" {
-		warning = "MaaAgentBinary 目录不存在，MaaTouch/Minitouch 不可用"
+		warning = "自带 MaaAgentBinary 缺失，MaaTouch/Minitouch 不可用，请运行 mpelb deps reinstall mfw 修复"
 		if requiresAdbAgent(inputMethod) && !hasAgentlessAdbFallback(inputMethod) {
 			return "", NewMFWError(ErrCodeControllerCreateFail, warning, nil)
 		}

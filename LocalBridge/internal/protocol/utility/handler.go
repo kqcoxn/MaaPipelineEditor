@@ -183,16 +183,16 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 
 	// 如果没有可用资源,创建临时资源
 	if res == nil {
-		// 检查配置中是否有 OCR 资源路径
+		// 检查自带 OCR 资源目录
 		cfg := config.GetGlobal()
 		if cfg == nil {
 			logger.Error("Utility", "未加载 OCR 资源配置")
-			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置，或通过安装脚本安装附属资源", nil)
+			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "自带 OCR 资源不可用，请运行 'mpelb deps reinstall ocr' 修复", nil)
 		}
 		resourcePath := cfg.ResolvedMaaFWResourceDir()
 		if resourcePath == "" {
-			logger.Error("Utility", "未配置 OCR 资源路径 (maafw.resource_dir)")
-			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "OCR 资源路径未配置，请在后端运行 'mpelb config set-resource' 进行配置，或通过安装脚本安装附属资源", nil)
+			logger.Error("Utility", "自带 OCR 资源目录缺失")
+			return nil, mfw.NewMFWError(mfw.ErrCodeOCRResourceNotConfigured, "自带 OCR 资源不可用，请运行 'mpelb deps reinstall ocr' 修复", nil)
 		}
 
 		var resErr error
@@ -303,7 +303,7 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 		// 获取资源目录信息
 		resourceDir := ""
 		if cfg := config.GetGlobal(); cfg != nil {
-			resourceDir = cfg.MaaFW.ResourceDir
+			resourceDir = cfg.ResolvedMaaFWResourceDir()
 		}
 
 		logger.Error("Utility", "Tasker 未初始化 - 请检查 OCR 资源目录结构")

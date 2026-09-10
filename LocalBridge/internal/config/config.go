@@ -36,9 +36,7 @@ type LogConfig struct {
 
 // MaaFramework配置
 type MaaFWConfig struct {
-	Enabled     bool   `mapstructure:"enabled" json:"enabled"`
-	LibDir      string `mapstructure:"lib_dir" json:"lib_dir"`
-	ResourceDir string `mapstructure:"resource_dir" json:"resource_dir"`
+	Enabled bool `mapstructure:"enabled" json:"enabled"`
 }
 
 // InterfaceConfig 配置 Project Interface V2 入口。Path 为空时自动检索。
@@ -132,8 +130,6 @@ func setDefaults(v *viper.Viper) {
 
 	// MaaFramework 配置
 	v.SetDefault("maafw.enabled", false)
-	v.SetDefault("maafw.lib_dir", "")
-	v.SetDefault("maafw.resource_dir", "")
 
 	// Project Interface 配置
 	v.SetDefault("interface.path", "")
@@ -155,56 +151,6 @@ func (c *Config) normalizePersistent() error {
 	c.Interface.Path = strings.TrimSpace(c.Interface.Path)
 
 	return nil
-}
-
-func (c *Config) ResolvedMaaFWLibDir() string {
-	if pathExists(c.MaaFW.LibDir) {
-		return strings.TrimSpace(c.MaaFW.LibDir)
-	}
-	if defaultLibDir := bundledMaaFWLibDir(); pathExists(defaultLibDir) {
-		return defaultLibDir
-	}
-	return strings.TrimSpace(c.MaaFW.LibDir)
-}
-
-func (c *Config) ResolvedMaaFWResourceDir() string {
-	if pathExists(c.MaaFW.ResourceDir) {
-		return strings.TrimSpace(c.MaaFW.ResourceDir)
-	}
-	if defaultResourceDir := bundledMaaFWResourceDir(); pathExists(defaultResourceDir) {
-		return defaultResourceDir
-	}
-	return strings.TrimSpace(c.MaaFW.ResourceDir)
-}
-
-// ResolvedMaaFWAgentDir 返回 MaaFramework 发行包中的 MaaAgentBinary 目录。
-func (c *Config) ResolvedMaaFWAgentDir() string {
-	libDir := c.ResolvedMaaFWLibDir()
-	if libDir == "" {
-		return ""
-	}
-	candidate := filepath.Join(filepath.Dir(libDir), "share", "MaaAgentBinary")
-	if pathExists(candidate) {
-		return candidate
-	}
-	return ""
-}
-
-func pathExists(path string) bool {
-	trimmed := strings.TrimSpace(path)
-	if trimmed == "" {
-		return false
-	}
-	_, err := os.Stat(trimmed)
-	return err == nil
-}
-
-func bundledMaaFWLibDir() string {
-	return filepath.Join(paths.GetExeDir(), "runtime", "maafw", "bin")
-}
-
-func bundledMaaFWResourceDir() string {
-	return filepath.Join(paths.GetExeDir(), "runtime", "resource")
 }
 
 // OverrideFromFlags 解析当前进程的有效配置。命令行值只在运行时生效。
@@ -277,18 +223,6 @@ func (c *Config) Save() error {
 	}
 
 	return nil
-}
-
-// 设置 MaaFramework lib 目录并保存
-func (c *Config) SetMaaFWLibDir(libDir string) error {
-	c.MaaFW.LibDir = libDir
-	return c.Save()
-}
-
-// 设置 MaaFramework 资源目录并保存
-func (c *Config) SetMaaFWResourceDir(resourceDir string) error {
-	c.MaaFW.ResourceDir = resourceDir
-	return c.Save()
 }
 
 // SetInterfacePath 设置 PI 入口；空值恢复自动检索。

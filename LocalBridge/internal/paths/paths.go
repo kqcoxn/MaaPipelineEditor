@@ -207,9 +207,7 @@ func GetDefaultConfigContent() []byte {
     "push_to_client": true
   },
   "maafw": {
-    "enabled": false,
-    "lib_dir": "",
-    "resource_dir": ""
+    "enabled": false
   }
 }
 `)

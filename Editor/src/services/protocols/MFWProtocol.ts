@@ -638,7 +638,6 @@ export class MFWProtocol extends BaseProtocol {
     screencap_methods: string[];
     input_methods: string[];
     config?: string;
-    agent_path?: string;
     name?: string;
   }): boolean {
     const mfwStore = useMFWStore.getState();

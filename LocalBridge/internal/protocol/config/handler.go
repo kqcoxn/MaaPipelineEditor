@@ -135,14 +135,6 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 			cfg.MaaFW.Enabled = enabled
 			updated = true
 		}
-		if libDir, ok := maafwConfig["lib_dir"].(string); ok {
-			cfg.MaaFW.LibDir = libDir
-			updated = true
-		}
-		if resourceDir, ok := maafwConfig["resource_dir"].(string); ok {
-			cfg.MaaFW.ResourceDir = resourceDir
-			updated = true
-		}
 	}
 
 	if interfaceConfig, ok := dataMap["interface"].(map[string]interface{}); ok {

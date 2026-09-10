@@ -1,5 +1,4 @@
 import { existsSync, readFileSync, lstatSync, readdirSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 export function normalizeVersion(value) {
@@ -17,36 +16,9 @@ export function platformAsset(platform = process.platform, arch = process.arch) 
   return { prefix: `MAA-${system}-${cpu}-`, library };
 }
 
-export function userConfigPath(platform = process.platform, home = os.homedir(), env = process.env) {
-  const base = platform === "darwin"
-    ? path.join(home, "Library", "Application Support")
-    : platform === "win32"
-      ? env.APPDATA || path.join(home, "AppData", "Roaming")
-      : env.XDG_CONFIG_HOME || path.join(home, ".config");
-  return path.join(base, "MaaPipelineEditor", "LocalBridge", "config", "config.json");
-}
-
-export function createPlan(repositoryRoot, options = {}, userConfig = userConfigPath()) {
-  const cwd = path.resolve(options.cwd || path.join(repositoryRoot, "LocalBridge"));
+export function createPlan(repositoryRoot, options = {}) {
   const binaryDir = path.resolve(options["binary-dir"] || path.join(repositoryRoot, "LocalBridge", "build"));
-  const configDir = path.join(binaryDir, "config");
-  const configPath = options.config ? path.resolve(options.config)
-    : existsSync(configDir)
-      ? path.join(configDir, existsSync(path.join(configDir, "default.json")) ? "default.json" : "config.json")
-      : userConfig;
-  if (options.config && !existsSync(configPath)) throw new Error(`配置文件不存在: ${configPath}`);
-  if (existsSync(configPath) && path.extname(configPath).toLowerCase() !== ".json") {
-    throw new Error("自动解析仅支持 JSON 配置；请通过 --lib-dir 显式指定目标，并省略 --config。");
-  }
-  const config = existsSync(configPath) ? JSON.parse(readFileSync(configPath, "utf8").replace(/^\uFEFF/, "")) : {};
-  const rawLibDir = config.maafw?.lib_dir;
-  if (rawLibDir != null && typeof rawLibDir !== "string") throw new Error("maafw.lib_dir 必须是字符串");
-  const configuredDir = rawLibDir?.trim() ? path.resolve(cwd, rawLibDir.trim()) : null;
-  const bundledDir = path.join(binaryDir, "runtime", "maafw", "bin");
-  // 对齐 Config.ResolvedMaaFWLibDir：有效配置优先，其次附带目录，最后保留尚不存在的配置路径。
-  const libDir = options["lib-dir"] ? path.resolve(options["lib-dir"])
-    : configuredDir && existsSync(configuredDir) ? configuredDir
-      : existsSync(bundledDir) ? bundledDir : configuredDir || bundledDir;
+  const libDir = path.join(binaryDir, "runtime", "maafw", "bin");
   if (path.basename(libDir).toLowerCase() !== "bin") {
     throw new Error(`目标必须是 MaaFramework 发行包专用的 bin 目录，避免替换混合用途目录: ${libDir}`);
   }
@@ -64,7 +36,7 @@ export function createPlan(repositoryRoot, options = {}, userConfig = userConfig
     throw new Error(`非空目标缺少 MaaFramework 主库与版本标记，无法确认是运行时专用目录: ${libDir}`);
   }
   return {
-    version, requiredVersion, configPath, cwd, binaryDir, libDir, root,
+    version, requiredVersion, binaryDir, libDir, root,
     agentDir: path.join(root, "share", "MaaAgentBinary"),
     installedVersion: existsSync(marker) ? readFileSync(marker, "utf8").trim() : "未知",
     ...asset,

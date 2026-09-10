@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { createPlan, platformAsset, userConfigPath } from "./plan.mjs";
+import { createPlan, platformAsset } from "./plan.mjs";
 import { withRetry, selectAsset, downloadRuntime } from "./download.mjs";
 import { createHash } from "node:crypto";
 import { commitRuntime, findRuntime, installRuntime } from "./install.mjs";
@@ -29,37 +29,26 @@ async function runtime(root, label, library = platformAsset().library) {
   await write(root, ".version", label);
 }
 
-test("解析开发配置、启动目录相对路径和失效配置的附带运行时回退", async t => {
+test("固定更新可执行文件旁的依赖，忽略旧配置", async t => {
   const root = await fixture(t);
   await write(root, "Editor/src/stores/app/configStore.ts", '  mfwVersion: "5.13.0",');
-  const userConfig = path.join(root, "user.json");
-  await write(root, "user.json", JSON.stringify({ maafw: { lib_dir: "deps/bin" } }));
+  await write(root, "LocalBridge/build/config/default.json", JSON.stringify({ maafw: { lib_dir: "deps/bin" } }));
   await fs.mkdir(path.join(root, "LocalBridge/deps/bin"), { recursive: true });
-  let plan = createPlan(root, {}, userConfig);
-  assert.equal(plan.libDir, path.join(root, "LocalBridge/deps/bin"));
+  const plan = createPlan(root);
+  assert.equal(plan.libDir, path.join(root, "LocalBridge/build/runtime/maafw/bin"));
   assert.equal(plan.version, "v5.13.0");
-  await write(root, "LocalBridge/build/config/default.json", JSON.stringify({ maafw: { lib_dir: "missing/bin" } }));
-  const bundled = path.join(root, "LocalBridge/build/runtime/maafw/bin");
-  await fs.mkdir(bundled, { recursive: true });
-  plan = createPlan(root, {}, userConfig);
-  assert.equal(plan.libDir, bundled);
-  assert.equal(plan.configPath, path.join(root, "LocalBridge/build/config/default.json"));
-  const explicit = path.join(root, "other/bin");
-  assert.equal(createPlan(root, { "lib-dir": explicit, version: "5.13.1" }, userConfig).libDir, explicit);
-  assert.equal(createPlan(root, { "lib-dir": explicit, version: "5.13.1" }, userConfig).version, "v5.13.1");
-  assert.throws(() => createPlan(root, { "lib-dir": root }, userConfig), /专用的 bin/);
-  assert.throws(() => createPlan(root, { config: path.join(root, "absent.json") }, userConfig), /配置文件不存在/);
-  await write(root, "unrelated/bin/other-tool", "keep");
-  assert.throws(() => createPlan(root, { "lib-dir": path.join(root, "unrelated/bin") }, userConfig), /无法确认/);
+  const binaryDir = path.join(root, "other");
+  assert.equal(createPlan(root, { "binary-dir": binaryDir, version: "5.13.1" }).libDir, path.join(binaryDir, "runtime/maafw/bin"));
+  assert.equal(createPlan(root, { version: "5.13.1" }).version, "v5.13.1");
+  await write(root, "other/runtime/maafw/bin/other-tool", "keep");
+  assert.throws(() => createPlan(root, { "binary-dir": binaryDir }), /无法确认/);
 });
 
-test("平台包与用户配置位置覆盖 Windows、macOS 和 Linux", () => {
+test("平台包覆盖 Windows、macOS 和 Linux", () => {
   assert.equal(platformAsset("win32", "arm64").prefix, "MAA-win-aarch64-");
   assert.equal(platformAsset("darwin", "x64").library, "libMaaFramework.dylib");
   assert.equal(platformAsset("linux", "arm64").prefix, "MAA-linux-aarch64-");
   assert.throws(() => platformAsset("linux", "ia32"), /不支持/);
-  assert.equal(userConfigPath("linux", "/home/example", { XDG_CONFIG_HOME: "/custom" }), "/custom/MaaPipelineEditor/LocalBridge/config/config.json");
-  assert.equal(userConfigPath("win32", "/home/example", { APPDATA: "/roaming" }), "/roaming/MaaPipelineEditor/LocalBridge/config/config.json");
 });
 
 test("临时网络问题最多尝试三次，等待 5 秒和 15 秒", async () => {

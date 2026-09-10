@@ -43,7 +43,7 @@ func (s *Service) Initialize() (err error) {
 		if r := recover(); r != nil {
 			// 将 panic 转换为错误
 			err = fmt.Errorf("MaaFramework 初始化时发生严重错误，可能是库版本不匹配。\n"+
-				"请更新 MaaFramework 到最新版本。\n"+
+				"请运行 mpelb deps reinstall mfw 重装适配版本。\n"+
 				"下载地址: https://github.com/MaaXYZ/MaaFramework/releases\n"+
 				"错误详情: %v", r)
 			logger.Error("MFW", "%v", err)
@@ -56,20 +56,16 @@ func (s *Service) Initialize() (err error) {
 
 	logger.Info("MFW", "初始化 MaaFramework")
 
-	// 从配置获取库路径，未配置或路径失效时尝试使用安装器附带的运行时
+	// 使用 MPE 自带运行时
 	cfg := config.GetGlobal()
 	if cfg == nil {
 		return fmt.Errorf("MaaFramework 配置未加载")
 	}
 	libDir := cfg.ResolvedMaaFWLibDir()
 	if libDir == "" {
-		return fmt.Errorf("MaaFramework 库路径未配置，请使用 'mpelb config set-lib' 设置路径，或通过安装脚本安装附属运行时")
+		return fmt.Errorf("自带 MaaFramework 依赖缺失，请运行 'mpelb deps reinstall mfw' 修复")
 	}
-	if cfg.MaaFW.LibDir == libDir {
-		logger.Info("MFW", "使用配置的库路径: %s", libDir)
-	} else {
-		logger.Info("MFW", "使用附带的库路径: %s", libDir)
-	}
+	logger.Info("MFW", "使用自带库路径: %s", libDir)
 
 	// Windows 下处理中文路径
 	useWorkDirSwitch := false
