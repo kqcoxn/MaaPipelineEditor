@@ -4,13 +4,13 @@ import style from "../../styles/flow/edges.module.less";
 import { memo, useMemo, useState, useCallback, useRef, useEffect } from "react";
 import {
   BaseEdge,
-  EdgeLabelRenderer,
   type EdgeProps,
   useReactFlow,
   getSmoothStepPath,
   Position,
 } from "@xyflow/react";
 import classNames from "classnames";
+import { StableEdgeLabelRenderer } from "./StableEdgeLabelRenderer";
 
 import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "../../stores/flow";
@@ -546,7 +546,7 @@ function MarkedEdge(props: EdgeProps) {
   return (
     <g style={opacityStyle}>
       <BaseEdge className={edgeClass} id={props.id} path={edgePath} />
-      <EdgeLabelRenderer>
+      <StableEdgeLabelRenderer>
         {/* 可拖拽的控制点 */}
         {showEdgeControlPoint && edgePathMode === "bezier" && (
           <div
@@ -567,7 +567,7 @@ function MarkedEdge(props: EdgeProps) {
             {props.label}
           </div>
         ) : null}
-      </EdgeLabelRenderer>
+      </StableEdgeLabelRenderer>
     </g>
   );
 }

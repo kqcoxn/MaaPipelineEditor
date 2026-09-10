@@ -135,6 +135,7 @@ export const updateLogs: UpdateLogItem[] = [
         "调试时聚焦入口节点功能可进行配置（默认关闭）",
         "优化 MacOS 设备搜索界面的交互体验",
         "使用 cmd 作为 MacOS 系统快捷组合键",
+        "优化节点量较大时拖动画布的流畅度",
         "神经网络 expected 支持标签名和混合数组",
         "截图支持 Expand 模式",
         "Win32 控制器支持 AnchoredTouch 输入方式与独立配置键盘输入方式",
