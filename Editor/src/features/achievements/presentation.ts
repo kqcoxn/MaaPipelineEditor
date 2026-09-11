@@ -92,7 +92,8 @@ export const achievementConnections: [string, string][] = [
   ["debug_first_run", "debug_details"], ["debug_details", "debug_retry"],
   ["project_import", "pipeline_saved"], ["pipeline_saved", "project_partial"],
   ["pipeline_saved", "project_separated"],
-  ["project_import", "project_harness"],
+  ["project_import", "ai_edit_completed"],
+  ["ai_edit_completed", "ai_architecture"], ["ai_edit_completed", "ai_layout"],
 ];
 
 export const categoryIntroductions: Record<AchievementCategory, string> = {

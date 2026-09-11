@@ -1,4 +1,5 @@
 import type { AnySchemaObject } from "ajv";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import {
   CanvasCommandBus,
   canvasCommandBus,
@@ -123,6 +124,7 @@ export function createBusinessArchitectureToolHandlers(
           context.runId,
         );
         sink.setDocument(document);
+        emitAchievementEvent("achievement:ai_architecture_presented");
         return {
           ok: true,
           stateVersion: graphResult.stateVersion,

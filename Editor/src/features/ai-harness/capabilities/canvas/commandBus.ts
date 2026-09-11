@@ -1,4 +1,3 @@
-import { emitAchievementEvent } from "@/features/achievements/bus";
 import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "@/components/flow/nodes";
 import { flowToPipeline } from "@/core/parser/exporter";
 import { convertMfwToStoreFormat } from "@/core/parser/nodeParser";
@@ -105,15 +104,12 @@ function createDefaultAdapter(): CanvasCommandBusAdapter {
       };
     },
     commit: (nodes, edges) => {
-      const before = useFlowStore.getState();
-      const changed = JSON.stringify([before.nodes, before.edges]) !== JSON.stringify([nodes, edges]);
       useFlowStore.getState().replace(nodes, edges, {
         isFitView: false,
         skipHistory: false,
         skipSave: true,
       });
       saveFlow();
-      if (changed) emitAchievementEvent("achievement:harness_applied");
     },
   };
 }
@@ -388,7 +384,8 @@ export class CanvasCommandBus {
       };
     }
 
-    this.adapter.commit(nodes, edges);
+    const changed = JSON.stringify([graph.nodes, graph.edges]) !== JSON.stringify([nodes, edges]);
+    if (changed) this.adapter.commit(nodes, edges);
     const stateVersion = this.getStateVersion();
     return {
       ok: true,
@@ -396,7 +393,7 @@ export class CanvasCommandBus {
       stateVersion,
       changes,
       validationErrors: [],
-      undoable: true,
+      undoable: changed,
     };
   }
 
@@ -446,7 +443,10 @@ export class CanvasCommandBus {
       const position = positions[node.id];
       return position ? { ...node, position: { ...position } } : node;
     });
-    this.adapter.commit(nextNodes, graph.edges);
+    const changed = graph.nodes.some((node, index) =>
+      node.position.x !== nextNodes[index].position.x || node.position.y !== nextNodes[index].position.y,
+    );
+    if (changed) this.adapter.commit(nextNodes, graph.edges);
     const stateVersion = this.getStateVersion();
     return {
       ok: true,
@@ -454,7 +454,7 @@ export class CanvasCommandBus {
       data: { applied: Object.keys(positions).length },
       changes: [`AI 语义重排 ${Object.keys(positions).length} 个节点`],
       validationErrors: [],
-      undoable: true,
+      undoable: changed,
     };
   }
 

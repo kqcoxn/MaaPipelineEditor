@@ -48,7 +48,7 @@ export const counterRules: CounterRule[] = [
   { counter: "pipeline_imported", on: "achievement:pipeline_imported" },
   { counter: "pipeline_saved", on: "achievement:pipeline_saved" },
   ...["pipeline_partial_exported", "pipeline_separated_exported"].map((counter) => ({ counter, on: `achievement:${counter}` })),
-  { counter: "harness_applied", on: "achievement:harness_applied" },
+  ...["ai_edit_completed", "ai_architecture_presented", "ai_layout_applied", "ai_context_compacted"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "history_redone", on: "achievement:history_redone" },
   { counter: "debug_fix_completed", on: "achievement:debug_fix_completed" },
 ];

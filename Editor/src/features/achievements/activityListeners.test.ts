@@ -26,6 +26,20 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("天才程序员五档按成功任务累计，其他 AI 成就独立解锁", () => {
+    for (let count = 1; count <= 200; count++) {
+      emitAchievementEvent("achievement:ai_edit_completed");
+      for (const target of [1, 5, 20, 50, 200]) {
+        expect(unlocked(target === 1 ? "ai_programmer" : `ai_programmer_${target}`)).toBe(count >= target);
+      }
+    }
+    for (const [id, counter] of [["ai_architecture", "ai_architecture_presented"], ["ai_layout", "ai_layout_applied"], ["ai_compact", "ai_context_compacted"]]) {
+      expect(unlocked(id)).toBe(false);
+      emitAchievementEvent(`achievement:${counter}`);
+      expect(unlocked(id)).toBe(true);
+    }
+    expect(achievementDefs.find((def) => def.id === "ai_compact")?.hidden).toBe(true);
+  });
   it("工具截图六档只由工具截图事件累计", () => {
     for (const target of [10, 50, 200, 1000, 5000, 20000]) {
       const id = target === 10 ? "material_tool_screenshots" : `material_tool_screenshots_${target}`;
@@ -353,5 +367,6 @@ it("成果六档与两种导出成就按非空实际内容计数", () => {
   }
   expect(achievementDefs.some((def) => def.id === "project_preview")).toBe(false);
   expect(counterRules.some((rule) => rule.counter === "preview_located")).toBe(false);
-  expect(achievementDefs.find((def) => def.id === "project_harness")?.category).toBe("ai");
+  expect(achievementDefs.find((def) => def.id === "ai_programmer")?.category).toBe("ai");
+  expect(achievementDefs.some((def) => def.id === "project_harness")).toBe(false);
 });

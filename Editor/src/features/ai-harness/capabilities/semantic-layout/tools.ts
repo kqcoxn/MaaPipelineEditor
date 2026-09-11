@@ -1,4 +1,5 @@
 import type { AnySchemaObject } from "ajv";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import {
   CanvasCommandBus,
   canvasCommandBus,
@@ -134,6 +135,7 @@ export function createSemanticLayoutToolHandlers(
           layoutResult.positions,
         );
         if (!commitResult.ok) return commitResult;
+        if (commitResult.undoable) emitAchievementEvent("achievement:ai_layout_applied");
         return {
           ...commitResult,
           data: {

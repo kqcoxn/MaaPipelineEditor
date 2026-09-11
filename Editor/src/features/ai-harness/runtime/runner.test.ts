@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { emitAchievementEvent } from "@/features/achievements/bus";
+vi.mock("@/features/achievements/bus", () => ({ emitAchievementEvent: vi.fn() }));
 import type { UnifiedMessage, UnifiedResponse } from "@/utils/ai/providers";
 import {
   DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD,
@@ -117,6 +119,7 @@ describe("HarnessRunner", () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    canvasMock.apply.mockReturnValue({ ok: true, stateVersion: 2, changes: ["创建节点 结束"], undoable: true });
     useAIHarnessStore.getState().reset();
     useConfigStore.getState().resetAllConfigs();
     modelMock.freezeModelConfig.mockResolvedValue({
@@ -143,6 +146,7 @@ describe("HarnessRunner", () => {
     const run = await waitForRun(runId);
 
     expect(run.status).toBe("succeeded");
+    expect(emitAchievementEvent).not.toHaveBeenCalled();
     expect(run.toolCallCount).toBe(1);
     expect(run.capabilitySnapshot.toolNames).toEqual(
       [...canvasToolDefinitions, mfwPipelineReferenceTool].map(
@@ -174,6 +178,21 @@ describe("HarnessRunner", () => {
       role: "assistant",
       content: "读取完成",
     });
+  });
+
+  it.each([true, false])("多次写工具按一次有效任务计数，实际修改=%s", async (changed) => {
+    canvasMock.apply.mockReturnValue({ ok: true, stateVersion: 2, changes: [], undoable: changed });
+    modelMock.complete.mockResolvedValueOnce({
+      success: true, content: "", finishReason: "tool_calls",
+      toolCalls: ["甲", "乙"].map((name) => ({
+        id: name, name: "create_node", arguments: { name, expectedStateVersion: 1 },
+      })),
+    }).mockResolvedValueOnce(finalResponse());
+    const run = await waitForRun(await createRunner().start("创建两个节点"));
+    expect(run.status).toBe("succeeded");
+    expect(canvasMock.apply).toHaveBeenCalledTimes(2);
+    expect(emitAchievementEvent).toHaveBeenCalledTimes(changed ? 1 : 0);
+    if (changed) expect(emitAchievementEvent).toHaveBeenCalledWith("achievement:ai_edit_completed");
   });
 
   it("批量读取多个节点只消耗一次工具调用", async () => {
@@ -402,6 +421,7 @@ describe("HarnessRunner", () => {
     const result = await runner.compact(sessionId, "关注已完成事项");
 
     expect(result.compacted).toBe(true);
+    expect(emitAchievementEvent).toHaveBeenCalledExactlyOnceWith("achievement:ai_context_compacted");
     expect(useAIHarnessStore.getState().sessions[0].contextSummary).toBe(
       "手动摘要",
     );

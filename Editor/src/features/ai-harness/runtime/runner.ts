@@ -1,3 +1,4 @@
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { AIClient } from "@/utils/ai/aiClient";
 import {
   normalizeAIContextCompactionThreshold,
@@ -245,6 +246,7 @@ export class HarnessRunner {
 
       const keptMessages = session.messages.slice(-result.messagesToKeep.length);
       store.replaceSessionContext(sessionId, keptMessages, result.summary);
+      emitAchievementEvent("achievement:ai_context_compacted");
       return {
         compacted: true,
         tokensBefore: result.tokensBefore,
@@ -679,6 +681,9 @@ export class HarnessRunner {
       error,
       summary,
     });
+    if (status === "succeeded" && run.changedCanvas && run.profileSnapshot.id === "canvas-chat") {
+      emitAchievementEvent("achievement:ai_edit_completed");
+    }
     if (store.activeRunId === runId) {
       useAIHarnessStore.setState({
         activeRunId: null,

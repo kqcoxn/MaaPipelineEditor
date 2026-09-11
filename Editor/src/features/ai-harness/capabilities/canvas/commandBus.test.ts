@@ -33,6 +33,14 @@ function context(expectedStateVersion = 1) {
 }
 
 describe("CanvasCommandBus", () => {
+  it("重复提交相同字段或坐标不产生可撤销修改", () => {
+    const { bus, commit, getGraph } = createHarness();
+    expect(bus.apply(context(), [{ type: "update_node", nodeId: "1", name: "开始" }]))
+      .toMatchObject({ ok: true, undoable: false, stateVersion: 1 });
+    expect(bus.applyNodePositions(context(), { "1": getGraph().nodes[0].position }))
+      .toMatchObject({ ok: true, undoable: false, stateVersion: 1 });
+    expect(commit).not.toHaveBeenCalled();
+  });
   it("原子提交批量变更并返回版本、diff 和撤销信息", () => {
     const { bus, commit, getGraph } = createHarness();
     const result = bus.apply(context(), [
