@@ -68,6 +68,10 @@ export const achievementConnections: [string, string][] = [
   ["canvas_rename", "canvas_note"], ["field_added", "canvas_json"],
   ["nodes_pasted", "canvas_bulk_copy"],
   ["node_created", "node_deleted"],
+  ["node_deleted", "explore_redo"],
+  ["node_deleted", "canvas_bulk_delete"],
+  ["project_import", "project_many_files"], ["pipeline_saved", "project_layout_image"],
+  ["daily_log", "interaction_export_logs"],
   ["canvas_first_node", "canvas_first_edge"], ["canvas_first_edge", "connection_branch"],
   ["connection_branch", "connection_error"], ["canvas_first_edge", "connection_external"],
   ["canvas_first_edge", "edge_created"], ["canvas_first_edge", "connection_chain"],
@@ -94,6 +98,8 @@ export const achievementConnections: [string, string][] = [
   ["pipeline_saved", "project_separated"],
   ["project_import", "ai_edit_completed"],
   ["ai_edit_completed", "ai_architecture"], ["ai_edit_completed", "ai_layout"],
+  ["daily_style", "daily_dark"], ["daily_style", "daily_panel"],
+  ["daily_panel", "daily_log"], ["project_import", "daily_sync"],
 ];
 
 export const categoryIntroductions: Record<AchievementCategory, string> = {
@@ -105,5 +111,5 @@ export const categoryIntroductions: Record<AchievementCategory, string> = {
   debug: "让流程跑起来，循着结果验证每一步。",
   project: "接续已有项目，保存自己的成果。",
   ai: "与 AI 一起，把想法变成流程。",
-  explore: "开发中的小经历，也值得收藏。",
+  daily: "调好外观与手感，循着记录找回操作。",
 };

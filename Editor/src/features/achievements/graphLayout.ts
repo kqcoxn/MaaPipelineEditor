@@ -47,7 +47,7 @@ export interface AchievementGraphLayout {
   regions: AchievementRegion[];
 }
 
-/**先排主题内部，再按流程顺序分成两列，彩蛋位于末尾。 */
+/**先排主题内部，再按流程顺序分成两列。 */
 export async function layoutAchievementGraph(
   nodes: AchievementNodeSize[],
   connections: [string, string][],

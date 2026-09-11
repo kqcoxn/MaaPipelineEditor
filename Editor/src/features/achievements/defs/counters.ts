@@ -4,6 +4,8 @@ import { configurationCounterRules } from "../nodeConfiguration";
 /**只接收操作成功事件；累计值支持启动及配置导入后的回溯。 */
 export const counterRules: CounterRule[] = [
   ...configurationCounterRules,
+  ...["bulk_deleted", "many_files_open", "logs_exported", "layout_image_saved"].map((counter) => ({ counter, on: `achievement:${counter}` })),
+  ...["node_style_changed", "dark_mode_enabled", "panel_mode_changed", "operation_log_located", "local_changes_reloaded"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   ...["recognition_configured", "action_configured", "node_note", "node_json_saved", "bulk_copied"].map((counter) => ({ counter, on: `achievement:${counter}` })),
   { counter: "terms_accepted", on: "achievement:terms_accepted" },
   { counter: "quiz_failure", on: "achievement:quiz_failure" },

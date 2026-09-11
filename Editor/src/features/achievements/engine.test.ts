@@ -46,7 +46,7 @@ const customDef: AchievementDef = {
   id: "night_owl",
   title: "t",
   description: "d",
-  category: "explore",
+  category: "canvas",
   trigger: {
     kind: "custom",
     watch: ["canvas:node:add"],
@@ -61,7 +61,7 @@ const customProgressDef: AchievementDef = {
   id: "hybrid",
   title: "t",
   description: "d",
-  category: "explore",
+  category: "canvas",
   trigger: {
     kind: "custom",
     watch: ["node_created"],

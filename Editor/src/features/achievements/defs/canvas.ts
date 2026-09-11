@@ -4,8 +4,16 @@ import { configurationVariety } from "../nodeConfiguration";
 
 const nodeCountTargets = [1, 50, 200, 1000, 5000, 20000];
 
-
 export const canvasAchievements: AchievementDef[] = [
+  {
+    id: "canvas_bulk_delete",
+    title: "大清洗",
+    subtitle: "这次真的是最后一次重构了。",
+    description: "一次操作成功删除超过 20 个节点",
+    category: "canvas",
+    hidden: true,
+    trigger: { kind: "counter", counter: "bulk_deleted", target: 1 },
+  },
   {
     id: "canvas_first_node",
     title: "第一步",
@@ -96,6 +104,15 @@ export const canvasAchievements: AchievementDef[] = [
     action: "成功粘贴节点",
     targets: [1, 50, 200, 1000],
   }),
+  {
+    id: "explore_redo",
+    title: "还是原来的好",
+    subtitle: "这一圈也没白绕。",
+    description: "一次修改后撤销，再重做该修改",
+    category: "canvas",
+    hidden: true,
+    trigger: { kind: "counter", counter: "history_redone", target: 1 },
+  },
   {
     id: "canvas_bulk_copy",
     title: "全都要",

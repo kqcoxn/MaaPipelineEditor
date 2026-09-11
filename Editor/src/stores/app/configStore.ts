@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import type { HandleDirection } from "@/components/flow/nodes/constants";
 import type { FieldSortConfig } from "@/core/sorting/types";
 import { encryptApiKey, isEncryptedKey } from "@/utils/ai/crypto";
@@ -430,6 +431,7 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
   // 设置
   configs: { ...defaultConfigs },
   setConfig(key, value) {
+    const previousValue = get().configs[key];
     if (key === "aiApiKey") apiKeyWriteVersion++;
 
     // 加密 API Key
@@ -470,6 +472,11 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
         configuredKeys,
       };
     });
+    if (previousValue !== value) {
+      if (key === "nodeStyle") emitAchievementEvent("achievement:node_style_changed");
+      if (key === "fieldPanelMode") emitAchievementEvent("achievement:panel_mode_changed");
+      if (key === "useDarkMode" && value === true) emitAchievementEvent("achievement:dark_mode_enabled");
+    }
   },
   replaceConfig(configs, configuredKeys) {
     apiKeyWriteVersion++;

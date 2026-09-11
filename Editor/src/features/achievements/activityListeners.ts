@@ -52,5 +52,12 @@ export function subscribeAchievementActivity(): () => void {
   const disposeDevice = useMFWStore.subscribe((state, previous) => {
     if (state.connectionStatus === "connected" && previous.connectionStatus !== "connected") award("device_connected");
   });
-  return () => { disposeBus(); disposeDevice(); };
+  const checkFileTabs = () => {
+    if (useFileStore.getState().files.length > 5) award("many_files_open");
+  };
+  checkFileTabs();
+  const disposeFiles = useFileStore.subscribe((state, previous) => {
+    if (state.files.length > 5 && previous.files.length <= 5) checkFileTabs();
+  });
+  return () => { disposeBus(); disposeDevice(); disposeFiles(); };
 }

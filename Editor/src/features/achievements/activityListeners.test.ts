@@ -3,7 +3,9 @@ import { useFlowStore, createPipelineNode } from "@/stores/flow";
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
 import { NodeTypeEnum, SourceHandleTypeEnum, TargetHandleTypeEnum } from "@/components/flow/nodes/constants";
 import { emitAchievementEvent } from "./bus";
-import { initializeAchievements } from "./listeners";
+import { initializeAchievements, reevaluateAchievements } from "./listeners";
+import { useConfigStore } from "@/stores/app/configStore";
+import { useFileStore } from "@/stores/project/fileStore";
 import { achievementDefs, counterRules } from "./defs";
 import { recordPipelineExport } from "./exportEvents";
 import { LayoutHelper, AlignmentEnum } from "@/core/layout";
@@ -26,6 +28,62 @@ afterEach(() => { dispose(); useFlowStore.getState().clearHistory(); vi.useRealT
 const unlocked = (id: string) => !!useAchievementStore.getState().unlocked[id];
 
 describe("正式成就接线", () => {
+  it("大清洗只在单次实际删除超过 20 个节点时解锁", () => {
+    const nodes = Array.from({ length: 42 }, (_, i) => createPipelineNode(`bulk-${i}`));
+    useFlowStore.getState().replace(nodes, [], { skipHistory: true, isFitView: false });
+    useFlowStore.getState().updateNodes(nodes.slice(0, 20).map((node) => ({ type: "remove", id: node.id })));
+    expect(unlocked("canvas_bulk_delete")).toBe(false);
+    useFlowStore.getState().updateNodes([{ type: "remove", id: nodes[20].id }]);
+    expect(unlocked("canvas_bulk_delete")).toBe(false);
+    useFlowStore.getState().updateNodes(nodes.slice(21).map((node) => ({ type: "remove", id: node.id })));
+    expect(unlocked("canvas_bulk_delete")).toBe(true);
+  });
+
+  it("文件 Tab 超过五个才解锁，启动恢复的文件也计入", () => {
+    const original = useFileStore.getState().files;
+    const files = Array.from({ length: 6 }, (_, i) => ({ ...original[0], fileName: `tab-${i}` }));
+    try {
+      useFileStore.setState({ files: files.slice(0, 5) });
+      expect(unlocked("project_many_files")).toBe(false);
+      useFileStore.setState({ files });
+      expect(unlocked("project_many_files")).toBe(true);
+      dispose(); useAchievementStore.getState().resetAll();
+      dispose = initializeAchievements();
+      expect(unlocked("project_many_files")).toBe(true);
+    } finally { useFileStore.setState({ files: original }); }
+  });
+  it("交互配置只统计实际设置变化，不统计批量导入或重复设置", () => {
+    const store = useConfigStore.getState();
+    const original = { ...store.configs };
+    try {
+      store.replaceConfig({ nodeStyle: "modern", fieldPanelMode: "fixed", useDarkMode: false });
+      store.setConfig("nodeStyle", "modern");
+      store.setConfig("fieldPanelMode", "fixed");
+      store.setConfig("useDarkMode", false);
+      expect(unlocked("daily_style")).toBe(false);
+      expect(unlocked("daily_panel")).toBe(false);
+      expect(unlocked("daily_dark")).toBe(false);
+      store.setConfig("nodeStyle", "classic");
+      store.setConfig("fieldPanelMode", "inline");
+      store.setConfig("useDarkMode", true);
+      expect(unlocked("daily_style")).toBe(true);
+      expect(unlocked("daily_panel")).toBe(true);
+      expect(unlocked("daily_dark")).toBe(true);
+    } finally { store.replaceConfig(original); }
+  });
+
+  it("iframe 不收集交互事件，也不回溯解锁已有计数", () => {
+    dispose(); context.embedded = true;
+    useAchievementStore.setState({ counters: { node_style_changed: 1 } });
+    dispose = initializeAchievements();
+    for (const counter of ["dark_mode_enabled", "panel_mode_changed", "operation_log_located", "local_changes_reloaded"]) {
+      emitAchievementEvent(`achievement:${counter}`);
+    }
+    expect(reevaluateAchievements()).toEqual([]);
+    expect(useAchievementStore.getState().unlocked).toEqual({});
+    expect(useAchievementStore.getState().counters).toEqual({ node_style_changed: 1 });
+  });
+
   it("天才程序员五档按成功任务累计，其他 AI 成就独立解锁", () => {
     for (let count = 1; count <= 200; count++) {
       emitAchievementEvent("achievement:ai_edit_completed");

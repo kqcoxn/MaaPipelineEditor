@@ -72,6 +72,7 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
         removedIds.add(change.id);
       }
     });
+    const existingRemovedIds = [...removedIds].filter((id) => get().nodeById.has(id));
     const removedPipelineIds = [...removedIds].filter(
       (id) => get().nodeById.get(id)?.type === NodeTypeEnum.Pipeline,
     );
@@ -205,6 +206,9 @@ export const createNodeSlice: StateCreator<FlowStore, [], [], FlowNodeState> = (
     ).length;
     if (deletedCount > 0) {
       emitAchievementEvent("achievement:node_deleted", { count: deletedCount });
+    }
+    if (existingRemovedIds.filter((id) => !get().nodeById.has(id)).length > 20) {
+      emitAchievementEvent("achievement:bulk_deleted");
     }
 
     // 清理删除节点的顺序

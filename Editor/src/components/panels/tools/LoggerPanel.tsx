@@ -16,6 +16,7 @@ import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 import { mfwProtocol } from "../../../services/server";
 import { buildMPELogExportPayload } from "@/utils/logExportPayload";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import {
   BackendLogList,
   EmbedMessageLogList,
@@ -199,6 +200,7 @@ export function LoggerPanel() {
       anchor.download = data.filename || `mpe-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.zip`;
       anchor.click();
       URL.revokeObjectURL(url);
+      emitAchievementEvent("achievement:logs_exported");
       message.success("日志导出成功");
     });
   }, [message]);

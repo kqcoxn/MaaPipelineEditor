@@ -7,7 +7,7 @@ import { materialAchievements } from "./material";
 import { debugAchievements } from "./debug";
 import { projectAchievements } from "./project";
 import { aiAchievements } from "./ai";
-import { exploreAchievements } from "./explore";
+import { interactionAchievements } from "./interaction";
 
 export const achievementDefs: AchievementDef[] = [
   ...onboardingAchievements,
@@ -18,7 +18,7 @@ export const achievementDefs: AchievementDef[] = [
   ...debugAchievements,
   ...projectAchievements,
   ...aiAchievements,
-  ...exploreAchievements,
+  ...interactionAchievements,
 ];
 
 export { counterRules } from "./counters";

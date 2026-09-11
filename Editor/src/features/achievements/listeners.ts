@@ -45,6 +45,7 @@ function dispatchEvent(event: AchievementEvent): void {
 
 /**全量回溯：启动时 / 配置导入后调用，补发历史进度已达标的成就 */
 export function reevaluateAchievements(): string[] {
+  if (isEmbedEnvironment()) return [];
   const state = useAchievementStore.getState();
   const patch = evaluateAllAchievements(
     achievementDefs,
@@ -73,8 +74,8 @@ export function initializeAchievements(): () => void {
   const disposers = [
     disposePersistence,
     disposeNotifier,
-    subscribeAchievementActivity(),
     subscribeAchievementEvents(dispatchEvent),
+    subscribeAchievementActivity(),
   ];
 
   return () => {

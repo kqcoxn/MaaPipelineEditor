@@ -21,6 +21,7 @@ import {
   type VirtualListHandle,
 } from "@/components/common/VirtualList";
 import { useFlowStore } from "@/stores/flow";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { selectAndFitNodeIds } from "@/services/flowNavigationService";
 import type { LogEntry } from "@/stores/app/loggerStore";
 import type {
@@ -125,12 +126,13 @@ function formatPayload(log: EmbedMessageLog): string {
 function handleOperationLogClick(log: OperationLog) {
   if (!log.targetIds?.length) return;
   const state = useFlowStore.getState();
-  selectAndFitNodeIds(log.targetIds, {
+  const targets = selectAndFitNodeIds(log.targetIds, {
     delay: 100,
     duration: 500,
     minZoom: state.viewport.zoom,
     maxZoom: state.viewport.zoom,
   });
+  if (targets.length > 0) emitAchievementEvent("achievement:operation_log_located");
 }
 
 function EmptyLogList({ text, height }: { text: string; height: number }) {

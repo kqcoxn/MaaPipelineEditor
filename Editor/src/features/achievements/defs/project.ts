@@ -3,6 +3,31 @@ import type { AchievementDef } from "../types";
 
 export const projectAchievements: AchievementDef[] = [
   {
+    id: "project_many_files",
+    title: "好多人啊",
+    subtitle: "这里站不下这么多人",
+    description: "Tab 栏同时打开超过 5 个文件",
+    category: "project",
+    hidden: true,
+    trigger: { kind: "counter", counter: "many_files_open", target: 1 },
+  },
+  {
+    id: "project_layout_image",
+    title: "拍张全家福",
+    subtitle: "来，所有节点看镜头！",
+    description: "首次成功将非空布局导出为图片",
+    category: "project",
+    trigger: { kind: "counter", counter: "layout_image_saved", target: 1 },
+  },
+  {
+    id: "daily_sync",
+    title: "消息同步了",
+    subtitle: "收到收到，已与组织保持同步。",
+    description: "首次成功重载被外部修改的本地文件，并实际更新画布内容",
+    category: "project",
+    trigger: { kind: "counter", counter: "local_changes_reloaded", target: 1 },
+  },
+  {
     id: "project_import",
     title: "继续（回车）",
     subtitle: "书接上回。",

@@ -1,5 +1,6 @@
 import { message } from "@/utils/ui/antdAppApi";
 import { toPng } from "html-to-image";
+import { emitAchievementEvent } from "@/features/achievements/bus";
 import { getNodesBounds, getViewportForBounds } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 
@@ -73,6 +74,7 @@ export async function saveNodesToImage(
     const suffix = selectedNodes.length > 0 ? "-selected" : "";
     const exportFileName = `${fileName}${suffix}.png`;
     downloadImage(dataUrl, exportFileName);
+    emitAchievementEvent("achievement:layout_image_saved");
 
     message.success(
       selectedNodes.length > 0
