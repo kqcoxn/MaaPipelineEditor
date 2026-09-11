@@ -63,8 +63,8 @@ export function normalizeAIContextCompactionThreshold(value: number): number {
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `2.0.0`,
-  betaIteration: 3,
+  version: `1.10.0`,
+  betaIteration: 4,
   mfwVersion: "5.13.0",
   protocolVersion: "1.5.0",
 };
@@ -473,9 +473,12 @@ export const useConfigStore = create<ConfigState>()((set, get) => ({
       };
     });
     if (previousValue !== value) {
-      if (key === "nodeStyle") emitAchievementEvent("achievement:node_style_changed");
-      if (key === "fieldPanelMode") emitAchievementEvent("achievement:panel_mode_changed");
-      if (key === "useDarkMode" && value === true) emitAchievementEvent("achievement:dark_mode_enabled");
+      if (key === "nodeStyle")
+        emitAchievementEvent("achievement:node_style_changed");
+      if (key === "fieldPanelMode")
+        emitAchievementEvent("achievement:panel_mode_changed");
+      if (key === "useDarkMode" && value === true)
+        emitAchievementEvent("achievement:dark_mode_enabled");
     }
   },
   replaceConfig(configs, configuredKeys) {

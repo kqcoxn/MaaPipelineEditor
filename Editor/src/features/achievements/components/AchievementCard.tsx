@@ -1,6 +1,7 @@
 import { ApartmentOutlined, CheckOutlined, CompassOutlined, PlayCircleOutlined, TrophyOutlined, LockOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
+import { useShallow } from "zustand/react/shallow";
 import { getAchievementProgress } from "../presentation";
 import classNames from "classnames";
 import type { AchievementItem } from "../presentation";
@@ -22,14 +23,13 @@ export function AchievementCard({ item, graph = false }: {
   item: AchievementItem;
   graph?: boolean;
 }) {
-  const counters = useAchievementStore((state) => state.counters);
-  const progress = useAchievementStore((state) => state.progress);
-  const unlocked = useAchievementStore((state) => state.unlocked);
   const concealed = !!item.def.hidden && !item.unlockedCount;
-  const earned = unlocked[item.def.id];
+  const earned = useAchievementStore((state) => state.unlocked[item.def.id]);
   const next = item.next;
   const showNext = next && next.id !== item.def.id;
-  const current = getAchievementProgress(next ?? item.def, counters, progress, item.complete);
+  const current = useAchievementStore(useShallow((state) =>
+    getAchievementProgress(next ?? item.def, state.counters, state.progress, item.complete),
+  ));
 
   return (
     <article aria-label={concealed ? "未知的惊喜" : item.def.title}

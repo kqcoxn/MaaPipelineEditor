@@ -1,5 +1,5 @@
 import { recordPipelineExport } from "@/features/achievements/exportEvents";
-import { emitAchievementEvent } from "@/features/achievements/bus";
+import { emitAchievementEvent, hasAchievementListeners } from "@/features/achievements/bus";
 import { localFileContentSignature } from "@/features/achievements/localSync";
 import { notification } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
@@ -673,7 +673,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
         // 切换到已有文件并更新内容
         useFileStore.getState().switchFile(existingFile.fileName);
         const before = useFlowStore.getState();
-        const previousContent = existingFile.config.isModifiedExternally
+        const previousContent = hasAchievementListeners() && existingFile.config.isModifiedExternally
           ? localFileContentSignature(before.nodes, before.edges) : undefined;
         const imported = await pipelineToFlow({ pString: finalContentString });
         if (!imported) return false;

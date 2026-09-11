@@ -121,15 +121,19 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
 
       if (patch.counterDelta && Object.keys(patch.counterDelta).length > 0) {
         const counters = { ...state.counters };
+        let changed = false;
         for (const [key, delta] of Object.entries(patch.counterDelta)) {
           if (!Number.isFinite(delta) || delta === 0) continue;
           counters[key] = (counters[key] ?? 0) + delta;
+          if (counters[key] !== state.counters[key]) changed = true;
         }
-        next.counters = counters;
+        if (changed) next.counters = counters;
       }
 
       if (patch.progress) {
-        next.progress = { ...state.progress, ...patch.progress };
+        if (Object.entries(patch.progress).some(([key, value]) => state.progress[key] !== value)) {
+          next.progress = { ...state.progress, ...patch.progress };
+        }
       }
 
       if (patch.unlock && patch.unlock.length > 0) {
@@ -141,11 +145,13 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
           unlocked[id] = { at: now };
           delete progress[id];
         }
-        next.unlocked = unlocked;
-        next.progress = progress;
+        if (Object.keys(unlocked).length !== Object.keys(state.unlocked).length) {
+          next.unlocked = unlocked;
+          next.progress = progress;
+        }
       }
 
-      return next;
+      return Object.keys(next).length ? next : state;
     });
   },
 
@@ -219,14 +225,35 @@ export const useAchievementStore = create<AchievementState>((set, get) => ({
   },
 }));
 
-/**初始化成就持久化：状态变化时自动写入 localStorage */
+/**固定窗口合并写入，避免连续操作阻塞主线程；隐藏、离开及卸载时补写。 */
 export function initializeAchievementPersistence(): () => void {
-  return useAchievementStore.subscribe((state, prevState) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let dirty = false;
+  const flush = () => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+    if (!dirty) return;
+    dirty = false;
+    savePersisted(useAchievementStore.getState());
+  };
+  const onVisibility = () => {
+    if (document.visibilityState === "hidden") flush();
+  };
+  const unsubscribe = useAchievementStore.subscribe((state, prevState) => {
     if (
       state.counters !== prevState.counters ||
       state.unlocked !== prevState.unlocked
     ) {
-      savePersisted(state);
+      dirty = true;
+      if (timer === undefined) timer = setTimeout(flush, 500);
     }
   });
+  window.addEventListener("pagehide", flush);
+  document.addEventListener("visibilitychange", onVisibility);
+  return () => {
+    unsubscribe();
+    window.removeEventListener("pagehide", flush);
+    document.removeEventListener("visibilitychange", onVisibility);
+    flush();
+  };
 }

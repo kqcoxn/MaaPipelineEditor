@@ -13,7 +13,14 @@ import {
 import { achievementDefs, counterRules } from "./defs";
 import { subscribeAchievementEvents } from "./bus";
 import { startUnlockNotifier, notifyRetroactiveUnlocks } from "./notify";
-import type { AchievementEvent } from "./types";
+import type { AchievementEvent, CounterRule } from "./types";
+
+const rulesByEvent = new Map<string, CounterRule[]>();
+for (const rule of counterRules) {
+  const rules = rulesByEvent.get(rule.on) ?? [];
+  rules.push(rule);
+  rulesByEvent.set(rule.on, rules);
+}
 
 /**
  * 成就系统装配层
@@ -30,10 +37,14 @@ function getEngineIndex(): EngineIndex {
 
 /**把一个成就事件送入引擎并应用结果 */
 function dispatchEvent(event: AchievementEvent): void {
+  const index = getEngineIndex();
+  const rules = rulesByEvent.get(event.type);
+  // 原始调试日志、图提交等只供采集器处理，不复制计数器或进入求值。
+  if (!rules && !index.byEvent.has(event.type)) return;
   const state = useAchievementStore.getState();
   const patch = handleAchievementEvent(
-    getEngineIndex(),
-    counterRules,
+    index,
+    rules ?? [],
     event,
     state.counters,
     state.unlocked,

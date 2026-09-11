@@ -1,9 +1,10 @@
-import type { NodeType, PipelineNodeDataType, EdgeType } from "@/stores/flow/types";
+import type { NodeType, PipelineNodeDataType, EdgeType, FlowGraphHistoryPatch } from "@/stores/flow/types";
 import { NodeTypeEnum, SourceHandleTypeEnum } from "@/components/flow/nodes/constants";
 import { actionFields, recoFields, otherFieldParams } from "@/core/fields";
-import { emitAchievementEvent } from "./bus";
+import { emitAchievementEvent, hasAchievementListeners } from "./bus";
+import { isEqual } from "lodash";
 
-function parentId(node: NodeType | undefined): string | undefined {
+function parentId(node: NodeType | null | undefined): string | undefined {
   return node && "parentId" in node && typeof node.parentId === "string" ? node.parentId : undefined;
 }
 
@@ -17,7 +18,7 @@ function hasValue(value: unknown): boolean {
 
 /**仅由实际字段编辑调用；导入、撤销、文件切换不会计为字段编辑。 */
 export function recordNodeEdit(before: NodeType | undefined, after: NodeType | undefined) {
-  if (!before || !after) return;
+  if (!hasAchievementListeners() || !before || !after || before.data === after.data) return;
   if (before.type === NodeTypeEnum.Group && after.type === NodeTypeEnum.Group &&
     "color" in before.data && "color" in after.data &&
     before.data.color !== after.data.color) {
@@ -29,7 +30,7 @@ export function recordNodeEdit(before: NodeType | undefined, after: NodeType | u
     emitAchievementEvent("achievement:node_note");
   }
   if (before.type !== NodeTypeEnum.Pipeline || after.type !== NodeTypeEnum.Pipeline) return;
-  if (JSON.stringify(before.data) === JSON.stringify(after.data)) return;
+  if (isEqual(before.data, after.data)) return;
   emitAchievementEvent("graph:node:edited", { nodeId: after.id });
   const previous = before.data as PipelineNodeDataType;
   const next = after.data as PipelineNodeDataType;
@@ -51,7 +52,7 @@ export function recordNodeEdit(before: NodeType | undefined, after: NodeType | u
     const current = next[kind];
     const fields = (kind === "recognition" ? recoFields : actionFields)[current.type];
     const excluded = kind === "recognition" ? "DirectHit" : "DoNothing";
-    if (current.type === excluded || !fields || JSON.stringify(previous[kind]) === JSON.stringify(current)) continue;
+    if (current.type === excluded || !fields || isEqual(previous[kind], current)) continue;
     if (!fields.params.filter((field) => field.required).every((field) => hasValue(current.param[field.key]))) continue;
     emitAchievementEvent(`achievement:${kind}_configured`, { type: current.type });
   }
@@ -96,8 +97,20 @@ export function recordGraphStructure({ beforeNodes, nodes, beforeEdges, edges }:
   }
 }
 
+/**复用历史层已经算好的差异；位移、尺寸、普通字段、删除无需重扫结构。 */
+export function hasAchievementGraphChanges(patch: FlowGraphHistoryPatch): boolean {
+  return patch.edges.some(({ before, after }) => after && (!before ||
+    before.source !== after.source || before.target !== after.target ||
+    before.sourceHandle !== after.sourceHandle)) ||
+    patch.nodes.some(({ before, after }) => after && (
+      parentId(before) !== parentId(after) ||
+      (after.type === NodeTypeEnum.External && before?.data.label !== after.data.label)
+    ));
+}
+
 /**只由主动排序入口调用，删除边造成的自动编号变化不计入。 */
 export function recordEdgeOrderChange(before: EdgeType[], after: EdgeType[]) {
+  if (!hasAchievementListeners() || before === after) return;
   const previous = new Map(before.map((edge) => [edge.id, edge.label]));
   if (after.some((edge) => previous.has(edge.id) && previous.get(edge.id) !== edge.label)) {
     emitAchievementEvent("achievement:edge_reordered");

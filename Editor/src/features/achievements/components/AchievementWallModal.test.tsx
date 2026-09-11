@@ -1,10 +1,12 @@
 import "@testing-library/jest-dom/vitest";
+import { Profiler } from "react";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
 import { AchievementWallModal } from "./AchievementWallModal";
 import { AchievementCard } from "./AchievementCard";
-import type { AchievementItem } from "../presentation";
+import { buildAchievementItems, type AchievementItem } from "../presentation";
+import { achievementDefs } from "../defs";
 
 // 复用真实卡片，隔离 React Flow 对浏览器布局测量的依赖。
 vi.mock("./AchievementGraph", () => ({
@@ -22,6 +24,18 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("成就面板交互", () => {
+  it("无关计数更新不重绘卡片，自身进度仍实时刷新", () => {
+    const item = buildAchievementItems(achievementDefs, useAchievementStore.getState().unlocked)
+      .find((item) => item.key === "node_created")!;
+    const rendered = vi.fn();
+    render(<Profiler id="card" onRender={rendered}><AchievementCard item={item} /></Profiler>);
+    rendered.mockClear();
+    act(() => useAchievementStore.getState().applyEnginePatch({ counterDelta: { pipeline_saved: 1 } }));
+    expect(rendered).not.toHaveBeenCalled();
+    act(() => useAchievementStore.getState().applyEnginePatch({ counterDelta: { node_created: 1 } }));
+    expect(screen.getByText("28 / 50")).toBeInTheDocument();
+    expect(rendered).toHaveBeenCalled();
+  });
   it("成就卡片不显示重新答题按钮", () => {
     render(<AchievementWallModal />);
     expect(screen.queryByRole("button", { name: "重新答题" })).not.toBeInTheDocument();

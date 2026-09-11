@@ -1,22 +1,26 @@
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useDebugRunProfileStore } from "@/stores/debug/debugRunProfileStore";
 import { useFileStore } from "@/stores/project/fileStore";
+import { useAchievementStore } from "@/stores/achievement/achievementStore";
 import { crossFileService } from "@/services/crossFileService";
 import type { DebugEvent, DebugRunMode } from "@/features/debug/types";
 import { emitAchievementEvent, subscribeAchievementEvents } from "./bus";
 import { createDebugAchievementTracker } from "./debugProgress";
 import { recordGraphStructure, type CommittedGraph } from "./graphEvents";
-import { recordManualConnection, type ManualConnectionGraph } from "./connectionProgress";
+import { createManualConnectionTracker, type ManualConnectionGraph } from "./connectionProgress";
 
 export function subscribeAchievementActivity(): () => void {
   const award = (counter: string) => emitAchievementEvent(`achievement:${counter}`);
   const debug = createDebugAchievementTracker(award);
+  const connections = createManualConnectionTracker();
   const disposeBus = subscribeAchievementEvents((event) => {
     if (event.type === "graph:manual-connected") {
-      recordManualConnection(event.payload as ManualConnectionGraph);
+      connections.record(event.payload as ManualConnectionGraph);
     } else if (event.type === "graph:committed") {
       const graph = event.payload as CommittedGraph;
       recordGraphStructure(graph);
+      if (useAchievementStore.getState().unlocked.connection_external ||
+        !graph.nodes.some((node) => node.type === "external")) return;
       const previousEdges = new Map(graph.beforeEdges.map((edge) => [edge.id, edge]));
       const previousNodes = new Map(graph.beforeNodes.map((node) => [node.id, node]));
       const connectedTargets = new Set(graph.edges.map((edge) => edge.target));
@@ -26,8 +30,9 @@ export function subscribeAchievementActivity(): () => void {
       }).map((edge) => edge.target));
       const externalTargets = graph.nodes.filter((node) => node.type === "external" && connectedTargets.has(node.id) &&
         (newlyConnectedTargets.has(node.id) || previousNodes.get(node.id)?.data.label !== node.data.label));
-      if (externalTargets.length && crossFileService.getAllNodes().some((target) =>
-        !target.isCurrentFile && target.nodeType === "pipeline" && externalTargets.some((node) => node.data.label === target.fullName),
+      const externalLabels = new Set(externalTargets.map((node) => node.data.label));
+      if (externalLabels.size && crossFileService.getAllNodes().some((target) =>
+        !target.isCurrentFile && target.nodeType === "pipeline" && externalLabels.has(target.fullName),
       )) award("external_connected");
     } else if (event.type === "graph:node:edited") {
       debug.edit(useFileStore.getState().currentFile.fileName, (event.payload as { nodeId: string }).nodeId);
@@ -59,5 +64,5 @@ export function subscribeAchievementActivity(): () => void {
   const disposeFiles = useFileStore.subscribe((state, previous) => {
     if (state.files.length > 5 && previous.files.length <= 5) checkFileTabs();
   });
-  return () => { disposeBus(); disposeDevice(); disposeFiles(); };
+  return () => { disposeBus(); disposeDevice(); disposeFiles(); connections.dispose(); };
 }

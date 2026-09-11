@@ -116,8 +116,14 @@ const EFFECTS: CelebrationEffect[] = [
   emojiBurst,
 ];
 
+let lastCelebration = -Infinity;
+
 /**随机播放一种解锁庆祝动效 */
 export function celebrateAchievementUnlock(): void {
+  // 同一操作可能解锁多档：保留每条通知，庆祝粒子只播放一轮。
+  const now = Date.now();
+  if (now - lastCelebration < 1500) return;
+  lastCelebration = now;
   import("canvas-confetti")
     .then(({ default: confetti }) => {
       const effect = EFFECTS[Math.floor(Math.random() * EFFECTS.length)];

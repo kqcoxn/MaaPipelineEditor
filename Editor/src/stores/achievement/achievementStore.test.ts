@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   initializeAchievementPersistence,
@@ -18,6 +18,14 @@ describe("achievementStore", () => {
   });
 
   describe("applyEnginePatch", () => {
+    it("无效增量、相同进度和重复解锁不触发订阅更新", () => {
+      useAchievementStore.getState().applyEnginePatch({ unlock: ["a"], progress: { b: 0.5 } });
+      const listener = vi.fn();
+      const dispose = useAchievementStore.subscribe(listener);
+      useAchievementStore.getState().applyEnginePatch({ counterDelta: { x: 0, y: NaN }, progress: { b: 0.5 }, unlock: ["a"] });
+      dispose();
+      expect(listener).not.toHaveBeenCalled();
+    });
     it("accumulates counter deltas", () => {
       useAchievementStore
         .getState()
@@ -128,6 +136,27 @@ describe("achievementStore", () => {
   });
 
   describe("initializeAchievementPersistence", () => {
+    it("高频计数合并写入，持续操作不延后保存，离开与卸载补写", () => {
+      vi.useFakeTimers();
+      const spy = vi.spyOn(Storage.prototype, "setItem");
+      const dispose = initializeAchievementPersistence();
+      try {
+        for (let i = 0; i < 1000; i++) useAchievementStore.getState().applyEnginePatch({ counterDelta: { node_created: 1 } });
+        expect(spy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(499);
+        useAchievementStore.getState().applyEnginePatch({ counterDelta: { node_created: 1 } });
+        vi.advanceTimersByTime(1);
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(JSON.parse(localStorage.getItem("mpe_achievements")!).counters.node_created).toBe(1001);
+        useAchievementStore.getState().applyEnginePatch({ counterDelta: { node_created: 1 } });
+        window.dispatchEvent(new Event("pagehide"));
+        expect(spy).toHaveBeenCalledTimes(2);
+        useAchievementStore.getState().applyEnginePatch({ counterDelta: { node_created: 1 } });
+        dispose();
+        expect(spy).toHaveBeenCalledTimes(3);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally { dispose(); spy.mockRestore(); vi.useRealTimers(); }
+    });
     it("persists counters and unlocked changes to localStorage", () => {
       const dispose = initializeAchievementPersistence();
 

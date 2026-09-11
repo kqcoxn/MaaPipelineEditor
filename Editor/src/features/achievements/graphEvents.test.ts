@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createPipelineNode } from "@/stores/flow/utils/nodeUtils";
 import { applyNodeDataUpdates } from "@/stores/flow/utils/nodeDataUtils";
-import { recordNodeEdit, recordGraphStructure } from "./graphEvents";
+import { recordNodeEdit, recordGraphStructure, hasAchievementGraphChanges } from "./graphEvents";
+import { createGraphHistoryPatch } from "@/stores/flow/utils/historyPatch";
 import { subscribeAchievementEvents } from "./bus";
 
 let events: string[];
@@ -10,6 +11,22 @@ beforeEach(() => { events = []; dispose = subscribeAchievementEvents((event) => 
 afterEach(() => dispose());
 
 describe("节点与结构行为口径", () => {
+  it("复用历史差异，移动大量节点与普通字段修改不进入整图结构扫描", () => {
+    const nodes = Array.from({ length: 10000 }, (_, i) => createPipelineNode(String(i)));
+    const moved = nodes.map((node) => ({ ...node, position: { x: 100, y: 100 } }));
+    expect(hasAchievementGraphChanges(createGraphHistoryPatch(nodes, [], moved, []))).toBe(false);
+    const renamed = applyNodeDataUpdates(nodes[0], [{ type: "direct", key: "label", value: "Renamed" }]);
+    expect(hasAchievementGraphChanges(createGraphHistoryPatch([nodes[0]], [], [renamed], []))).toBe(false);
+    const grouped = { ...nodes[0], parentId: "group" };
+    expect(hasAchievementGraphChanges(createGraphHistoryPatch([nodes[0]], [], [grouped], []))).toBe(true);
+  });
+
+  it("未初始化时不读取节点数据或序列化字段", () => {
+    dispose();
+    const node = createPipelineNode("node");
+    Object.defineProperty(node, "data", { get() { throw new Error("不应访问"); } });
+    expect(() => recordNodeEdit(node, node)).not.toThrow();
+  });
   it("无变化、必填字段及切换识别类型不会解锁可选字段成就", () => {
     const before = createPipelineNode("node");
     recordNodeEdit(before, before);

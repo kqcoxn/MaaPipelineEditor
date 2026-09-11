@@ -3,7 +3,7 @@ import { createPipelineNode } from "@/stores/flow/utils/nodeUtils";
 import { SourceHandleTypeEnum, TargetHandleTypeEnum } from "@/components/flow/nodes/constants";
 import type { EdgeType } from "@/stores/flow/types";
 import { subscribeAchievementEvents } from "./bus";
-import { recordManualConnection } from "./connectionProgress";
+import { createManualConnectionTracker } from "./connectionProgress";
 
 const nodes = Array.from({ length: 30 }, (_, index) => createPipelineNode(String(index)));
 const edge = (source: number, target: number, error = false): EdgeType => ({
@@ -12,10 +12,12 @@ const edge = (source: number, target: number, error = false): EdgeType => ({
   targetHandle: TargetHandleTypeEnum.Target,
   label: 1, type: "marked",
 });
+let tracker: ReturnType<typeof createManualConnectionTracker>;
+const recordManualConnection = (graph: Parameters<typeof tracker.record>[0]) => tracker.record(graph);
 let events: string[];
 let dispose: () => void;
-beforeEach(() => { events = []; dispose = subscribeAchievementEvents((event) => events.push(event.type)); });
-afterEach(() => dispose());
+beforeEach(() => { tracker = createManualConnectionTracker(); events = []; dispose = subscribeAchievementEvents((event) => events.push(event.type)); });
+afterEach(() => { dispose(); tracker.dispose(); });
 function connect(beforeEdges: EdgeType[], added: EdgeType) {
   recordManualConnection({ nodes, beforeEdges, edges: [...beforeEdges, added] });
 }

@@ -6,10 +6,15 @@ type AchievementEventHandler = (event: AchievementEvent) => void;
 
 const handlers = new Set<AchievementEventHandler>();
 
+export function hasAchievementListeners(): boolean {
+  return handlers.size > 0;
+}
+
 export function emitAchievementEvent<T = unknown>(
   type: string,
   payload?: T,
 ): void {
+  if (!handlers.size) return;
   const event: AchievementEvent<T> = { type, payload, at: Date.now() };
   handlers.forEach((handler) => handler(event));
 }

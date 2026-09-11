@@ -1,7 +1,8 @@
-import { emitAchievementEvent } from "./bus";
+import { emitAchievementEvent, hasAchievementListeners } from "./bus";
 
 /**使用实际导出的内容，避免等待保存时切换文件导致误判。 */
 export function recordPipelineExport(content: unknown, kind?: "partial" | "separated"): void {
+  if (!hasAchievementListeners()) return;
   let pipeline = content;
   if (typeof pipeline === "string") {
     try { pipeline = JSON.parse(pipeline); } catch { return; }
