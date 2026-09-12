@@ -91,7 +91,7 @@ export const heroContent = {
   title: "MaaPipelineEditor",
   description:
     "告别手调千行 JSON！用拖拽+配置的方式，高效构建、调试、分享您的 MFW 自动化流程",
-  highlightItems: ["可视化审阅与编辑", "本地能力按需接入", "AI 辅助 MCP 联动"],
+  highlightItems: ["可视化审阅与编辑", "本地能力按需接入", "AI 智能搜索与补全"],
   primaryAction: {
     label: "在线使用",
     href: siteConfig.editorUrl,
@@ -167,22 +167,22 @@ export const featureItems: FeatureItem[] = [
     label: "AI 辅助",
     title: "智能搜索与上下文感知补全",
     description:
-      "基于当前节点上下文提供精准的字段补全建议，智能搜索快速定位目标节点，MCP 联动实现跨工具流程打开",
-    tags: ["智能搜索", "上下文补全", "MCP 联动", "节点定位"],
+      "配置 AI API 后，可用自然语言搜索目标节点，通过 MPE Harness 根据当前 Pipeline 上下文补全配置、解释流程并辅助编辑",
+    tags: ["智能搜索", "上下文补全", "画布对话", "节点定位"],
     tone: "rose",
     demoLabel: "AI 能力预览",
     demoTitle: "智能补全与搜索",
-    demoDescription: "输入时自动提示可用字段，支持模糊搜索快速定位节点",
+    demoDescription: "用自然语言查找节点，结合当前 Pipeline 上下文补全配置",
     demoSteps: [
-      "在节点编辑器中输入字段名称",
-      "根据上下文获得精准补全建议",
-      "使用搜索框快速定位目标节点",
-      "通过 MCP 联动外部工具",
+      "配置 AI API 并测试连接",
+      "使用自然语言搜索目标节点",
+      "在 MPE Harness 中描述补全或编辑目标",
+      "检查生成结果并继续调整配置",
     ],
     metrics: [
       "快速定位复杂流程节点",
       "减少字段记忆成本",
-      "RLHF-Mode Coming Soon!",
+      "解释流程并辅助编辑",
     ],
   },
 ];
@@ -318,12 +318,6 @@ export const footerColumns: FooterColumn[] = [
       {
         label: "MaaFramework",
         href: "https://github.com/MaaXYZ/MaaFramework",
-        external: true,
-        variant: "text",
-      },
-      {
-        label: "MaaMCP",
-        href: "https://maa-ai.com/",
         external: true,
         variant: "text",
       },

@@ -16,20 +16,24 @@ test("hero CTAs and GitHub link point to the planned destinations", async ({ pag
 test("feature tabs switch content and support keyboard navigation", async ({ page }) => {
   await page.goto("/");
 
-  const firstTab = page.getByTestId("feature-tab-review-edit");
-  const secondTab = page.getByTestId("feature-tab-local-bridge");
-  const fourthTab = page.getByTestId("feature-tab-ai-mcp");
+  const firstTab = page.getByTestId("feature-tab-review");
+  const secondTab = page.getByTestId("feature-tab-edit");
+  const aiTab = page.getByTestId("feature-tab-ai");
 
   await firstTab.click();
   await firstTab.press("ArrowRight");
   await expect(secondTab).toHaveAttribute("aria-selected", "true");
 
-  await fourthTab.click();
-  await expect(fourthTab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByTestId("feature-panel")).toContainText("AI Assist");
-  await expect(page.getByTestId("feature-panel")).toContainText(
-    "把节点搜索、补全与跨工具联动组织成可信的辅助层",
-  );
+  await aiTab.click();
+  await expect(aiTab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("feature-panel")).toContainText("智能补全与搜索");
+  const features = page.locator("#features");
+  await expect(features).toContainText("智能搜索与上下文感知补全");
+  await expect(features).toContainText("配置 AI API 后");
+  await expect(features).toContainText("MPE Harness");
+  await expect(features).toContainText("画布对话");
+  await expect(page.locator("body")).not.toContainText(/MCP|跨工具|Coming Soon/i);
+  await expect(page.getByRole("link", { name: "MaaMCP", exact: true })).toHaveCount(0);
 });
 
 test("mobile navigation opens, closes, and can reach anchor sections", async ({ page }) => {
@@ -42,18 +46,18 @@ test("mobile navigation opens, closes, and can reach anchor sections", async ({ 
 
   await page
     .getByTestId("mobile-nav-panel")
-    .getByRole("link", { name: "场景" })
+    .getByRole("link", { name: "能力", exact: true })
     .click();
-  await expect(page).toHaveURL(/#showcase$/);
+  await expect(page).toHaveURL(/#features$/);
   await expect(page.getByTestId("mobile-nav-panel")).toBeHidden();
 });
 
 test("desktop navigation reaches ecosystem anchor and header GitHub stays correct", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByRole("link", { name: "生态", exact: true }).click();
+  await page.locator("header").getByRole("link", { name: "生态", exact: true }).click();
   await expect(page).toHaveURL(/#ecosystem$/);
-  const mseLink = page.locator(
+  const mseLink = page.locator("#ecosystem").locator(
     'a[href="https://github.com/neko-para/maa-support-extension"]',
   );
   await expect(mseLink).toContainText("MSE + iframe");
