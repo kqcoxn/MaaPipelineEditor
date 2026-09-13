@@ -266,7 +266,11 @@ function App() {
     }
 
     if (wsAutoConnect || urlParams.linkLb) {
-      localServer.connect();
+      // 文件列表推送会修复工作区状态，必须等缓存恢复完成，避免被误判为用户编辑。
+      const connectAfterStartup = () => {
+        if (!disposed) localServer.connect();
+      };
+      void startupContentTask.then(connectAfterStartup, connectAfterStartup);
     }
 
     // 使用协议检测（优先于新手引导）

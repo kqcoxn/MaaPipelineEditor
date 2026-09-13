@@ -2,6 +2,9 @@ import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { useConfigStore } from "@/stores/app/configStore";
+import { localServer } from "./services/server";
+import { repairFileCacheForRoot, useFileStore } from "./stores/project/fileStore";
+import { resetFileCacheForTests } from "./stores/project/fileCache";
 import App from "./App";
 
 const embedMocks = vi.hoisted(() => ({
@@ -52,6 +55,9 @@ vi.mock("./hooks/useEmbedChangeNotifier", () => ({
 }));
 vi.mock("./hooks/useStarReminder", () => ({
   useStarReminder: () => undefined,
+}));
+vi.mock("./features/achievements/listeners", () => ({
+  initializeAchievements: () => () => undefined,
 }));
 vi.mock("./features/embed/protocols/registerEmbedProtocol", () => ({
   registerEmbedProtocol: embedMocks.register,
@@ -108,6 +114,7 @@ describe("App startup", () => {
   beforeEach(() => {
     localStorage.clear();
     useConfigStore.getState().resetAllConfigs();
+    vi.spyOn(localServer, "connect").mockImplementation(() => undefined);
     embedMocks.dispose.mockReset();
     embedMocks.register.mockReset();
     embedMocks.register.mockReturnValue(embedMocks.dispose);
@@ -128,6 +135,8 @@ describe("App startup", () => {
 
   afterEach(() => {
     cleanup();
+    resetFileCacheForTests();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -194,5 +203,82 @@ describe("App startup", () => {
     });
     view.unmount();
     expect(startupMocks.disposeLocalBridgeConnection).toHaveBeenCalledOnce();
+  });
+
+  it("restores cached files before a fast LocalBridge file list can change the workspace", async () => {
+    embedMocks.isEmbedEnvironment.mockReturnValue(false);
+    useConfigStore.getState().setConfig("wsAutoConnect", true);
+    vi.stubGlobal("indexedDB", undefined);
+    resetFileCacheForTests();
+    const blank = {
+      fileName: "blank",
+      nodes: [],
+      edges: [],
+      config: { prefix: "" },
+    };
+    const cached = {
+      ...blank,
+      fileName: "saved",
+      config: { prefix: "", filePath: "D:/resource/saved.json" },
+    };
+    act(() => {
+      useFileStore.getState().replace([blank], blank.fileName);
+    });
+    localStorage.setItem("_mpe_files", JSON.stringify([cached]));
+    const actual = await vi.importActual<
+      typeof import("./stores/project/fileCachePersistence")
+    >("./stores/project/fileCachePersistence");
+    startupMocks.restoreFileCache.mockImplementation(() =>
+      actual.restoreFileCache(),
+    );
+    vi.mocked(localServer.connect).mockImplementation(() => {
+      // FileProtocol runs this as soon as the initial file list arrives.
+      repairFileCacheForRoot("D:/resource");
+    });
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    expect(localServer.connect).toHaveBeenCalledOnce();
+    expect(useFileStore.getState().currentFile.fileName).toBe("saved");
+    expect(useFileStore.getState().files).toHaveLength(1);
+  });
+
+  it.each([true, false])(
+    "waits for cache restoration (%s) before auto-connecting",
+    async (restored) => {
+      embedMocks.isEmbedEnvironment.mockReturnValue(false);
+      useConfigStore.getState().setConfig("wsAutoConnect", true);
+      let resolveRestore!: (value: boolean) => void;
+      startupMocks.restoreFileCache.mockReturnValue(new Promise((resolve) => {
+        resolveRestore = resolve;
+      }));
+      render(<App />);
+      expect(localServer.connect).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveRestore(restored);
+      });
+
+      expect(localServer.connect).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("does not auto-connect after unmounting during cache restoration", async () => {
+    embedMocks.isEmbedEnvironment.mockReturnValue(false);
+    useConfigStore.getState().setConfig("wsAutoConnect", true);
+    let resolveRestore!: (value: boolean) => void;
+    startupMocks.restoreFileCache.mockReturnValue(new Promise((resolve) => {
+      resolveRestore = resolve;
+    }));
+    const view = render(<App />);
+    view.unmount();
+
+    await act(async () => {
+      resolveRestore(true);
+    });
+
+    expect(localServer.connect).not.toHaveBeenCalled();
   });
 });

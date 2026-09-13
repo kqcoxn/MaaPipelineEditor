@@ -121,6 +121,14 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "1.10.1",
+    date: "2026-9",
+    type: "fix",
+    updates: {
+      fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],
+    },
+  },
+  {
     version: "1.10.0",
     date: "2026-9-11",
     type: "major",
