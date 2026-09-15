@@ -2,13 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
-export default defineConfig(({ mode }) => {
-  let base = "/stable/";
-  if (mode === "preview") {
-    base = "/MaaPipelineEditor/";
-  } else if (mode !== "stable") {
-    base = `/${mode}/`;
-  }
+export default defineConfig(({ command, mode }) => {
+  // 构建产物随 index.html 部署，可同时用于官网子目录和用户自部署目录。
+  // 开发服务保留按 mode 区分的访问路径。
+  const base =
+    command === "build"
+      ? "./"
+      : mode === "preview"
+        ? "/MaaPipelineEditor/"
+        : `/${mode}/`;
   return {
     base,
     server: {
