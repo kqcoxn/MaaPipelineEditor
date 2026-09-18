@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MPE Desktop - Launcher</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #17263e;
+        color: #f2f6ff;
+      }
+      .boot-screen {
+        height: 100vh;
+        display: grid;
+        place-content: center;
+        gap: 12px;
+        text-align: center;
+        font:
+          15px/1.6 "Segoe UI",
+          "Microsoft YaHei UI",
+          sans-serif;
+      }
+      .boot-screen strong {
+        font-size: 22px;
+      }
+      .boot-screen p {
+        margin: 0;
+        color: #d0dced;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot-screen" role="status">
+        <strong>MPE Desktop</strong>
+        <p>正在加载启动器…</p>
+        <p>若长时间没有响应，请关闭窗口后重试。</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

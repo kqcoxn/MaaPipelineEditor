@@ -1,0 +1,108 @@
+.page-logs .workspace > .management-main {
+  display: flex;
+  overflow: hidden;
+}
+.logs-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+  padding-top: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.logs-page .page-heading {
+  flex-shrink: 0;
+  padding: 8px 0 4px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.logs-page h1,
+.logs-page p {
+  margin: 0;
+}
+.logs-description {
+  flex-shrink: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.logs-page .actions {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.logs-page .logs-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+  margin: 0;
+  padding: 20px;
+  min-width: 0;
+  min-height: 0;
+}
+.logs-panel > :not(.logs-viewer) {
+  flex-shrink: 0;
+}
+.logs-panel > p {
+  overflow-wrap: anywhere;
+}
+.logs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.logs-toolbar > .select-trigger {
+  width: 240px;
+}
+.logs-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.logs-search input {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  width: 100%;
+  min-width: 0;
+}
+.logs-auto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.logs-meta {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--font-caption);
+  overflow-wrap: anywhere;
+}
+.logs-meta .path {
+  margin: 0;
+}
+.logs-viewer {
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    14px/1.65 Consolas,
+    monospace;
+}

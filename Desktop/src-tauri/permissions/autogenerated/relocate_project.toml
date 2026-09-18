@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-relocate-project"
+description = "Enables the relocate_project command without any pre-configured scope."
+commands.allow = ["relocate_project"]
+
+[[permission]]
+identifier = "deny-relocate-project"
+description = "Denies the relocate_project command without any pre-configured scope."
+commands.deny = ["relocate_project"]

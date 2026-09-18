@@ -39,8 +39,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.21"
+          go-version-file: LocalBridge/go.mod
           cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Build LocalBridge
         working-directory: LocalBridge
@@ -50,7 +54,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+            VERSION=$(node -p 'require("../Desktop/package.json").version')
           else
             VERSION=${GITHUB_REF#refs/tags/v}
           fi
@@ -151,8 +155,84 @@ jobs:
             MaaPipelineEditor-*-docs.zip
             MaaPipelineEditor-*-landing.zip
 
-  release:
+  build-desktop:
+    name: Build MPE Desktop (${{ matrix.os }})
+    if: ${{ github.event_name == 'workflow_dispatch' || (!contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test')) }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            bundle: nsis
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            bundle: dmg
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    env:
+      MPE_OFFICIAL_RELEASE: ${{ github.event_name == 'push' }}
+      MPE_UPDATER_PUBLIC_KEY: ${{ vars.MPE_UPDATER_PUBLIC_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: node scripts/ci/desktop-release.mjs configure
+      - run: yarn desktop:install
+      - run: yarn --cwd Desktop tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundle }} --config src-tauri/release.conf.json
+      - run: node scripts/ci/desktop-release.mjs collect Desktop/src-tauri/target/${{ matrix.target }}/release/bundle desktop-artifacts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          path: desktop-artifacts/*
+
+  package-environment:
     needs: [build-web, build-localbridge]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: LocalBridge/go.mod
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-packages
+          path: web-artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mpelb-*
+          path: localbridge-artifacts
+          merge-multiple: true
+      - name: Assemble versioned environment
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(node -p 'JSON.parse(require("fs").readFileSync("Desktop/package.json")).version')
+          MFW_VERSION=$(sed -nE 's/.*mfwVersion: "v?([^"]+)".*/\1/p' Editor/src/stores/app/configStore.ts)
+          EDITOR=$(find "$PWD/web-artifacts" -name '*-stable.zip' -print -quit)
+          cd LocalBridge
+          go run ./cmd/mpe-package --desktop-config "$GITHUB_WORKSPACE/Desktop/desktop-release.json" --version "$VERSION" --mfw-version "$MFW_VERSION" --binaries "$GITHUB_WORKSPACE/localbridge-artifacts" --editor "$EDITOR" --output "$GITHUB_WORKSPACE/environment-artifacts"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mpe-environments
+          path: environment-artifacts/*
+
+  release:
+    needs: [build-web, build-localbridge, package-environment, build-desktop]
     runs-on: ubuntu-latest
     # 仅在 tag 触发时执行发布，手动触发时跳过
     if: ${{ github.event_name == 'push' && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'test') }}
@@ -175,16 +255,34 @@ jobs:
           pattern: mpelb-*
           merge-multiple: true
 
-      - name: Clean up redundant files
-        run: |
-          # 删除所有 artifacts 目录中的多余文件
-          find . -type f \( -name "index.html" -o -name "*.ico" -o -name "logo.png" -o -name "maafw.png" \) -delete
-          echo "已删除多余文件"
+      - uses: actions/download-artifact@v4
+        with:
+          name: mpe-environments
+          path: environment-artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: desktop-artifacts
+          merge-multiple: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - run: node scripts/ci/desktop-release.mjs manifest desktop-artifacts "${GITHUB_REF_NAME#v}"
+        shell: bash
+
+      - name: Generate static version index and include it in the landing package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          node scripts/ci/release-index.mjs environment-artifacts/mpe-versions.json environment-artifacts/mpe-manifest.json
+          mkdir -p landing-index
+          cp environment-artifacts/mpe-versions.json landing-index/mpe-versions.json
+          cd landing-index
+          zip -u "../MaaPipelineEditor-${GITHUB_REF_NAME}-landing.zip" mpe-versions.json
 
       - name: Generate Changelog
         id: changelog
@@ -213,6 +311,8 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-docs.zip
             MaaPipelineEditor-${{ github.ref_name }}-landing.zip
             localbridge-artifacts/*
+            environment-artifacts/*
+            desktop-artifacts/*
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false

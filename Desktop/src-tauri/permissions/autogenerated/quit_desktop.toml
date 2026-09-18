@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-quit-desktop"
+description = "Enables the quit_desktop command without any pre-configured scope."
+commands.allow = ["quit_desktop"]
+
+[[permission]]
+identifier = "deny-quit-desktop"
+description = "Denies the quit_desktop command without any pre-configured scope."
+commands.deny = ["quit_desktop"]

@@ -1,0 +1,67 @@
+.settings-page {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+.settings-page .page-heading {
+  padding: 8px 0 4px;
+}
+.settings-page .page-heading > div {
+  display: grid;
+  gap: 6px;
+}
+.settings-page h1,
+.settings-page .page-heading p,
+.settings-page .panel h2,
+.settings-page .panel p {
+  margin: 0;
+}
+.settings-page .panel {
+  margin: 0;
+  padding: 20px;
+}
+.settings-page .panel p {
+  line-height: 1.6;
+}
+.settings-page .setting-row {
+  padding: 16px 0;
+  gap: 16px;
+}
+.settings-page .setting-row:last-child {
+  padding-bottom: 0;
+}
+.settings-page .setting-row > span {
+  min-width: 0;
+}
+.settings-page .setting-row small {
+  margin-top: 4px;
+  line-height: 1.6;
+}
+.settings-page .setting-row > .button {
+  flex-shrink: 0;
+}
+.settings-page .actions {
+  gap: 12px;
+}
+.token-settings {
+  display: grid;
+  gap: 16px;
+}
+.token-description,
+.token-field {
+  display: grid;
+  gap: 8px;
+}
+.token-field > label {
+  font-size: var(--font-caption);
+}
+.token-field > input {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}

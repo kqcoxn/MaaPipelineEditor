@@ -5,6 +5,7 @@ on:
     paths:
       - "Landing/**"
       - ".github/workflows/landing.yml"
+      - "scripts/ci/release-index*"
   workflow_dispatch:
 
 permissions:
@@ -36,6 +37,11 @@ jobs:
       - name: Type check
         run: yarn typecheck
         working-directory: Landing
+
+      - name: Generate published version index
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/release-index.mjs Landing/public/mpe-versions.json
 
       - name: Build landing
         run: yarn build

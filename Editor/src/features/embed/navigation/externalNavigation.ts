@@ -1,3 +1,4 @@
+import { desktopContext, desktopInvoke } from "@/features/desktop/host";
 import { isEmbedEnvironment, sendToParent } from "../../../utils/embedBridge";
 
 function normalizeExternalUrl(url: string): string | null {
@@ -15,6 +16,8 @@ function normalizeExternalUrl(url: string): string | null {
 export function openExternalUrl(url: string): boolean {
   const normalizedUrl = normalizeExternalUrl(url);
   if (!normalizedUrl) return false;
+
+  if (desktopContext) { void desktopInvoke("open_link", { url: normalizedUrl }); return true; }
 
   if (isEmbedEnvironment()) {
     sendToParent("mpe:openExternalRequest", { url: normalizedUrl });

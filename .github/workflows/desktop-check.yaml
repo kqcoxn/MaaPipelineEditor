@@ -1,0 +1,32 @@
+name: MPE Desktop checks
+on:
+  pull_request:
+    paths: ['Desktop/**', 'LocalBridge/**', 'Editor/**', 'scripts/ci/desktop-release*', 'scripts/lib/desktop-release.mjs', 'scripts/development/*desktop-revision*', 'scripts/ci/release-index*', '.github/workflows/desktop-check.yaml']
+  workflow_dispatch:
+jobs:
+  check:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: LocalBridge/go.mod
+      - run: node --test scripts/ci/release-index.test.mjs scripts/ci/desktop-release.test.mjs scripts/development/desktop-revision.test.mjs
+      - run: yarn desktop:install
+      - run: yarn --cwd Desktop build
+      - run: yarn desktop:test
+      - run: yarn editor:install
+      - run: yarn --cwd Editor vitest run src/features/desktop/closeSession.test.ts src/stores/project/fileDirtyState.test.ts src/stores/project/fileCache.test.ts src/features/embed/navigation/externalNavigation.test.ts src/services/localBridgeConnection.test.ts
+      - run: cargo fmt --check
+        working-directory: Desktop/src-tauri
+      - run: cargo test --locked
+        working-directory: Desktop/src-tauri
+      - run: go test ./internal/managed ./internal/install ./internal/dependencies ./internal/server ./cmd/lb
+        working-directory: LocalBridge

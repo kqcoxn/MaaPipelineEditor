@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { FileType } from "./fileStore";
 import {
+  discardDesktopFilesOnClose,
   flushFileCache,
   flushFileCacheSync,
   primeRestoredFileCache,
@@ -184,4 +185,18 @@ describe("file cache", () => {
     expect(JSON.parse(localStorage.getItem("_mpe_file:first") ?? "null"))
       .toMatchObject(latest);
   });
+  it("persists an empty snapshot when all desktop edits are discarded", async () => {
+    const file = createFile("draft", "unsaved");
+    scheduleFileCache([file], "draft");
+    flushFileCacheSync();
+    discardDesktopFilesOnClose(["draft"]);
+    scheduleFileCache([file], "draft");
+    flushFileCacheSync();
+    expect((await readCachedFiles())?.files).toEqual([]);
+    discardDesktopFilesOnClose([]);
+    scheduleFileCache([file], "draft");
+    flushFileCacheSync();
+    expect((await readCachedFiles())?.files).toEqual([file]);
+  });
+
 });

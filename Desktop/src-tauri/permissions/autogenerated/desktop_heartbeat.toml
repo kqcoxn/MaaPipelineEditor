@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-desktop-heartbeat"
+description = "Enables the desktop_heartbeat command without any pre-configured scope."
+commands.allow = ["desktop_heartbeat"]
+
+[[permission]]
+identifier = "deny-desktop-heartbeat"
+description = "Denies the desktop_heartbeat command without any pre-configured scope."
+commands.deny = ["desktop_heartbeat"]

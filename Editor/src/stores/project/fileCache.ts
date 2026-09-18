@@ -1,10 +1,12 @@
+import { desktopContext } from "@/features/desktop/host";
+const desktopNamespace = desktopContext ? `:${desktopContext.projectKey}` : "";
 import { normalizeViewport } from "@/stores/flow/utils/viewportUtils";
 import type { FileType } from "./fileStore";
 
-const CACHE_PREFIX = "_mpe_file:";
-const MANIFEST_KEY = "_mpe_files_manifest";
-const LEGACY_KEY = "_mpe_files";
-const DATABASE_NAME = "mpe-file-cache";
+const CACHE_PREFIX = `_mpe_file${desktopNamespace}:`;
+const MANIFEST_KEY = `_mpe_files_manifest${desktopNamespace}`;
+const LEGACY_KEY = `_mpe_files${desktopNamespace}`;
+const DATABASE_NAME = `mpe-file-cache${desktopNamespace}`;
 const DATABASE_VERSION = 1;
 const FILE_STORE_NAME = "files";
 const META_STORE_NAME = "meta";
@@ -21,6 +23,9 @@ type FileCacheManifest = {
 };
 
 type PendingWrite = { fileName: string; value: FileType };
+
+let discardedDesktopFiles = new Set<string>();
+export function discardDesktopFilesOnClose(names: string[]): void { discardedDesktopFiles = new Set(names); }
 
 let knownFiles = new Map<string, FileType>();
 // IndexedDB and localStorage have independent records. An IndexedDB write
@@ -97,14 +102,12 @@ function readLocalCachedFiles(): FileCacheSnapshot | null {
       });
       if (records.some((file) => !file)) throw new Error("缓存记录不完整");
       const files = records.filter((file): file is FileType => Boolean(file));
-      if (files.length > 0) {
-        return {
-          files,
-          currentFileName: manifest.currentFileName,
-          source: "local",
-          updatedAt: manifest.updatedAt ?? 0,
-        };
-      }
+      return {
+        files,
+        currentFileName: manifest.currentFileName,
+        source: "local",
+        updatedAt: manifest.updatedAt ?? 0,
+      };
     } catch {
       // Fall through to the legacy single-record cache.
     }
@@ -228,14 +231,7 @@ async function readIndexedDb(): Promise<FileCacheSnapshot | null> {
     const files = records
       .map((record) => record?.value)
       .filter((file): file is FileType => Boolean(file));
-    return files.length > 0
-      ? {
-          files,
-          currentFileName: manifest.currentFileName,
-          source: "indexeddb",
-          updatedAt: manifest.updatedAt ?? 0,
-        }
-      : null;
+    return { files, currentFileName: manifest.currentFileName, source: "indexeddb", updatedAt: manifest.updatedAt ?? 0 };
   } catch {
     return null;
   }
@@ -337,7 +333,8 @@ async function flushPending(): Promise<void> {
 }
 
 export function scheduleFileCache(files: FileType[], currentFileName: string): void {
-  const collected = collectPending(files, currentFileName);
+  const remaining = files.filter(file => !discardedDesktopFiles.has(file.fileName));
+  const collected = collectPending(remaining, discardedDesktopFiles.has(currentFileName) ? (remaining[0]?.fileName ?? "") : currentFileName);
   for (const write of collected.writes) {
     pendingDeletes.delete(write.fileName);
     pendingWrites.set(write.fileName, write);
@@ -394,6 +391,7 @@ export function setFileCacheErrorHandler(
 }
 
 export function resetFileCacheForTests(): void {
+  discardedDesktopFiles = new Set();
   clearSchedule();
   knownFiles = new Map();
   localKnownFiles = new Map();

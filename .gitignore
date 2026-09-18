@@ -39,3 +39,11 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+/Desktop/src-tauri/target/
+
+/Desktop/src-tauri/gen/
+/Desktop/src-tauri/release.conf.json
+
+# Generated from published releases during landing/release builds
+Landing/public/mpe-versions.json

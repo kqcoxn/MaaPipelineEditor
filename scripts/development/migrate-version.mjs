@@ -34,6 +34,11 @@ const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?$/;
 //   lineMode : true 时改为行锚定模式 (用于 package.json 多处 v 前缀)
 //   anchor   : 行锚定模式下匹配目标行的正则
 const TARGETS = [
+  { id: "MPE Desktop package", file: "Desktop/package.json", re: /("version":\s*")([^"]+)(")/ },
+  { id: "MPE Desktop Cargo", file: "Desktop/src-tauri/Cargo.toml", re: /(version = ")([^"]+)(")/ },
+  { id: "MPE Desktop Tauri", file: "Desktop/src-tauri/tauri.conf.json", re: /("version":\s*")([^"]+)(")/ },
+  { id: "MPE Desktop Cargo lock", file: "Desktop/src-tauri/Cargo.lock", re: /(name = "mpe-desktop"\r?\nversion = ")([^"]+)(")/ },
+
   {
     id: "configStore.ts (version)",
     file: "Editor/src/stores/app/configStore.ts",

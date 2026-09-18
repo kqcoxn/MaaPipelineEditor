@@ -1,3 +1,4 @@
+import { desktopContext } from "@/features/desktop/host";
 import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Header.module.less";
 
@@ -276,6 +277,7 @@ function Header() {
 
   // 检测版本更新
   useEffect(() => {
+    if (desktopContext) return;
     if (localStorage.getItem("mpe_newcomer_passed") !== "true") return;
 
     const lastVersion = localStorage.getItem("mpe_last_version");
@@ -300,7 +302,7 @@ function Header() {
 
   // 答题通过后弹出更新日志
   useEffect(() => {
-    if (isEmbed) return;
+    if (isEmbed || desktopContext) return;
     const handler = () => setUpdateLogOpen(true);
     window.addEventListener("mpe:newcomer-passed", handler);
     return () => window.removeEventListener("mpe:newcomer-passed", handler);
@@ -308,7 +310,7 @@ function Header() {
 
   // 检查新版本
   useEffect(() => {
-    if (globalConfig.dev || isEmbed) return;
+    if (globalConfig.dev || isEmbed || desktopContext) return;
     checkUpdateFromFrontend(globalConfig.version).then((info) => {
       if (info && info.hasUpdate) {
         setUpdateInfo(info);

@@ -1,0 +1,14 @@
+{
+  "identifier": "renderer",
+  "windows": ["renderer"],
+  "permissions": [
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-desktop-reply",
+    "allow-desktop-open-devtools",
+    "allow-desktop-heartbeat",
+    "allow-desktop-save-path",
+    "allow-desktop-save-archive",
+    "allow-open-link"
+  ]
+}

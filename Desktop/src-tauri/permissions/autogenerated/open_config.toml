@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-config"
+description = "Enables the open_config command without any pre-configured scope."
+commands.allow = ["open_config"]
+
+[[permission]]
+identifier = "deny-open-config"
+description = "Denies the open_config command without any pre-configured scope."
+commands.deny = ["open_config"]

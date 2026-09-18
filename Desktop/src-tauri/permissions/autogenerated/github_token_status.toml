@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-github-token-status"
+description = "Enables the github_token_status command without any pre-configured scope."
+commands.allow = ["github_token_status"]
+
+[[permission]]
+identifier = "deny-github-token-status"
+description = "Denies the github_token_status command without any pre-configured scope."
+commands.deny = ["github_token_status"]

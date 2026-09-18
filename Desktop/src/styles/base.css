@@ -1,0 +1,124 @@
+@theme {
+  --font-sans:
+    "Segoe UI", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Copyable content is opt-in; editing controls retain normal text selection. */
+input,
+textarea,
+[contenteditable="true"],
+.selectable-text,
+.path,
+.project-select small {
+  -webkit-user-select: text;
+  user-select: text;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-normal) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) var(--ease-out);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+button,
+a,
+input {
+  outline-offset: 4px;
+}
+:focus-visible {
+  outline: 2px solid var(--focus, #a9d4ff);
+}
+button svg {
+  flex-shrink: 0;
+}
+.app {
+  --font-caption: 13px;
+  --font-body: 15px;
+  --font-label: 16px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-fast: 160ms;
+  --motion-normal: 260ms;
+  --motion-enter: 320ms;
+  --bg: #17263e;
+  --panel: #182a43ed;
+  --panel-hover: #304967;
+  --text: #f2f6ff;
+  --muted: #d0dced;
+  --line: #d6e6ff29;
+  --accent: #aad1ff;
+  --primary: #1767d8;
+  --primary-hover: #2378ed;
+  --on-primary: #fff;
+  --focus: #b5dcff;
+  --success: #8bdfbd;
+  --danger: #ffbdb4;
+  --warning: #ffce92;
+  --glass: #2138588c;
+  --glass-edge: #e5efff40;
+  --sidebar: #172d4e52;
+  --dock: #182d4eb3;
+  --shadow: 0 12px 36px #06162d24;
+  --scrim:
+    linear-gradient(90deg, #101f3b52, #15254118 64%, #13244008),
+    linear-gradient(0deg, #0c1c3c5c, transparent 45%);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+  position: relative;
+  color: var(--text);
+  background-color: var(--bg);
+  --wallpaper: url("/backgrounds/cloud-harbor-v6.png");
+  background-image: var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  color-scheme: dark;
+}
+.app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+  z-index: -1;
+  pointer-events: none;
+}
+.theme-light {
+  --bg: #eef3fb;
+  --panel: #f6f9ffed;
+  --panel-hover: #deebfc;
+  --text: #203752;
+  --muted: #415975;
+  --line: #28497025;
+  --accent: #185cb2;
+  --focus: #165fc7;
+  --success: #16734f;
+  --danger: #a83635;
+  --warning: #8c4d10;
+  --glass: #eff5ffc4;
+  --glass-edge: #ffffffa6;
+  --sidebar: #eef4fb91;
+  --dock: #f2f7ffd4;
+  color-scheme: light;
+}

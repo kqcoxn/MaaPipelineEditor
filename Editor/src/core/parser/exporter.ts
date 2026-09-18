@@ -271,6 +271,7 @@ export function flowToPipeline(datas?: FlowToOptions): PipelineObjType {
     const normalizedViewport = normalizeViewport(exportConfig.savedViewport);
     delete exportConfig.nodeOrderMap;
     delete exportConfig.nextOrderNumber;
+    delete exportConfig.savedContentSignature;
     delete exportConfig.savedViewport;
     return {
       [configMarkPrefix + fileName]: {

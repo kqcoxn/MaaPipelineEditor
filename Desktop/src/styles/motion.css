@@ -1,0 +1,172 @@
+/* Ambient loops use Motion mini; controls keep finite CSS transitions. */
+.background-ambience {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient-wallpaper,
+.ambient-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.ambient-wallpaper {
+  background-image: var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  transform: translate(0, -0.8%) scale(1.06);
+}
+.ambient-light {
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 68% 54%, #ffdcad99, transparent 48%),
+    radial-gradient(ellipse at 88% 18%, #b6ddff66, transparent 38%);
+}
+.sky-workflow {
+  position: absolute;
+  top: 48px;
+  right: 1.5%;
+  width: 44%;
+  max-width: 780px;
+  height: auto;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.95;
+  transform-origin: center;
+}
+.sky-signal {
+  opacity: 0;
+  filter: drop-shadow(0 0 3px #b5e3ff);
+}
+.ambient-motes {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ambient-motes span {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  background: #fff2ce;
+  box-shadow: 0 0 8px 2px #ffd69475;
+}
+.ambient-motes span:nth-child(3n) {
+  background: #dcf3ff;
+  box-shadow: 0 0 9px 2px #acdfff66;
+  filter: blur(0.7px);
+}
+.workspace > main {
+  animation: content-arrive var(--motion-enter) var(--ease-out) both;
+}
+.hero-message {
+  animation: content-arrive var(--motion-enter) var(--ease-out) both;
+}
+.sidebar button > svg,
+.hero-story svg,
+.launch-button > svg:not(.spin) {
+  transition:
+    transform var(--motion-normal) var(--ease-out),
+    color var(--motion-fast) var(--ease-out);
+}
+.sidebar nav button:hover > svg {
+  transform: translateY(-1px);
+}
+.sidebar-bottom button:hover > svg:last-child:not(:first-child) {
+  transform: translateX(3px);
+}
+.hero-story:hover svg {
+  transform: translate(2px, -2px);
+}
+.button:hover:not(:disabled),
+.hero-story:hover {
+  transform: translateY(-1px);
+}
+.launch-button:hover:not(:disabled) > svg:not(.spin) {
+  transform: translateX(2px);
+}
+.button:active:not(:disabled),
+.hero-story:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 90ms;
+}
+.sidebar button:active:not(:disabled),
+.project-select:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.project-card {
+  transition:
+    border-color var(--motion-normal) var(--ease-out),
+    background-color var(--motion-normal) var(--ease-out),
+    box-shadow var(--motion-normal) var(--ease-out);
+}
+.project-card:has(.project-select:hover:not(:disabled)) {
+  border-color: var(--accent);
+  box-shadow: 0 5px 20px #06162d18;
+}
+.setting-row input {
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+.banner {
+  animation: content-arrive 220ms var(--ease-out) both;
+}
+.modal-backdrop {
+  animation: fade-arrive 180ms ease-out both;
+}
+.welcome {
+  animation: content-arrive var(--motion-enter) var(--ease-out) both;
+}
+@keyframes content-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (max-width: 1050px) {
+  .sky-workflow {
+    width: 38%;
+    top: 50px;
+    right: 1%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ambient-wallpaper {
+    transform: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .button:hover:not(:disabled),
+  .hero-story:hover,
+  .button:active:not(:disabled),
+  .hero-story:active,
+  .sidebar button:active:not(:disabled),
+  .project-select:active:not(:disabled),
+  .sidebar button:hover > svg,
+  .hero-story:hover svg,
+  .launch-button:hover:not(:disabled) > svg:not(.spin) {
+    transform: none;
+  }
+}

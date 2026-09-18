@@ -16,7 +16,7 @@ import (
 )
 
 // 通信协议版本
-const ProtocolVersion = "1.5.0"
+const ProtocolVersion = "1.6.0"
 
 // 版本握手路由
 const (
@@ -34,6 +34,8 @@ type WebSocketServer struct {
 	connections    map[*Connection]bool
 	register       chan *Connection
 	unregister     chan *Connection
+	done           chan struct{}
+	stopOnce       sync.Once
 	messageHandler MessageHandler
 	eventBus       *eventbus.EventBus
 	mu             sync.RWMutex
@@ -54,6 +56,7 @@ func NewWebSocketServer(
 		connections:    make(map[*Connection]bool),
 		register:       make(chan *Connection),
 		unregister:     make(chan *Connection),
+		done:           make(chan struct{}),
 		eventBus:       eventBus,
 		allowedOrigins: append([]string(nil), allowedOrigins...),
 	}
@@ -66,29 +69,45 @@ func (s *WebSocketServer) SetMessageHandler(handler MessageHandler) {
 }
 
 // 启动服务器
-func (s *WebSocketServer) Start() error {
-	// 启动连接管理协程
-	go s.run()
+func (s *WebSocketServer) Start() error { return s.StartWithReady(nil) }
+
+func (s *WebSocketServer) StartWithReady(ready func(string)) error {
+	defer s.Stop()
 
 	// 设置 HTTP 路由
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleWebSocket)
 
 	// 创建 HTTP 服务器
-	s.server = &http.Server{
+	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", s.host, s.port),
 		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
-	logger.Info("WebSocket", "服务器已启动，监听地址: %s:%d", s.host, s.port)
-	// 根据端口动态生成在线服务地址
-	onlineURL := fmt.Sprintf("https://mpe.codax.site/stable/?link_lb=true&port=%d", s.port)
-	logger.Info("Main", "在线服务地址: %s", onlineURL)
+	s.mu.Lock()
+	s.server = server
+	s.mu.Unlock()
 
 	// 启动服务器
-	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	listener, err := net.Listen("tcp", server.Addr)
+	if err != nil {
+		return err
+	}
+	select {
+	case <-s.done:
+		listener.Close()
+		return nil
+	default:
+	}
+	go s.run()
+	logger.Info("WebSocket", "服务器已启动，监听地址: %s", listener.Addr())
+	onlineURL := fmt.Sprintf("https://mpe.codax.site/stable/?link_lb=true&port=%d", listener.Addr().(*net.TCPAddr).Port)
+	logger.Info("Main", "在线服务地址: %s", onlineURL)
+	if ready != nil {
+		ready("ws://" + listener.Addr().String())
+	}
+	if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 		return fmt.Errorf("服务器启动失败: %w", err)
 	}
 
@@ -135,18 +154,22 @@ func isLoopbackHost(hostname string) bool {
 
 // 停止服务器
 func (s *WebSocketServer) Stop() error {
+	s.stopOnce.Do(func() { close(s.done) })
 	logger.Info("WebSocket", "正在关闭服务器...")
 
 	// 关闭所有连接
 	s.mu.Lock()
 	for conn := range s.connections {
 		conn.closeSend()
+		conn.closeDone()
+		_ = conn.conn.Close()
 	}
+	server := s.server
 	s.mu.Unlock()
 
 	// 关闭 HTTP 服务器
-	if s.server != nil {
-		return s.server.Close()
+	if server != nil {
+		return server.Close()
 	}
 
 	return nil
@@ -156,8 +179,17 @@ func (s *WebSocketServer) Stop() error {
 func (s *WebSocketServer) run() {
 	for {
 		select {
+		case <-s.done:
+			return
 		case conn := <-s.register:
 			s.mu.Lock()
+			select {
+			case <-s.done:
+				s.mu.Unlock()
+				_ = conn.conn.Close()
+				continue
+			default:
+			}
 			s.connections[conn] = true
 			s.mu.Unlock()
 
@@ -201,7 +233,12 @@ func (s *WebSocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request
 	connection := newConnection(r.RemoteAddr, conn, s)
 
 	// 注册连接
-	s.register <- connection
+	select {
+	case s.register <- connection:
+	case <-s.done:
+		_ = conn.Close()
+		return
+	}
 
 	// 启动读写协程
 	go connection.writePump()

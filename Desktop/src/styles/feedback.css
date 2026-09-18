@@ -1,0 +1,62 @@
+/* Independent overlay: a failed update must not push the homepage down. */
+.launcher-feedback {
+  position: absolute;
+  z-index: 5;
+  top: 28px;
+  right: var(--workspace-inset);
+  width: min(400px, calc(100% - var(--workspace-inset) * 2));
+  max-height: min(360px, 55%);
+  overflow: auto;
+  scrollbar-width: thin;
+  pointer-events: none;
+}
+.launcher-feedback:empty {
+  display: none;
+}
+.launcher-feedback .banner {
+  pointer-events: auto;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 8px;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(16px);
+}
+.launcher-feedback .banner:last-child {
+  margin-bottom: 0;
+}
+.launcher-feedback .banner button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+.launcher-feedback .banner button:hover {
+  background: var(--panel-hover);
+}
+.launcher-feedback .banner button:focus-visible {
+  outline-offset: -2px;
+}
+.feedback-copy {
+  min-width: 0;
+  flex: 1;
+}
+.feedback-copy strong {
+  font-weight: 600;
+}
+.feedback-copy p {
+  margin: 6px 0 0;
+}
+.feedback-copy details {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+.feedback-copy summary {
+  cursor: pointer;
+  width: fit-content;
+}
+.feedback-copy details p {
+  white-space: pre-wrap;
+}

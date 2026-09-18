@@ -20,6 +20,7 @@ import { mfwProtocol } from "../../../../services/server";
 import { useWSStore } from "@/stores/connection/wsStore";
 import type { DebugModalController } from "../../hooks/useDebugModalController";
 import { MaaLogAnalyzerIntro } from "../MaaLogAnalyzerIntro";
+import { saveLogArchive } from "@/utils/logArchive";
 
 const { Text } = Typography;
 
@@ -126,22 +127,21 @@ export function DebugLogPanel({
         message.error(data.message);
       }
     });
-    const unsubscribeExported = mfwProtocol.onMFWLogsExported((data) => {
-      setExporting(false);
+    const unsubscribeExported = mfwProtocol.onMFWLogsExported(async (data) => {
       if (!data.success || !data.content) {
+        setExporting(false);
         message.error(data.message ?? "MFW 日志打包失败");
         return;
       }
 
-      const binary = atob(data.content);
-      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/zip" }));
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = data.filename ?? "mfw-logs.zip";
-      anchor.click();
-      URL.revokeObjectURL(url);
-      message.success(data.message ?? "MFW 日志打包成功");
+      try {
+        const saved = await saveLogArchive(data.content, data.filename ?? "mfw-logs.zip");
+        if (saved) message.success(saved.path ? `日志已保存至：${saved.path}` : "MFW 日志打包成功", 6);
+      } catch (error) {
+        message.error(`日志保存失败：${String(error)}`);
+      } finally {
+        setExporting(false);
+      }
     });
     return () => {
       unsubscribeContent();

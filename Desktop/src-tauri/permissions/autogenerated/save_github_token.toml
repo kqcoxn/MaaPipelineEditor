@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-github-token"
+description = "Enables the save_github_token command without any pre-configured scope."
+commands.allow = ["save_github_token"]
+
+[[permission]]
+identifier = "deny-save-github-token"
+description = "Denies the save_github_token command without any pre-configured scope."
+commands.deny = ["save_github_token"]

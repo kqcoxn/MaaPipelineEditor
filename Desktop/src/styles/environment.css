@@ -1,0 +1,66 @@
+.environment-page {
+  display: grid;
+  gap: 16px;
+  padding-top: 8px;
+}
+.environment-page .page-heading {
+  padding: 8px 0 4px;
+  gap: 16px;
+}
+.environment-page h1,
+.environment-page .panel h2,
+.environment-page .panel p {
+  margin: 0;
+}
+.environment-page .panel {
+  margin: 0;
+  padding: 20px;
+}
+.environment-page .panel p {
+  line-height: 1.6;
+}
+.environment-install {
+  display: grid;
+  gap: 20px;
+}
+.environment-summary,
+.environment-help {
+  display: grid;
+  gap: 12px;
+}
+.environment-page .engine-status {
+  gap: 12px;
+}
+.environment-page .engine-status > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.environment-page .status-orb {
+  flex: none;
+}
+.environment-versions {
+  display: grid;
+  gap: 12px;
+}
+.environment-page .version-row {
+  gap: 12px;
+}
+.environment-page .version-row > .button {
+  min-height: 42px;
+  padding-block: 8px;
+}
+.environment-notes,
+.environment-help-copy {
+  display: grid;
+  gap: 6px;
+}
+.environment-page .conflict {
+  display: grid;
+  gap: 12px;
+}
+@media (max-width: 1050px) {
+  .environment-page .version-field {
+    flex-basis: 100%;
+  }
+}

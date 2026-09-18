@@ -54,7 +54,7 @@ func Init(logLevel string, logDir string, pushToClient bool) error {
 	consoleLogger.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp:   true,
 		TimestampFormat: "15:04:05",
-		ForceColors:     true,
+		// 自动识别终端；重定向到桌面端日志文件时不输出 ANSI 颜色码。
 	})
 
 	// 添加推送到客户端的钩子

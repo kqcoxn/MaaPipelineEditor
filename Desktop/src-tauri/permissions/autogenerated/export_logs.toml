@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-export-logs"
+description = "Enables the export_logs command without any pre-configured scope."
+commands.allow = ["export_logs"]
+
+[[permission]]
+identifier = "deny-export-logs"
+description = "Denies the export_logs command without any pre-configured scope."
+commands.deny = ["export_logs"]

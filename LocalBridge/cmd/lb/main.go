@@ -19,6 +19,7 @@ import (
 	debugapi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/api"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/managed"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 	aiProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/ai"
@@ -58,7 +59,7 @@ var rootCmd = &cobra.Command{
 	Short:   "⭐ MPE Local Bridge - 为 MaaPipelineEditor 构建本地的桥梁 🌉",
 	Long:    `MPE Local Bridge 是连接本地各系统与 MaaPipelineEditor 前端的桥梁服务，目前支持文件管理功能，更多集成即将更新！`,
 	Version: Version,
-	Run:     runServer,
+	RunE:    runServer,
 }
 
 var configCmd = &cobra.Command{
@@ -152,7 +153,29 @@ func printBanner() {
 }
 
 // 启动服务
-func runServer(cmd *cobra.Command, args []string) {
+func runServer(cmd *cobra.Command, args []string) error {
+	if showVersion {
+		fmt.Println(Version)
+		return nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	installLock, err := managed.InstallationLock(filepath.Dir(exe), true)
+	if err != nil {
+		return err
+	}
+	defer installLock.Close()
+	if _, err := os.Stat(filepath.Join(filepath.Dir(exe), ".mpe-transaction")); err == nil {
+		return fmt.Errorf("安装未完成，请先运行 mpelb env recover")
+	}
+	service, err := managed.Start(Version, rootDir, managedMode)
+	if err != nil {
+		return err
+	}
+	defer func() { installLock.Close(); service.Close() }()
+	watchOwner(service)
 	// 打印启动 Banner
 	printBanner()
 
@@ -165,14 +188,14 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 确保所有必要目录存在
 	if err := paths.EnsureAllDirs(); err != nil {
 		fmt.Fprintf(os.Stderr, "创建数据目录失败: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 
 	// 加载配置
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "加载配置失败: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 
 	// 从命令行参数解析当前进程的有效配置
@@ -186,13 +209,15 @@ func runServer(cmd *cobra.Command, args []string) {
 		cmd.Flags().Changed("interface"),
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "解析运行配置失败: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
+
+	service.SetRoot(cfg.EffectiveRoot())
 
 	// 初始化日志系统
 	if err := logger.Init(cfg.Log.Level, cfg.Log.Dir, cfg.Log.PushToClient); err != nil {
 		fmt.Fprintf(os.Stderr, "初始化日志系统失败: %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 
 	logger.Info("Main", "Local Bridge 启动中... 版本: %s", Version)
@@ -218,7 +243,7 @@ func runServer(cmd *cobra.Command, args []string) {
 			logger.Error("Main", "")
 			logger.Error("Main", "启动已中止。请指定更具体的项目目录。")
 			logger.Error("Main", "示例: mpelb --root \"C:\\YourProject\"")
-			os.Exit(1)
+			return fmt.Errorf("服务启动失败，请查看上述日志")
 
 		case "medium":
 			logger.Warn("Main", "⚠️  注意：扫描目录范围较大")
@@ -250,18 +275,24 @@ func runServer(cmd *cobra.Command, args []string) {
 	)
 	if err != nil {
 		logger.Error("Main", "创建文件服务失败: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 
 	// 创建 MFW 服务
 	mfwSvc := mfw.NewService()
+	defer func() {
+		if err := mfwSvc.Shutdown(); err != nil {
+			logger.Error("Main", "MFW 服务关闭失败: %v", err)
+		}
+	}()
+	defer fileSvc.Stop()
 	// 初始化 MFW 服务
 	if err := mfwSvc.Initialize(); err != nil {
 		// 检查是否是库版本不匹配错误
 		if strings.Contains(err.Error(), "库版本不匹配") || strings.Contains(err.Error(), "panic") {
 			logger.Error("Main", "MFW 服务初始化失败: %v", err)
 			logger.Error("Main", "程序将退出，请更新 MaaFramework 后重启")
-			os.Exit(1)
+			return fmt.Errorf("服务启动失败，请查看上述日志")
 		}
 		logger.Warn("Main", "MFW 服务初始化失败: %v (当前状态仅可使用文件管理功能)", err)
 	} else {
@@ -275,27 +306,35 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 启动文件服务
 	if err := fileSvc.Start(); err != nil {
 		logger.Error("Main", "启动文件服务失败: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 
 	piSvc, err := projectInterfaceService.NewService(cfg.EffectiveRoot(), cfg.Interface.Path, fileSvc, eventBus)
 	if err != nil {
 		logger.Error("Main", "创建 Project Interface 服务失败: %v", err)
-		os.Exit(1)
+		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
+	defer piSvc.Close()
 	piSvc.Start()
 
 	// 创建资源扫描服务
 	resSvc := resourceService.NewService(cfg.EffectiveRoot(), eventBus, cfg.File.MaxDepth)
+	defer resSvc.Stop()
 	if err := resSvc.Start(); err != nil {
 		logger.Warn("Main", "资源扫描服务启动失败: %v", err)
 	} else {
 		logger.Debug("Main", "资源扫描服务已启动")
 	}
 
-	// 检查更新
-	checkAndPrintUpdateNotice()
+	// App 的更新由启动器管理。
+	if !managedMode {
+		checkAndPrintUpdateNotice()
+	}
 
+	if managedMode {
+		cfg.Server.Host = "127.0.0.1"
+		cfg.Server.AllowedOrigins = append(cfg.Server.AllowedOrigins, "http://mpe.localhost", "mpe://localhost")
+	}
 	// 创建 WebSocket 服务器
 	wsServer := server.NewWebSocketServer(
 		cfg.Server.Host,
@@ -412,6 +451,7 @@ func runServer(cmd *cobra.Command, args []string) {
 
 	// 注册 debug-vNext 协议处理器
 	debugHandler := debugapi.NewHandler(mfwSvc, cfg.EffectiveRoot(), piSvc, Version)
+	defer debugHandler.Close()
 	rt.RegisterHandler(debugHandler)
 
 	// 注册 Resource 协议处理器
@@ -425,12 +465,10 @@ func runServer(cmd *cobra.Command, args []string) {
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)
 
-	// 启动 WebSocket 服务器
-	go func() {
-		if err := wsServer.Start(); err != nil {
-			logger.Error("Main", "WebSocket 服务器错误: %v", err)
-		}
-	}()
+	// 先绑定端口，再报告就绪；失败也走统一清理。
+	var serverFailure error
+	serverErrors := make(chan error, 1)
+	go func() { serverErrors <- wsServer.StartWithReady(func(address string) { service.Ready(address) }) }()
 
 	// 等待退出信号
 	sigChan := make(chan os.Signal, 1)
@@ -439,28 +477,24 @@ func runServer(cmd *cobra.Command, args []string) {
 	select {
 	case <-sigChan:
 	case <-shutdownCh:
+	case <-service.Done():
+	case err := <-serverErrors:
+		serverFailure = err
+		logger.Error("Main", "WebSocket 服务退出: %v", err)
 	}
 
 	// 退出
 	logger.Info("Main", "正在关闭 Local Bridge 服务...")
 
 	wsServer.Stop()
-	debugHandler.Close()
-	piSvc.Close()
-	resSvc.Stop()
-	fileSvc.Stop()
-
-	// 关闭 MFW 服务
-	if err := mfwSvc.Shutdown(); err != nil {
-		logger.Error("Main", "MFW 服务关闭失败: %v", err)
-	}
 
 	if protocolMismatchClientVersion != "" {
 		printProtocolMismatchUpdateNotice(protocolMismatchClientVersion)
-		return
+		return nil
 	}
 
 	logger.Info("Main", "Local Bridge 已退出")
+	return serverFailure
 }
 
 // 打开配置文件
@@ -474,7 +508,12 @@ func openConfig(cmd *cobra.Command, args []string) {
 		cfgPath = configPath
 	} else {
 		// 使用 paths 包获取配置文件路径
-		cfgPath = paths.GetConfigFile()
+		var err error
+		cfgPath, err = paths.EnsureConfigFile()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "错误: 无法准备配置文件: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	// 转换为绝对路径

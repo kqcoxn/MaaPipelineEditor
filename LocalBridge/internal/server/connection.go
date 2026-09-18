@@ -57,7 +57,10 @@ func (c *Connection) closeSend() {
 func (c *Connection) readPump() {
 	defer func() {
 		c.closeDone()
-		c.server.unregister <- c
+		select {
+		case c.server.unregister <- c:
+		case <-c.server.done:
+		}
 		c.conn.Close()
 	}()
 

@@ -1,0 +1,9 @@
+{
+ "schemaVersion":1,
+ "revision":1,
+ "slides":[
+  {"title":"回到手感：MPE 性能工程白皮书","description":"了解 MPE 1.9.3 如何减少大图编辑中的额外计算与响应延迟。","image":"https://mpe.codax.site/landing/reports/mpe-performance-193.png","url":"https://mpe.codax.site/docs/resources/reports/perf193"}
+ ],
+ "news":[{"title":"MPE 使用指南","description":"从第一个节点开始，了解编辑、配置与本地调试。","url":"https://mpe.codax.site/docs/"},{"title":"更新日志","description":"查看新功能、优化和修复。","url":"https://github.com/kqcoxn/MaaPipelineEditor/releases"}],
+ "projects":[{"title":"MaaFramework","description":"自动化测试与资源开发框架","url":"https://github.com/MaaXYZ/MaaFramework"},{"title":"Maa Support Extension","description":"在 VS Code 中开发 MaaFramework 资源","url":"https://github.com/neko-para/maa-support-extension"},{"title":"MaaLogAnalyzer","description":"解析与分析 MaaFramework 运行日志","url":"https://github.com/MaaXYZ/MaaLogAnalyzer"}]
+}

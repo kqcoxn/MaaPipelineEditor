@@ -9,6 +9,7 @@
 
 - **前端（editor）**：`/Editor`
 - **后端（localbridge / lb）**：`/LocalBridge`
+- **桌面端启动器（MPE Desktop）**：`/Desktop`
 - **页面嵌入测试（iframe）**：`/Iframe`
 - **文档站**：`/DocumentStation`
 - **展示页/主页（landing）**：`/Landing`

@@ -16,6 +16,7 @@ import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import styles from "../../../styles/panels/LoggerPanel.module.less";
 import { mfwProtocol } from "../../../services/server";
 import { buildMPELogExportPayload } from "@/utils/logExportPayload";
+import { saveLogArchive } from "@/utils/logArchive";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import {
   BackendLogList,
@@ -187,21 +188,22 @@ export function LoggerPanel() {
   }, [backendLogs, connected, embedLogs, isEmbed, message, opLogs]);
 
   useEffect(() => {
-    return mfwProtocol.onLogsExported((data) => {
-      setExporting(false);
+    return mfwProtocol.onLogsExported(async (data) => {
       if (!data.success || !data.content) {
+        setExporting(false);
         message.error(data.message || "日志导出失败");
         return;
       }
-      const bytes = Uint8Array.from(atob(data.content), (char) => char.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/zip" }));
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = data.filename || `mpe-logs-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.zip`;
-      anchor.click();
-      URL.revokeObjectURL(url);
-      emitAchievementEvent("achievement:logs_exported");
-      message.success("日志导出成功");
+      try {
+        const saved = await saveLogArchive(data.content, data.filename || "mpe-logs.zip");
+        if (!saved) return;
+        emitAchievementEvent("achievement:logs_exported");
+        message.success(saved.path ? `日志已保存至：${saved.path}` : "日志导出成功", 6);
+      } catch (error) {
+        message.error(`日志保存失败：${String(error)}`);
+      } finally {
+        setExporting(false);
+      }
     });
   }, [message]);
 

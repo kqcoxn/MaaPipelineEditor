@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-choose-background"
+description = "Enables the choose_background command without any pre-configured scope."
+commands.allow = ["choose_background"]
+
+[[permission]]
+identifier = "deny-choose-background"
+description = "Denies the choose_background command without any pre-configured scope."
+commands.deny = ["choose_background"]

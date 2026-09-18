@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-launcher-ready"
+description = "Enables the launcher_ready command without any pre-configured scope."
+commands.allow = ["launcher_ready"]
+
+[[permission]]
+identifier = "deny-launcher-ready"
+description = "Denies the launcher_ready command without any pre-configured scope."
+commands.deny = ["launcher_ready"]

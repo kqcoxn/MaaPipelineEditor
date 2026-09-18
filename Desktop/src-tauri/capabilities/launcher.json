@@ -1,0 +1,30 @@
+{
+  "identifier": "launcher",
+  "windows": ["launcher"],
+  "permissions": [
+    "core:default",
+    "allow-snapshot",
+    "allow-launcher-ready",
+    "allow-save-settings",
+    "allow-add-project",
+    "allow-remove-project",
+    "allow-relocate-project",
+    "allow-check-environment",
+    "allow-install-environment",
+    "allow-start-editor",
+    "allow-stop-conflict",
+    "allow-open-config",
+    "allow-open-link",
+    "allow-choose-background",
+    "allow-homepage",
+    "allow-release-versions",
+    "allow-github-token-status",
+    "allow-save-github-token",
+    "allow-update-desktop",
+    "allow-quit-desktop",
+    "allow-list-logs",
+    "allow-read-log",
+    "allow-export-logs",
+    "allow-open-logs-directory"
+  ]
+}

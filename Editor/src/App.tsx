@@ -1,3 +1,4 @@
+import { initializeDesktopSession } from "@/features/desktop/closeSession";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import style from "./styles/layout/App.module.less";
 
@@ -306,6 +307,8 @@ function App() {
       document.removeEventListener("dragover", handleDragOver);
     };
   }, [handleFileDrop, handleDragOver]);
+
+  useEffect(() => initializeDesktopSession(), []);
 
   // 条件渲染控制
   const showHeader = !isEmbed || !isPanelHidden("header");

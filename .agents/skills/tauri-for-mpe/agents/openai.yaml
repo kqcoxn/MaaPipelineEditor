@@ -1,0 +1,3 @@
+interface:
+  display_name: "Tauri 桌面开发"
+  short_description: "以官方 Tauri v2 文档为基准，指导桌面集成、进程管理与更新发布"

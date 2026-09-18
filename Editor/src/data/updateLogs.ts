@@ -121,11 +121,19 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.0",
+    date: "2026-9",
+    type: "major",
+    updates: {
+      fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],
+    },
+  },
+  {
     version: "1.10.1",
     date: "2026-9",
     type: "fix",
     updates: {
-      fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],
+      features: ["🤯 MPE Desktop 重构归来，震撼美味！"],
     },
   },
   {

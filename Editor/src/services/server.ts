@@ -1,3 +1,4 @@
+import { desktopContext } from "@/features/desktop/host";
 import { message, notification } from "@/utils/ui/antdAppApi";
 import {
   type MessageHandler,
@@ -34,7 +35,7 @@ export class LocalWebSocketServer {
   private readonly CONNECTION_TIMEOUT = 3000;
 
   constructor(port: number = 9066) {
-    this.url = `ws://localhost:${port}`;
+    this.url = desktopContext?.address ?? `ws://localhost:${port}`;
     // 注册系统级路由
     this.registerSystemRoutes();
   }
@@ -71,6 +72,7 @@ export class LocalWebSocketServer {
 
   // 设置端口
   setPort(port: number) {
+    if (desktopContext) return;
     // 如果有正在进行的连接则先断开
     if (this.ws !== null) {
       this.disconnect();

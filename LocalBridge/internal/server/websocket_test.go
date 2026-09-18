@@ -1,12 +1,38 @@
 package server
 
 import (
+	"net"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
+
+func TestBindFailureNeverReportsReady(t *testing.T) {
+	if err := logger.Init("error", "", false); err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	s := NewWebSocketServer("127.0.0.1", listener.Addr().(*net.TCPAddr).Port, eventbus.New(), nil)
+	ready := false
+	if err := s.StartWithReady(func(string) { ready = true }); err == nil {
+		t.Fatal("accepted occupied port")
+	}
+	if ready {
+		t.Fatal("reported readiness after bind failure")
+	}
+	select {
+	case <-s.done:
+	default:
+		t.Fatal("failed service not cleaned up")
+	}
+}
 
 func TestOriginAllowed(t *testing.T) {
 	webSocketServer := NewWebSocketServer(

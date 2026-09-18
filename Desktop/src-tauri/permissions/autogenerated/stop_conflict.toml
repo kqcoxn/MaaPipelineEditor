@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-conflict"
+description = "Enables the stop_conflict command without any pre-configured scope."
+commands.allow = ["stop_conflict"]
+
+[[permission]]
+identifier = "deny-stop-conflict"
+description = "Denies the stop_conflict command without any pre-configured scope."
+commands.deny = ["stop_conflict"]

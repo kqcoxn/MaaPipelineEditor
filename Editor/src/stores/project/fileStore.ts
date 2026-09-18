@@ -1,3 +1,4 @@
+import { fileSignature } from "./fileDirtyState";
 import { recordPipelineExport } from "@/features/achievements/exportEvents";
 import { emitAchievementEvent, hasAchievementListeners } from "@/features/achievements/bus";
 import { localFileContentSignature } from "@/features/achievements/localSync";
@@ -27,6 +28,7 @@ import {
 } from "./filePathUtils";
 
 export type FileConfigType = {
+  savedContentSignature?: string;
   prefix: string;
   coordinateMode?: CoordinateMode;
   filePath?: string;
@@ -683,6 +685,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
             previousContent !== localFileContentSignature(after.nodes, after.edges)) {
           emitAchievementEvent("achievement:local_changes_reloaded");
         }
+        markCurrentFileSaved();
         return true;
       }
 
@@ -707,6 +710,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
             }
           }, 50);
         }
+        markCurrentFileSaved();
         return true;
       }
 
@@ -716,6 +720,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       syncFlowStoreToFileStore({ ...configUpdates, filePath });
       // 设置文件名
       useFileStore.getState().setFileName(realFileName);
+      markCurrentFileSaved();
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to open file from local:", error);
@@ -904,6 +909,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       if (ackSuccess) {
         recordPipelineExport(savedPipeline, configHandlingMode === "separated" && (!saveMode || saveMode === "all") ? "separated" : undefined);
         configUpdates.lastSyncTime = Date.now();
+        if (!saveMode || saveMode === "all") configUpdates.savedContentSignature = fileSignature({ ...targetFile, nodes: nodesToSave, edges: edgesToSave });
         updateFileConfigAfterSave(targetFile.fileName, configUpdates);
         return true;
       } else {
@@ -989,6 +995,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
         lastSyncTime: Date.now(),
       });
 
+      markCurrentFileSaved();
       return true;
     } catch (error) {
       console.error("[fileStore] Failed to reload file from local:", error);
@@ -1005,3 +1012,9 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       );
   },
 })));
+
+function markCurrentFileSaved(): void {
+  saveFlow();
+  const file = useFileStore.getState().currentFile;
+  updateFileConfigAfterSave(file.fileName, { savedContentSignature: fileSignature(file) });
+}

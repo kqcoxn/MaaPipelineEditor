@@ -1,0 +1,185 @@
+/* Navigation and window layout. Wallpaper stays visible between surfaces. */
+.sidebar {
+  width: 240px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 10px 20px;
+  border-right: 1px solid var(--glass-edge);
+  background: var(--sidebar);
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+  box-shadow: inset -1px 0 0 #ffffff14;
+  position: relative;
+  z-index: 1;
+}
+.brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  margin-bottom: 34px;
+  white-space: nowrap;
+  /* Optical centering: the text carries more visual weight than the logo. */
+  transform: translateX(-10px);
+}
+.brand img {
+  display: block;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.brand strong {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+.brand small {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.sidebar nav {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 8px;
+}
+.sidebar nav button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  height: 52px;
+  font-size: var(--font-label);
+  padding: 12px;
+  position: relative;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  text-align: left;
+  color: var(--muted);
+}
+.sidebar nav button:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-hover) 60%, transparent);
+}
+.sidebar nav button.active {
+  color: var(--text);
+}
+.sidebar nav button.active:hover {
+  background: #ffffff08;
+}
+.nav-indicator {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 52px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--primary) 20%, #d8eaff15);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 #ffffff1c;
+  transition: transform var(--motion-enter) var(--ease-out);
+  z-index: -1;
+  pointer-events: none;
+}
+.nav-indicator::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 17px;
+  width: 3px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 28px;
+}
+.sidebar-bottom > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: transparent;
+  font-size: var(--font-body);
+  color: var(--muted);
+}
+.sidebar-bottom > button:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+.sidebar-bottom > button svg:last-child:not(:first-child) {
+  margin-left: auto;
+  opacity: 0.6;
+}
+.sidebar-version {
+  text-align: center;
+  margin: 23px 12px 0;
+  line-height: 1.9;
+  font-size: var(--font-caption);
+  color: var(--muted);
+}
+.workspace {
+  --workspace-inset: 30px;
+  padding-top: 28px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.workspace > main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+  padding: 0 var(--workspace-inset) 16px;
+}
+.workspace > .home-main {
+  display: flex;
+  overflow: hidden;
+  padding-bottom: 6px;
+}
+.management-main {
+  margin: 0 var(--workspace-inset) 16px;
+  padding: 8px 24px 24px !important;
+  background: var(--panel);
+  border: 1px solid var(--glass-edge);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.management-main .panel {
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+}
+.management-main .page-heading {
+  padding-top: 10px;
+}
+@media (max-width: 1050px) {
+  .workspace {
+    --workspace-inset: 22px;
+  }
+}
+
+@media (max-width: 820px) {
+  .workspace {
+    --workspace-inset: 16px;
+  }
+}
