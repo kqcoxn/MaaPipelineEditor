@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { ControllerConnectionRequest } from "@/services/protocols/controllerConnection";
 
 /**
  * 设备类型
@@ -106,6 +107,7 @@ interface MFWState {
   controllerType: DeviceType;
   controllerId: string | null;
   deviceInfo: DeviceInfo;
+  appliedConnection: ControllerConnectionRequest | null;
 
   // 设备列表
   adbDevices: AdbDevice[];
@@ -121,6 +123,7 @@ interface MFWState {
     type: DeviceType,
     id: string | null,
     info: DeviceInfo,
+    appliedConnection?: ControllerConnectionRequest | null,
   ) => void;
   updateDeviceInfo: (info: DeviceInfo) => void;
   updateAdbDevices: (devices: AdbDevice[]) => void;
@@ -139,6 +142,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
   controllerType: null,
   controllerId: null,
   deviceInfo: null,
+  appliedConnection: null,
   adbDevices: [],
   win32Windows: [],
   linuxCompositors: [],
@@ -152,11 +156,12 @@ export const useMFWStore = create<MFWState>()((set) => ({
     }),
 
   // 设置控制器信息
-  setControllerInfo: (type, id, info) =>
+  setControllerInfo: (type, id, info, appliedConnection = null) =>
     set({
       controllerType: type,
       controllerId: id,
       deviceInfo: info,
+      appliedConnection,
       connectionStatus: id ? "connected" : "disconnected",
       errorMessage: null,
     }),
@@ -195,6 +200,7 @@ export const useMFWStore = create<MFWState>()((set) => ({
       controllerType: null,
       controllerId: null,
       deviceInfo: null,
+      appliedConnection: null,
       errorMessage: null,
     }),
 }));

@@ -1,7 +1,10 @@
-import { defaultLinuxOptions, type LinuxControllerOptions } from "@/services/protocols/linuxController";
-import { message } from "@/utils/ui/antdAppApi";
-import { memo, useEffect, useState, useCallback, useMemo } from "react";
-import { usePersistedState } from "../../../hooks/usePersistedState";
+import { useConnectionForm } from "./connection/useConnectionForm";
+import { buildConnectionRequest, defaultConnectionForm, restoreConnectionForm } from "./connection/connectionForm";
+import { sameControllerConnection } from "@/services/protocols/controllerConnection";
+import { useDebugSessionStore } from "@/stores/debug/debugSessionStore";
+import { useInterfaceRunStore } from "@/features/project-interface/interfaceRunStore";
+import { isInterfaceRunning } from "@/features/project-interface/interfaceRunTypes";
+import { memo, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Drawer,
   Tabs,
@@ -24,9 +27,6 @@ import {
 } from "@ant-design/icons";
 import {
   useMFWStore,
-  type AdbDevice,
-  type Win32Window,
-  type LinuxCompositor,
 } from "@/stores/connection/mfwStore";
 import { mfwProtocol } from "../../../services/server";
 import {
@@ -45,39 +45,28 @@ import { WikiAnchor } from "../../wiki/WikiAnchor";
 
 const { Text } = Typography;
 
-const ADB_DEFAULT_SCREENCAP_METHODS = [
-  "EncodeToFileAndPull",
-  "Encode",
-  "RawWithGzip",
-  "RawByNetcat",
-  "MinicapDirect",
-  "MinicapStream",
-  "EmulatorExtras",
-];
-const ADB_DEFAULT_INPUT_METHODS = [
-  "AdbShell",
-  "MinitouchAndAdbKey",
-  "Maatouch",
-  "EmulatorExtras",
-];
-
 interface ConnectionPanelProps {
   open: boolean;
   onClose: () => void;
 }
 
-export const ConnectionPanel = memo(
+const ConnectionPanelContent = memo(
   ({ open, onClose }: ConnectionPanelProps) => {
     const {
       connectionStatus,
       controllerId,
-      controllerType,
       deviceInfo,
       adbDevices,
       win32Windows,
       linuxCompositors: linuxSockets,
       errorMessage,
+      appliedConnection,
     } = useMFWStore();
+    const debugBusy = useDebugSessionStore(state =>
+      ["preparing", "running", "stopping"].includes(state.session?.status || ""));
+    const interfaceBusy = useInterfaceRunStore(state =>
+      !!state.pending || isInterfaceRunning(state.run?.status));
+    const executionBusy = debugBusy || interfaceBusy;
 
     // 检测当前平台
     const currentPlatform = useMemo(() => detectPlatform(), []);
@@ -86,122 +75,59 @@ export const ConnectionPanel = memo(
       [currentPlatform],
     );
 
-    const [activeTab, setActiveTab] = useState<
-      "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos"
-    >(availableTabs[0]);
-    const [selectedAdbDevice, setSelectedAdbDevice] =
-      useState<AdbDevice | null>(null);
-    const [selectedWin32Window, setSelectedWin32Window] =
-      useState<Win32Window | null>(null);
-    const [selectedLinuxSocket, setSelectedLinuxSocket] =
-      useState<LinuxCompositor | null>(null);
-    const [linuxSocketPath, setLinuxSocketPath] = usePersistedState<string>(
-      "wl_socket",
-      "",
-    );
+    const {
+      activeTab,
+      selectedAdbDevice,
+      selectedWin32Window,
+      selectedLinuxSocket,
+      linuxSocketPath,
+      manualAdbPath,
+      manualAddress,
+      manualConfig,
+      manualName,
+      playCoverAddress,
+      playCoverUUID,
+      playCoverName,
+      gamepadType,
+      gamepadHwnd,
+      gamepadScreencap,
+      macosScreencap,
+      macosInput,
+      linuxOptions,
+      linuxUseWin32VkCode,
+      customScreencap,
+      customInput,
+      customKeyboard,
+      setActiveTab,
+      setSelectedAdbDevice,
+      setSelectedWin32Window,
+      setSelectedLinuxSocket,
+      setLinuxSocketPath,
+      setManualAdbPath,
+      setManualAddress,
+      setManualConfig,
+      setManualName,
+      setPlayCoverAddress,
+      setPlayCoverUUID,
+      setPlayCoverName,
+      setGamepadType,
+      setGamepadHwnd,
+      setGamepadScreencap,
+      setMacosScreencap,
+      setMacosInput,
+      setLinuxOptions,
+      setLinuxUseWin32VkCode,
+      setCustomScreencap,
+      setCustomInput,
+      setCustomKeyboard,
+      isAdbManualMode,
+      form
+    } = useConnectionForm(availableTabs, appliedConnection);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set());
-    const [hasInitialized, setHasInitialized] = useState(false);
-
-    // ADB 手动连接参数
-    const [manualAdbPath, setManualAdbPath] = usePersistedState<string>(
-      "adb_path",
-      "",
-    );
-    const [manualAddress, setManualAddress] = usePersistedState<string>(
-      "adb_address",
-      "",
-    );
-    const [manualConfig, setManualConfig] = usePersistedState<string>(
-      "adb_config",
-      "{}",
-    );
-    const [manualName, setManualName] = usePersistedState<string>(
-      "adb_name",
-      "",
-    );
-
-    // PlayCover 连接参数
-    const [playCoverAddress, setPlayCoverAddress] = usePersistedState<string>(
-      "pc_address",
-      "",
-    );
-    const [playCoverUUID, setPlayCoverUUID] = usePersistedState<string>(
-      "pc_uuid",
-      "",
-    );
-    const [playCoverName, setPlayCoverName] = usePersistedState<string>(
-      "pc_name",
-      "",
-    );
-
-    // Gamepad 连接参数
-    const [gamepadType, setGamepadType] = usePersistedState<
-      "Xbox360" | "DualShock4"
-    >("gp_type", "Xbox360");
-    const [gamepadHwnd, setGamepadHwnd] = usePersistedState<string>(
-      "gp_hwnd",
-      "",
-    );
-    const [gamepadScreencap, setGamepadScreencap] = usePersistedState<string>(
-      "gp_screencap",
-      "",
-    );
-
-    // macOS 连接参数
-    const [macosScreencap, setMacosScreencap] = usePersistedState<string>(
-      "mac_screencap",
-      MACOS_DEFAULT_METHODS.screencap[0],
-    );
-    const [macosInput, setMacosInput] = usePersistedState<string>(
-      "mac_input",
-      MACOS_DEFAULT_METHODS.input[0],
-    );
-
-    // Linux 连接参数
-    const [linuxOptions, setLinuxOptions] = usePersistedState<LinuxControllerOptions>("linux_options", defaultLinuxOptions);
-    const [linuxUseWin32VkCode, setLinuxUseWin32VkCode] = usePersistedState<boolean>(
-      "linux_use_win32_vkcode",
-      true,
-    );
-
-    // 自定义截图和输入方法
-    const [customScreencap, setCustomScreencap] = useState<
-      string | string[] | undefined
-    >(undefined);
-    const [customInput, setCustomInput] = useState<
-      string | string[] | undefined
-    >(undefined);
-
-    // 是否处于 ADB 手动连接模式
-    const [customKeyboard, setCustomKeyboard] = useState("SendMessage");
-    const isAdbManualMode =
-      manualAdbPath.trim().length > 0 || manualAddress.trim().length > 0;
-
-    // 获取当前选中设备的方法列表(用于初始化)
-    const selectedDeviceMethods = useMemo(() => {
-      if (activeTab === "adb") {
-        if (isAdbManualMode) {
-          return {
-            screencap: ADB_DEFAULT_SCREENCAP_METHODS,
-            input: ADB_DEFAULT_INPUT_METHODS,
-          };
-        }
-        if (selectedAdbDevice) {
-          return {
-            screencap: selectedAdbDevice.screencap_methods,
-            input: selectedAdbDevice.input_methods,
-          };
-        }
-      } else if (activeTab === "win32" && selectedWin32Window) {
-        return {
-          screencap: selectedWin32Window.screencap_methods,
-          input: selectedWin32Window.input_methods,
-        };
-      }
-      return { screencap: [], input: [] };
-    }, [activeTab, selectedAdbDevice, selectedWin32Window, isAdbManualMode]);
-
+    const [isApplying, setIsApplying] = useState(false);
+    const applyingRef = useRef(false);
+    const [applyError, setApplyError] = useState<string | null>(null);
     const handleRefresh = useCallback(() => {
       setIsRefreshing(true);
       if (activeTab === "adb") {
@@ -216,148 +142,6 @@ export const ConnectionPanel = memo(
       setTimeout(() => setIsRefreshing(false), 1000);
     }, [activeTab]);
 
-    // 初始化时设置默认值
-    useEffect(() => {
-      if (
-        selectedDeviceMethods.screencap.length > 0 &&
-        customScreencap === undefined
-      ) {
-        if (activeTab === "adb") {
-          setCustomScreencap(selectedDeviceMethods.screencap);
-        } else {
-          setCustomScreencap(selectedDeviceMethods.screencap[0]);
-        }
-      }
-      if (selectedDeviceMethods.input.length > 0 && customInput === undefined) {
-        if (activeTab === "adb") {
-          setCustomInput(selectedDeviceMethods.input);
-        } else {
-          setCustomInput(selectedDeviceMethods.input[0]);
-        }
-      }
-    }, [activeTab, customInput, customScreencap, selectedDeviceMethods]);
-
-    // 切换设备时重置方法选择
-    useEffect(() => {
-      if (activeTab === "adb" && isAdbManualMode) {
-        // 手动模式下设置默认方法
-        const filteredScreencap = ADB_DEFAULT_SCREENCAP_METHODS.filter(
-          (m) => m !== "RawByNetcat",
-        );
-        const filteredInput = ADB_DEFAULT_INPUT_METHODS.filter(
-          (m) => m !== "RawByNetcat",
-        );
-        setCustomScreencap(filteredScreencap);
-        setCustomInput(filteredInput);
-      } else if (selectedAdbDevice) {
-        // ADB 设备默认采用 MaaToolkit 检测出的推荐方法
-        const filteredScreencap = selectedDeviceMethods.screencap.filter(
-          (m) => m !== "RawByNetcat",
-        );
-        const filteredInput = selectedDeviceMethods.input.filter(
-          (m) => m !== "RawByNetcat",
-        );
-        setCustomScreencap(filteredScreencap);
-        setCustomInput(filteredInput);
-      } else if (selectedWin32Window) {
-        // Win32 窗口默认选择 FramePool 截图和 SendMessageWithCursorPos 输入
-        const defaultScreencap =
-          selectedDeviceMethods.screencap.find((m) => m === "FramePool") ||
-          selectedDeviceMethods.screencap[0];
-        const defaultInput =
-          selectedDeviceMethods.input.find(
-            (m) => m === "SendMessageWithCursorPos",
-          ) || selectedDeviceMethods.input[0];
-        setCustomScreencap(defaultScreencap);
-        setCustomInput(defaultInput);
-      }
-    }, [
-      selectedAdbDevice?.address,
-      selectedWin32Window?.hwnd,
-      selectedAdbDevice,
-      selectedWin32Window,
-      selectedDeviceMethods,
-      isAdbManualMode,
-      activeTab,
-    ]);
-
-    // 打开面板时的初始化逻辑
-    useEffect(() => {
-      if (open && !hasInitialized) {
-        setHasInitialized(true);
-
-        // 如果已连接，设置对应的 Tab 和设备选中状态
-        if (connectionStatus === "connected" && deviceInfo) {
-          if (controllerType === "adb") {
-            setActiveTab("adb");
-            // 尝试找到当前连接的设备
-            const connectedDevice = adbDevices.find(
-              (d) => d.address === (deviceInfo as any)?.address,
-            );
-            if (connectedDevice) {
-              setSelectedAdbDevice(connectedDevice);
-            }
-          } else if (controllerType === "win32") {
-            setActiveTab("win32");
-            // 尝试找到当前连接的窗口
-            const connectedWindow = win32Windows.find(
-              (w) => w.hwnd === (deviceInfo as any)?.hwnd,
-            );
-            if (connectedWindow) {
-              setSelectedWin32Window(connectedWindow);
-            }
-          } else if (controllerType === "linux") {
-            setActiveTab("linux");
-            const socketPath = (deviceInfo as any)?.socket_path || "";
-            setLinuxSocketPath(socketPath);
-            // 尝试在列表中找到对应的 socket
-            const connectedSocket = linuxSockets.find(
-              (s) => s.socket_path === socketPath,
-            );
-            if (connectedSocket) {
-              setSelectedLinuxSocket(connectedSocket);
-            }
-          } else if (controllerType === "macos") {
-            setActiveTab("macos");
-            const connectedWindow = win32Windows.find(
-              (w) => w.hwnd === (deviceInfo as any)?.window_id,
-            );
-            if (connectedWindow) setSelectedWin32Window(connectedWindow);
-          }
-          // 已连接状态下不触发刷新
-          return;
-        }
-
-        setVisitedTabs((prev) => new Set(prev).add(activeTab));
-      }
-    }, [
-      open,
-      hasInitialized,
-      connectionStatus,
-      controllerType,
-      deviceInfo,
-      adbDevices,
-      win32Windows,
-      linuxSockets,
-      activeTab,
-      setLinuxSocketPath,
-    ]);
-
-    // macOS 控制器使用同一份桌面窗口列表；列表异步返回后再补选已连接窗口。
-    useEffect(() => {
-      if (
-        !open ||
-        connectionStatus !== "connected" ||
-        controllerType !== "macos" ||
-        !deviceInfo
-      ) {
-        return;
-      }
-      const windowId = (deviceInfo as any)?.window_id;
-      const connectedWindow = win32Windows.find((w) => w.hwnd === windowId);
-      if (connectedWindow) setSelectedWin32Window(connectedWindow);
-    }, [open, connectionStatus, controllerType, deviceInfo, win32Windows]);
-
     // 第一次打开时自动刷新设备列表，即使当前已有控制器连接
     useEffect(() => {
       if (open && !visitedTabs.has(activeTab)) {
@@ -366,181 +150,45 @@ export const ConnectionPanel = memo(
       }
     }, [activeTab, connectionStatus, handleRefresh, open, visitedTabs]);
 
-    // 关闭面板时重置访问记录和初始化状态
-    useEffect(() => {
-      if (!open) {
-        setVisitedTabs(new Set());
-        setHasInitialized(false);
+    const request = buildConnectionRequest(form);
+    const appliedRequest = appliedConnection
+      ? buildConnectionRequest(restoreConnectionForm(defaultConnectionForm(appliedConnection.type), appliedConnection))
+      : null;
+    const hasChanges = !sameControllerConnection(request, appliedRequest);
+    const canConnect = !!request && connectionStatus !== "connecting" && !isApplying && !executionBusy;
+
+    const handleConnect = async () => {
+      if (!request || !canConnect || applyingRef.current) return;
+      applyingRef.current = true;
+      setIsApplying(true);
+      setApplyError(null);
+      try {
+        // 捕获本次提交的参数，等待断开期间的表单修改不会混入请求。
+        if (controllerId) await mfwProtocol.disconnectControllerAndWait(controllerId);
+        mfwProtocol.connectController(request);
+      } catch (error) {
+        setApplyError(error instanceof Error ? error.message : "连接失败");
+      } finally {
+        applyingRef.current = false;
+        setIsApplying(false);
       }
-    }, [open]);
+    };
 
-    // 连接设备
-    const handleConnect = useCallback(() => {
-      if (activeTab === "adb" && (selectedAdbDevice || isAdbManualMode)) {
-        if (isAdbManualMode) {
-          // 手动连接模式
-          if (!manualAdbPath.trim() || !manualAddress.trim()) {
-            message.warning("请填写 ADB 路径和设备地址");
-            return;
-          }
-
-          const screencapMethods = customScreencap
-            ? Array.isArray(customScreencap)
-              ? customScreencap
-              : [customScreencap]
-            : ADB_DEFAULT_SCREENCAP_METHODS.filter((m) => m !== "RawByNetcat");
-          const inputMethods = customInput
-            ? Array.isArray(customInput)
-              ? customInput
-              : [customInput]
-            : ADB_DEFAULT_INPUT_METHODS;
-
-          mfwProtocol.createAdbController({
-            adb_path: manualAdbPath.trim(),
-            address: manualAddress.trim(),
-            screencap_methods: screencapMethods,
-            input_methods: inputMethods,
-            config: manualConfig.trim() || undefined,
-            name: manualName.trim() || undefined,
-          });
-        } else if (selectedAdbDevice) {
-          // 列表选择模式
-          const screencapMethods = customScreencap
-            ? Array.isArray(customScreencap)
-              ? customScreencap
-              : [customScreencap]
-            : selectedAdbDevice.screencap_methods;
-          const inputMethods = customInput
-            ? Array.isArray(customInput)
-              ? customInput
-              : [customInput]
-            : selectedAdbDevice.input_methods;
-
-          if (screencapMethods.length === 0 || inputMethods.length === 0) {
-            message.warning("设备没有可用的截图或输入方法");
-            return;
-          }
-
-          mfwProtocol.createAdbController({
-            adb_path: selectedAdbDevice.adb_path,
-            address: selectedAdbDevice.address,
-            screencap_methods: screencapMethods,
-            input_methods: inputMethods,
-            config: selectedAdbDevice.config,
-          });
-        }
-      } else if (activeTab === "win32" && selectedWin32Window) {
-        // Win32 窗口的方法只支持单选
-        const screencapMethod = Array.isArray(customScreencap)
-          ? customScreencap[0]
-          : customScreencap || selectedWin32Window.screencap_methods[0];
-        const inputMethod = Array.isArray(customInput)
-          ? customInput[0]
-          : customInput || selectedWin32Window.input_methods[0];
-
-        if (!screencapMethod || !inputMethod) {
-          message.warning("窗口没有可用的截图或输入方法");
-          return;
-        }
-
-        mfwProtocol.createWin32Controller({
-          keyboard_method: customKeyboard,
-          hwnd: selectedWin32Window.hwnd,
-          screencap_method: screencapMethod,
-          input_method: inputMethod,
-        });
-      } else if (activeTab === "playcover") {
-        // PlayCover 连接
-        if (!playCoverAddress.trim()) {
-          message.warning("请输入 PlayCover 地址");
-          return;
-        }
-        if (!playCoverUUID.trim()) {
-          message.warning("请输入设备 UUID");
-          return;
-        }
-
-        mfwProtocol.createPlayCoverController({
-          address: playCoverAddress.trim(),
-          uuid: playCoverUUID.trim(),
-          name: playCoverName.trim() || "PlayCover Device",
-        });
-      } else if (activeTab === "gamepad") {
-        // Gamepad 连接
-        mfwProtocol.createGamepadController({
-          hwnd: gamepadHwnd.trim() || undefined,
-          gamepad_type: gamepadType,
-          screencap_method: gamepadScreencap || undefined,
-        });
-      } else if (activeTab === "linux") {
-        // Linux 连接
-        const socketPath =
-          linuxSocketPath.trim() || selectedLinuxSocket?.socket_path;
-        if (!socketPath && (linuxOptions.screencap_method === "Wlr" || linuxOptions.input_method === "Wlr")) {
-          message.warning("请选择或输入 socket 路径");
-          return;
-        }
-        mfwProtocol.createLinuxController({
-          ...linuxOptions,
-          socket_path: socketPath ?? "",
-          use_win32_vk_code: linuxUseWin32VkCode
-        });
-      } else if (activeTab === "macos") {
-        // macOS 连接
-        if (!selectedWin32Window) {
-          message.warning("请选择 macOS 窗口");
-          return;
-        }
-        if (!macosScreencap) {
-          message.warning("请选择截图方法");
-          return;
-        }
-        if (!macosInput) {
-          message.warning("请选择输入方法");
-          return;
-        }
-
-        mfwProtocol.createMacosController({
-          window_id: selectedWin32Window.hwnd,
-          screencap_method: macosScreencap,
-          input_method: macosInput,
-        });
-      } else {
-        message.warning("请先选择设备");
-      }
-    }, [
-      activeTab,
-      selectedAdbDevice,
-      selectedWin32Window,
-      selectedLinuxSocket,
-      linuxSocketPath,
-      customScreencap,
-      customInput,
-      customKeyboard,
-      playCoverAddress,
-      playCoverUUID,
-      playCoverName,
-      gamepadType,
-      gamepadHwnd,
-      gamepadScreencap,
-      macosScreencap,
-      macosInput,
-      linuxUseWin32VkCode,
-      linuxOptions,
-      isAdbManualMode,
-      manualAdbPath,
-      manualAddress,
-      manualConfig,
-      manualName,
-    ]);
-
-    // 断开连接
-    const handleDisconnect = useCallback(() => {
-      if (controllerId) {
-        mfwProtocol.disconnectController(controllerId);
+    const handleDisconnect = async () => {
+      if (!controllerId || applyingRef.current || executionBusy) return;
+      applyingRef.current = true;
+      setIsApplying(true);
+      setApplyError(null);
+      try {
+        await mfwProtocol.disconnectControllerAndWait(controllerId);
         mfwProtocol.forgetLastController();
+      } catch (error) {
+        setApplyError(error instanceof Error ? error.message : "断开失败");
+      } finally {
+        applyingRef.current = false;
+        setIsApplying(false);
       }
-    }, [controllerId]);
+    };
 
     // 渲染连接状态徽章
     const getStatusBadge = () => {
@@ -552,122 +200,6 @@ export const ConnectionPanel = memo(
       };
       return statusConfig[connectionStatus];
     };
-
-    // 获取当前选中设备
-    const hasSelectedDevice =
-      activeTab === "adb"
-        ? !!selectedAdbDevice || isAdbManualMode
-        : activeTab === "win32"
-          ? !!selectedWin32Window
-          : activeTab === "playcover"
-            ? !!(playCoverAddress.trim() && playCoverUUID.trim())
-            : activeTab === "linux"
-              ? !!(linuxSocketPath.trim() || selectedLinuxSocket || linuxOptions.screencap_method === "PipeWire")
-              : activeTab === "gamepad"
-                ? true // Gamepad 不需要选择设备
-                : activeTab === "macos"
-                  ? !!selectedWin32Window
-                  : false;
-
-    // 检查是否有可用的方法
-    const hasValidMethods = useMemo(() => {
-      if (activeTab === "adb" && isAdbManualMode) {
-        return !!(manualAdbPath.trim() && manualAddress.trim());
-      } else if (activeTab === "adb" && selectedAdbDevice) {
-        const screencapMethods = customScreencap
-          ? Array.isArray(customScreencap)
-            ? customScreencap
-            : [customScreencap]
-          : selectedAdbDevice.screencap_methods;
-        const inputMethods = customInput
-          ? Array.isArray(customInput)
-            ? customInput
-            : [customInput]
-          : selectedAdbDevice.input_methods;
-        return screencapMethods.length > 0 && inputMethods.length > 0;
-      } else if (activeTab === "win32" && selectedWin32Window) {
-        const screencap = Array.isArray(customScreencap)
-          ? customScreencap[0]
-          : customScreencap || selectedWin32Window.screencap_methods[0];
-        const input = Array.isArray(customInput)
-          ? customInput[0]
-          : customInput || selectedWin32Window.input_methods[0];
-        return !!screencap && !!input;
-      } else if (activeTab === "playcover") {
-        return true;
-      } else if (activeTab === "gamepad") {
-        return true; // Gamepad 不需要验证方法
-      } else if (activeTab === "linux") {
-        return true;
-      } else if (activeTab === "macos") {
-        return !!macosScreencap && !!macosInput;
-      }
-      return false;
-    }, [
-      activeTab,
-      selectedAdbDevice,
-      selectedWin32Window,
-      customScreencap,
-      customInput,
-      macosScreencap,
-      macosInput,
-      isAdbManualMode,
-      manualAdbPath,
-      manualAddress,
-    ]);
-
-    const canConnect =
-      hasSelectedDevice && hasValidMethods && connectionStatus !== "connecting";
-
-    // 判断当前选中的设备是否是已连接的设备
-    const isCurrentDevice = useMemo(() => {
-      if (connectionStatus !== "connected" || !deviceInfo) return false;
-
-      if (
-        activeTab === "adb" &&
-        controllerType === "adb" &&
-        selectedAdbDevice
-      ) {
-        return selectedAdbDevice.address === (deviceInfo as any)?.address;
-      } else if (
-        activeTab === "win32" &&
-        controllerType === "win32" &&
-        selectedWin32Window
-      ) {
-        return selectedWin32Window.hwnd === (deviceInfo as any)?.hwnd;
-      } else if (activeTab === "playcover" && controllerType === "playcover") {
-        return playCoverAddress === (deviceInfo as any)?.address;
-      } else if (activeTab === "linux" && controllerType === "linux") {
-        return linuxSocketPath === (deviceInfo as any)?.socket_path;
-      } else if (activeTab === "macos" && controllerType === "macos") {
-        return selectedWin32Window?.hwnd === (deviceInfo as any)?.window_id;
-      }
-      return false;
-    }, [
-      connectionStatus,
-      controllerType,
-      deviceInfo,
-      activeTab,
-      selectedAdbDevice,
-      selectedWin32Window,
-      linuxSocketPath,
-      playCoverAddress,
-    ]);
-
-    // 连接新设备
-    const handleConnectNew = useCallback(() => {
-      if (!controllerId) return;
-
-      // 先断开当前连接
-      mfwProtocol.disconnectController(controllerId);
-
-      // 等待断开完成后再连接新设备
-      setTimeout(() => {
-        handleConnect();
-      }, 500);
-    }, [controllerId, handleConnect]);
-
-    // 初始化时设置默认值
 
     const statusBadge = getStatusBadge();
 
@@ -733,10 +265,19 @@ export const ConnectionPanel = memo(
               </Card>
             )}
 
-            {errorMessage && (
+            {connectionStatus === "connected" && (
+              <Alert
+                type={hasChanges ? "warning" : "info"}
+                showIcon
+                title={hasChanges ? "配置尚未应用" : "当前配置已生效"}
+                description={executionBusy ? "任务运行或准备期间无法更换连接，请先停止任务或等待完成。" : hasChanges ? "当前设备仍使用原配置。完成修改后点击“应用并重连”。" : "修改连接参数后，需要应用并重连才会生效。"}
+                style={{ marginBottom: 12 }}
+              />
+            )}
+            {(applyError || errorMessage) && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <Alert
-                  title={errorMessage}
+                  title={applyError || errorMessage}
                   type="error"
                   showIcon
                   style={{ marginBottom: 0 }}
@@ -748,15 +289,17 @@ export const ConnectionPanel = memo(
             <div style={{ display: "flex", gap: 12 }}>
               {connectionStatus === "connected" ? (
                 <>
-                  {!isCurrentDevice && canConnect && (
+                  {hasChanges && (
                     <Button
                       type="primary"
                       icon={<SwapOutlined />}
-                      onClick={handleConnectNew}
+                      onClick={handleConnect}
+                      disabled={!canConnect}
+                      loading={isApplying}
                       size="large"
                       style={{ flex: 1 }}
                     >
-                      连接新设备
+                      应用并重连
                     </Button>
                   )}
                   <Button
@@ -764,11 +307,12 @@ export const ConnectionPanel = memo(
                     danger
                     icon={<DisconnectOutlined />}
                     onClick={handleDisconnect}
+                    disabled={isApplying || executionBusy}
                     size="large"
                     style={{
-                      flex: isCurrentDevice || !canConnect ? 1 : undefined,
+                      flex: !hasChanges ? 1 : undefined,
                     }}
-                    block={isCurrentDevice || !canConnect}
+                    block={!hasChanges}
                   >
                     断开连接
                   </Button>
@@ -779,7 +323,7 @@ export const ConnectionPanel = memo(
                     type="primary"
                     icon={<ApiOutlined />}
                     onClick={handleConnect}
-                    loading={connectionStatus === "connecting"}
+                    loading={connectionStatus === "connecting" || isApplying}
                     disabled={!canConnect}
                     size="large"
                     style={{ flex: 1 }}
@@ -803,8 +347,8 @@ export const ConnectionPanel = memo(
           {/* 方法配置区 */}
           <MethodConfig
             activeTab={activeTab}
-            selectedAdbDevice={selectedAdbDevice}
-            selectedWin32Window={selectedWin32Window}
+            selectedAdbDevice={adbDevices.find(device => device.address === selectedAdbDevice?.address && device.adb_path === selectedAdbDevice?.adb_path) || selectedAdbDevice}
+            selectedWin32Window={win32Windows.find(window => window.hwnd === selectedWin32Window?.hwnd) || selectedWin32Window}
             adbDevices={adbDevices}
             win32Windows={win32Windows}
             customScreencap={customScreencap}
@@ -828,9 +372,6 @@ export const ConnectionPanel = memo(
                   | "gamepad"
                   | "linux"
                   | "macos";
-                if (nextTab === "win32" || nextTab === "macos") {
-                  setSelectedWin32Window(null);
-                }
                 setActiveTab(nextTab);
               }}
               items={[
@@ -997,3 +538,11 @@ export const ConnectionPanel = memo(
     );
   },
 );
+
+/** 重新打开或连接成功时恢复实际配置，列表刷新不会覆盖正在编辑的参数。 */
+export const ConnectionPanel = memo((props: ConnectionPanelProps) => {
+  const controllerId = useMFWStore(state => state.controllerId);
+  const lastControllerId = useRef(controllerId);
+  if (controllerId) lastControllerId.current = controllerId;
+  return props.open ? <ConnectionPanelContent key={lastControllerId.current || "initial"} {...props} /> : null;
+});

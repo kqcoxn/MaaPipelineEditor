@@ -2,6 +2,7 @@ package mfw
 
 import (
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
@@ -497,9 +498,16 @@ func (h *MFWHandler) handleDisconnectController(conn *server.Connection, msg mod
 	controllerID, _ := dataMap["controller_id"].(string)
 
 	err := h.service.ControllerManager().DisconnectController(controllerID)
-	if err != nil {
+	if err != nil && !stderrors.Is(err, mfw.ErrControllerNotFound) {
 		logger.Error("MFW", "断开控制器失败: %v", err)
-		h.sendMFWError(conn, mfw.ErrCodeControllerNotFound, "控制器不存在", err.Error())
+		// 拒绝断开（例如设备被任务占用）不代表控制器已经丢失。
+		conn.Send(models.Message{
+			Path: "/lte/mfw/controller_status",
+			Data: map[string]interface{}{
+				"controller_id": controllerID,
+				"error":         err.Error(),
+			},
+		})
 		return
 	}
 

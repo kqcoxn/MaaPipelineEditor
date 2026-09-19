@@ -19,19 +19,9 @@ import {
   type ScreencapResult,
 } from "./screencapRequests";
 import { useConfigStore } from "@/stores/app/configStore";
+import { ControllerDisconnection } from "./controllerDisconnection";
 
-type PersistedControllerConnection<T> = {
-  params: T;
-  deviceInfo?: Exclude<DeviceInfo, null>;
-};
-
-type ControllerConnectionRequest =
-  | { type: "adb" } & PersistedControllerConnection<Parameters<MFWProtocol["createAdbController"]>[0]>
-  | { type: "win32" } & PersistedControllerConnection<Parameters<MFWProtocol["createWin32Controller"]>[0]>
-  | { type: "playcover" } & PersistedControllerConnection<Parameters<MFWProtocol["createPlayCoverController"]>[0]>
-  | { type: "gamepad" } & PersistedControllerConnection<Parameters<MFWProtocol["createGamepadController"]>[0]>
-  | { type: "linux" } & PersistedControllerConnection<Parameters<MFWProtocol["createLinuxController"]>[0]>
-  | { type: "macos" } & PersistedControllerConnection<Parameters<MFWProtocol["createMacosController"]>[0]>;
+import type { ControllerConnectionRequest } from "./controllerConnection";
 
 type ControllerConnectionDevice =
   | AdbDevice
@@ -68,6 +58,7 @@ function readLastController(): ControllerConnectionRequest | null {
  * 处理所有 MaaFramework 相关的 WebSocket 消息
  */
 export class MFWProtocol extends BaseProtocol {
+  private disconnection = new ControllerDisconnection();
   private screencapRequests = new ScreencapRequestManager();
   private statusUnsubscribe: (() => void) | null = null;
   // OCR结果回调函数
@@ -89,7 +80,7 @@ export class MFWProtocol extends BaseProtocol {
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
     type: "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos";
-    deviceInfo: ControllerConnectionDevice;
+    deviceInfo: Exclude<DeviceInfo, null>;
   } | null = null;
   private lastConnectionRequest: ControllerConnectionRequest | null = null;
   private isAutoConnecting = false;
@@ -110,6 +101,7 @@ export class MFWProtocol extends BaseProtocol {
     this.statusUnsubscribe?.();
     this.statusUnsubscribe = this.wsClient.onStatus((connected) => {
       if (!connected) {
+        this.disconnection.cancel("LocalBridge 连接已断开");
         this.screencapRequests.rejectAll("LocalBridge 连接已断开");
         this.clearControllerConnection();
         this.lastConnectionDevice = null;
@@ -191,6 +183,7 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   override unregister(): void {
+    this.disconnection.cancel("MaaFramework 协议已注销");
     this.statusUnsubscribe?.();
     this.statusUnsubscribe = null;
     this.screencapRequests.rejectAll("MaaFramework 协议已注销");
@@ -406,7 +399,8 @@ export class MFWProtocol extends BaseProtocol {
             ? this.lastConnectionDevice?.deviceInfo
             : null;
 
-        mfwStore.setControllerInfo(type, controller_id, deviceInfo || null);
+        mfwStore.setControllerInfo(type, controller_id, deviceInfo || null,
+          this.lastConnectionRequest ? { ...this.lastConnectionRequest, deviceInfo: deviceInfo || undefined } : null);
         if (!this.isAutoConnecting && warning) {
           message.warning(`控制器已连接：${warning}`);
         } else if (!this.isAutoConnecting) {
@@ -452,16 +446,22 @@ export class MFWProtocol extends BaseProtocol {
    */
   private handleControllerStatus(data: any): void {
     try {
-      const { connected } = data;
+      const { connected, controller_id, error } = data;
 
       const mfwStore = useMFWStore.getState();
 
-      if (!connected) {
+      if (error) {
+        this.disconnection.complete(controller_id, error);
+        message.error(error);
+        return;
+      }
+      if (!connected && controller_id === mfwStore.controllerId) {
         this.finishControllerConnection();
         // 控制器断开
         mfwStore.clearConnection();
         message.info("控制器已断开");
       }
+      if (!connected) this.disconnection.complete(controller_id);
     } catch (error) {
       console.error("[MFWProtocol] Failed to handle controller status:", error);
     }
@@ -775,6 +775,22 @@ export class MFWProtocol extends BaseProtocol {
     });
   }
 
+  public disconnectControllerAndWait(controllerId: string): Promise<void> {
+    return this.disconnection.wait(controllerId, () => this.disconnectController(controllerId));
+  }
+
+  /** 手动连接与自动恢复共用同一份提交参数。 */
+  public connectController(request: ControllerConnectionRequest): boolean {
+    switch (request.type) {
+      case "adb": return this.createAdbController(request.params);
+      case "win32": return this.createWin32Controller(request.params);
+      case "playcover": return this.createPlayCoverController(request.params);
+      case "gamepad": return this.createGamepadController(request.params);
+      case "linux": return this.createLinuxController(request.params);
+      case "macos": return this.createMacosController(request.params);
+    }
+  }
+
   /** 在用户主动断开时清除自动恢复目标。 */
   public forgetLastController(): void {
     try {
@@ -797,14 +813,7 @@ export class MFWProtocol extends BaseProtocol {
     let sent = false;
     if (request.type === "adb") this.refreshAdbDevices();
     if (request.type === "win32") this.refreshWin32Windows();
-    switch (request.type) {
-      case "adb": sent = this.createAdbController(request.params); break;
-      case "win32": sent = this.createWin32Controller(request.params); break;
-      case "playcover": sent = this.createPlayCoverController(request.params); break;
-      case "gamepad": sent = this.createGamepadController(request.params); break;
-      case "linux": sent = this.createLinuxController(request.params); break;
-      case "macos": sent = this.createMacosController(request.params); break;
-    }
+    sent = this.connectController(request);
     if (!sent) this.isAutoConnecting = false;
     if (sent && request.deviceInfo) {
       this.lastConnectionDevice = {
