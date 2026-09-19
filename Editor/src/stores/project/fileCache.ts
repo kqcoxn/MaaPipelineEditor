@@ -24,9 +24,6 @@ type FileCacheManifest = {
 
 type PendingWrite = { fileName: string; value: FileType };
 
-let discardedDesktopFiles = new Set<string>();
-export function discardDesktopFilesOnClose(names: string[]): void { discardedDesktopFiles = new Set(names); }
-
 let knownFiles = new Map<string, FileType>();
 // IndexedDB and localStorage have independent records. An IndexedDB write
 // does not make the synchronous local backup current.
@@ -333,8 +330,7 @@ async function flushPending(): Promise<void> {
 }
 
 export function scheduleFileCache(files: FileType[], currentFileName: string): void {
-  const remaining = files.filter(file => !discardedDesktopFiles.has(file.fileName));
-  const collected = collectPending(remaining, discardedDesktopFiles.has(currentFileName) ? (remaining[0]?.fileName ?? "") : currentFileName);
+  const collected = collectPending(files, currentFileName);
   for (const write of collected.writes) {
     pendingDeletes.delete(write.fileName);
     pendingWrites.set(write.fileName, write);
@@ -391,7 +387,6 @@ export function setFileCacheErrorHandler(
 }
 
 export function resetFileCacheForTests(): void {
-  discardedDesktopFiles = new Set();
   clearSchedule();
   knownFiles = new Map();
   localKnownFiles = new Map();

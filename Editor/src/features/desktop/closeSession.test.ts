@@ -4,9 +4,10 @@ const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
   confirm: vi.fn(),
   save: vi.fn(),
+  flush: vi.fn(),
+  status: "idle",
   files: [] as Array<{ fileName: string; config: { filePath?: string } }>,
 }));
-vi.mock("antd", () => ({ Button: "button", Space: "div" }));
 vi.mock("@/utils/ui/antdAppApi", () => ({
   modal: { confirm: mocks.confirm },
   message: { error: vi.fn() },
@@ -26,13 +27,12 @@ vi.mock("@/stores/project/fileDirtyState", () => ({
   hasUnsavedContent: () => true,
 }));
 vi.mock("@/stores/project/fileCache", () => ({
-  discardDesktopFilesOnClose: vi.fn(),
-  flushFileCache: vi.fn().mockResolvedValue(undefined),
+  flushFileCache: mocks.flush,
   flushFileCacheSync: vi.fn(),
   scheduleFileCache: vi.fn(),
 }));
 vi.mock("@/stores/debug/debugSessionStore", () => ({
-  useDebugSessionStore: { getState: () => ({ session: undefined }) },
+  useDebugSessionStore: { getState: () => ({ session: { status: mocks.status } }) },
 }));
 
 import { initializeDesktopSession } from "./closeSession";
@@ -42,6 +42,8 @@ describe("desktop close handshake", () => {
   let requestClose: () => void;
   beforeEach(async () => {
     vi.clearAllMocks();
+    mocks.status = "idle";
+    mocks.flush.mockResolvedValue(undefined);
     mocks.files = [{ fileName: "pipeline", config: {} }];
     mocks.invoke.mockResolvedValue(undefined);
     mocks.save.mockResolvedValue(true);
@@ -63,54 +65,47 @@ describe("desktop close handshake", () => {
     delete window.__TAURI__;
   });
 
-  it("keeps the session when the native save dialog is cancelled", async () => {
-    mocks.invoke.mockImplementation(async (command) =>
-      command === "desktop_save_path" ? null : undefined,
-    );
+  it("caches unsaved files and exits without a save prompt or disk write", async () => {
+    let finishCache!: () => void;
+    mocks.flush.mockReturnValue(new Promise<void>((resolve) => {
+      finishCache = resolve;
+    }));
     requestClose();
-    await expect(mocks.confirm.mock.calls[0][0].onOk()).rejects.toThrow(
-      "已取消保存",
-    );
+    requestClose();
+    expect(mocks.confirm).not.toHaveBeenCalled();
     expect(mocks.save).not.toHaveBeenCalled();
-    expect(mocks.invoke).not.toHaveBeenCalledWith("desktop_reply", {
-      accept: true,
-    });
+    expect(mocks.invoke).not.toHaveBeenCalledWith("desktop_reply", { accept: true });
+    finishCache();
+    await vi.waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("desktop_reply", { accept: true }));
+    expect(mocks.flush).toHaveBeenCalledTimes(1);
+    expect(mocks.invoke.mock.calls.some(([command]) => command === "desktop_save_path")).toBe(false);
   });
 
-  it("does not acknowledge exit when the backend write fails", async () => {
-    mocks.files[0].config.filePath = "/project/pipeline.json";
-    mocks.save.mockResolvedValue(false);
-    requestClose();
-    await expect(mocks.confirm.mock.calls[0][0].onOk()).rejects.toThrow(
-      "保存 pipeline 失败",
-    );
-    expect(mocks.invoke).not.toHaveBeenCalledWith("desktop_reply", {
-      accept: true,
-    });
-    await mocks.confirm.mock.calls[0][0].onCancel();
-    expect(mocks.invoke).toHaveBeenCalledWith("desktop_reply", {
-      accept: false,
-    });
-  });
-
-  it("waits for a selected path and successful write before accepting exit", async () => {
-    mocks.invoke.mockImplementation(async (command) =>
-      command === "desktop_save_path" ? "/project/new.json" : undefined,
-    );
-    requestClose();
-    await mocks.confirm.mock.calls[0][0].onOk();
-    expect(mocks.save).toHaveBeenCalledWith(
-      "/project/new.json",
-      mocks.files[0],
-    );
-    expect(mocks.invoke).toHaveBeenLastCalledWith("desktop_reply", {
-      accept: true,
-    });
-  });
-
-  it("ignores repeated close requests while awaiting the user's choice", () => {
+  it.each(["running", "stopping"])("allows cancelling exit while the task is %s", async (status) => {
+    mocks.status = status;
     requestClose();
     requestClose();
     expect(mocks.confirm).toHaveBeenCalledTimes(1);
+    await mocks.confirm.mock.calls[0][0].onCancel();
+    expect(mocks.invoke).toHaveBeenCalledWith("desktop_reply", { accept: false });
+    expect(mocks.flush).not.toHaveBeenCalled();
+  });
+
+  it("caches the session before confirming stop and exit", async () => {
+    mocks.status = "running";
+    requestClose();
+    await mocks.confirm.mock.calls[0][0].onOk();
+    expect(mocks.flush).toHaveBeenCalledTimes(1);
+    expect(mocks.save).not.toHaveBeenCalled();
+    expect(mocks.invoke).toHaveBeenLastCalledWith("desktop_reply", { accept: true });
+  });
+
+  it("allows retrying close after the host fails", async () => {
+    mocks.invoke.mockRejectedValueOnce(new Error("stop failed"));
+    requestClose();
+    await vi.waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith("desktop_reply", { accept: true }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    requestClose();
+    await vi.waitFor(() => expect(mocks.flush).toHaveBeenCalledTimes(2));
   });
 });
