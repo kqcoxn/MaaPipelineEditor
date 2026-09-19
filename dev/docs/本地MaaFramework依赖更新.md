@@ -13,6 +13,8 @@ yarn update:mfw
 
 默认对应 `yarn server`，固定更新 `LocalBridge/build/runtime/maafw`。LocalBridge 始终从可执行文件旁的 `runtime` 目录加载依赖。
 
+Air 的 `clean_on_exit` 必须保持为 `false`，避免退出开发服务时删除 `build` 中的运行依赖。修改 `.air.toml` 后需完整退出并重新启动 Air；当前进程仍可能使用启动时读取的清理设置。手动删除 `LocalBridge/build` 后，也需要重新运行 `yarn update:mfw`。
+
 使用不同的构建位置时，指定可执行文件目录：
 
 ```bash

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 	localized := s.Localize(req.Language)
 	controllers := objectArray(localized.Document["controller"])
 	controller := findNamed(controllers, req.ControllerName)
-	if controller == nil && len(controllers) > 0 {
+	if controller == nil && req.ControllerName == "" && len(controllers) > 0 {
 		controller = controllers[0]
 	}
 	if controller == nil {
@@ -50,7 +51,7 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 
 	resources := compatibleResources(objectArray(localized.Document["resource"]), controllerName)
 	resource := findNamed(resources, req.ResourceName)
-	if resource == nil && len(resources) > 0 {
+	if resource == nil && req.ResourceName == "" && len(resources) > 0 {
 		resource = resources[0]
 	}
 	if resource == nil {
@@ -63,13 +64,7 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 		return nil, err
 	}
 	controllerType, _ := controller["type"].(string)
-	if err := ValidateDebugPasswords(objectMap(localized.Document["option"]), req.OptionValues); err != nil {
-		return nil, err
-	}
-	values, activeOptions, overrides, diagnostics := resolveOptions(localized.Document, controllerName, controllerType, resourceName, req.OptionValues)
-	if hasErrorDiagnostics(diagnostics) {
-		return nil, &loadError{Diagnostics: diagnostics}
-	}
+	task, groups, values, overrides, diagnostics := resolveTaskOptions(localized.Document, req, controllerName, controllerType, resourceName)
 
 	agents, err := resolveAgents(localized.Document["agent"])
 	if err != nil {
@@ -86,12 +81,28 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 		}
 	}
 	version, _ := localized.Document["version"].(string)
+	contextID := ""
+	if !hasErrorDiagnostics(diagnostics) {
+		contextID = uuid.NewString()
+	} else {
+		overrides = nil
+	}
+	for index := range diagnostics {
+		item := &diagnostics[index]
+		item.File = s.EntryPath
+		if location, ok := nearestProvenance(s.Provenance, item.Pointer); ok {
+			item.File, item.Line, item.Column = location.File, location.Line, location.Column
+			item.EndLine, item.EndColumn = location.EndLine, location.EndColumn
+		}
+	}
+	entry, _ := task["entry"].(string)
 	return &RuntimePlan{
-		ContextID: uuid.NewString(), ProjectID: s.ProjectID, Revision: s.Revision,
+		RequestID: req.RequestID, TaskName: req.TaskName, Entry: entry, OptionGroups: groups, Diagnostics: diagnostics,
+		ContextID: contextID, ProjectID: s.ProjectID, Revision: s.Revision,
 		Language: localized.Language, ProjectRoot: s.ProjectRoot, InterfaceRoot: s.InterfaceRoot, ProjectVersion: version,
 		ControllerName: controllerName, ResourceName: resourceName,
 		Controller: cloneMap(controller), Resource: cloneMap(resource), ResourcePaths: paths,
-		Options: activeOptions, OptionValues: values, PipelineOverrides: overrides, Agents: agents,
+		OptionValues: values, PipelineOverrides: overrides, Agents: agents,
 	}, nil
 }
 
@@ -197,8 +208,7 @@ func resolveAgents(value any) ([]AgentPlan, error) {
 	return result, nil
 }
 
-func resolveOptions(doc map[string]any, controllerName, controllerType, resourceName string, provided map[string]any) (map[string]any, map[string]any, []map[string]any, []Diagnostic) {
-	definitions := objectMap(doc["option"])
+func resolveOptions(definitions map[string]any, references []string, controllerName, controllerType, resourceName string, provided map[string]any) (map[string]any, map[string]any, []map[string]any, []Diagnostic) {
 	values := map[string]any{}
 	for key, value := range provided {
 		values[key] = value
@@ -206,15 +216,6 @@ func resolveOptions(doc map[string]any, controllerName, controllerType, resource
 	active := map[string]any{}
 	var overrides []map[string]any
 	var diagnostics []Diagnostic
-	resource := findNamed(objectArray(doc["resource"]), resourceName)
-	controller := findNamed(objectArray(doc["controller"]), controllerName)
-	references := append([]string{}, stringSlice(doc["global_option"])...)
-	if resource != nil {
-		references = append(references, stringSlice(resource["option"])...)
-	}
-	if controller != nil {
-		references = append(references, stringSlice(controller["option"])...)
-	}
 	stack := map[string]bool{}
 	for _, name := range references {
 		resolveOption(name, definitions, controllerName, controllerType, resourceName, values, active, &overrides, &diagnostics, stack)
@@ -251,7 +252,8 @@ func resolveOption(name string, definitions map[string]any, controllerName, cont
 	switch typeName {
 	case "select", "switch":
 		selected, _ := value.(string)
-		if selected == "" {
+		if findNamed(objectArray(definition["cases"]), selected) == nil {
+			*diagnostics = append(*diagnostics, Diagnostic{Severity: "error", Category: "runtime", Code: "pi.option.case_invalid", Message: "Option " + name + " 的选项无效", Pointer: "/option/" + escapePointer(name)})
 			return
 		}
 		if selectedCase := findNamed(objectArray(definition["cases"]), selected); selectedCase != nil {
@@ -290,6 +292,12 @@ func resolveInputReplacements(definition map[string]any, value any, diagnostics 
 		raw, exists := provided[name]
 		if !exists {
 			raw = field["default"]
+		}
+		if pattern, _ := field["verify"].(string); pattern != "" {
+			expression, err := regexp.Compile(pattern)
+			if err != nil || !expression.MatchString(fmt.Sprint(raw)) {
+				*diagnostics = append(*diagnostics, Diagnostic{Severity: "error", Category: "runtime", Code: "pi.option.verify_failed", Message: fmt.Sprintf("Option %s 的输入 %s 未通过校验", optionName, name), Pointer: "/option/" + escapePointer(optionName) + "/inputs"})
+			}
 		}
 		typeName, _ := field["pipeline_type"].(string)
 		converted, err := convertInputValue(raw, typeName)

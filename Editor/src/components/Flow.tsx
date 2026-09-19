@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Flow.module.less";
 import "@xyflow/react/dist/style.css";
@@ -252,7 +253,8 @@ function MainFlow() {
 
   // 嵌入模式权限控制
   const { isEmbed, isCapAllowed } = useEmbedMode();
-  const readOnly = isEmbed && isCapAllowed("readOnly");
+  const canvasActive = useWorkspaceStore(s => s.view === "canvas") || isEmbed;
+  const readOnly = !canvasActive || (isEmbed && isCapAllowed("readOnly"));
   const allowCopy = !isEmbed || isCapAllowed("allowCopy");
 
   const selfElem = useRef<HTMLDivElement>(null);
@@ -313,6 +315,15 @@ function MainFlow() {
     position: { x: number; y: number };
     open: boolean;
   } | null>(null);
+
+  useEffect(() => {
+    if (!canvasActive) {
+      setNodeAddPanelVisible(false);
+      setQuickCreateConnection(null);
+      setSelectionMenuPos(null);
+      setNodeContextMenu(null);
+    }
+  }, [canvasActive]);
 
   // 回调
   const onNodesChange = useCallback(
@@ -705,6 +716,7 @@ function MainFlow() {
             onSelectionContextMenu={onSelectionContextMenu}
             onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
+            deleteKeyCode={canvasActive ? "Backspace" : null}
             nodesDraggable={!readOnly}
             nodesConnectable={!readOnly}
             elementsSelectable={true}
@@ -717,32 +729,36 @@ function MainFlow() {
             <Controls orientation="vertical" />
             <InstanceMonitor />
             <ViewportChangeMonitor />
-            <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
-            <NodeAddPanelController
-              visible={nodeAddPanelVisible}
-              screenPos={nodeAddPanelPos}
-              quickCreateConnection={quickCreateConnection}
-              setScreenPos={setNodeAddPanelPos}
-              onClose={closeNodeAddPanel}
-            />
-            <InlineFieldPanel />
-            <InlineEdgePanel />
+            {canvasActive && <>
+              <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
+              <NodeAddPanelController
+                visible={nodeAddPanelVisible}
+                screenPos={nodeAddPanelPos}
+                quickCreateConnection={quickCreateConnection}
+                setScreenPos={setNodeAddPanelPos}
+                onClose={closeNodeAddPanel}
+              />
+              <InlineFieldPanel />
+              <InlineEdgePanel />
+            </>}
             <SnapGuidelines guidelines={snapGuidelines} />
           </ReactFlow>
         </AvoidanceRoutingProvider>
       </CanvasMotionContext.Provider>
-      <CanvasNodeContextMenu
-        nodeId={nodeContextMenu?.nodeId ?? null}
-        position={nodeContextMenu?.position ?? null}
-        open={nodeContextMenu?.open ?? false}
-        onOpenChange={onNodeContextMenuOpenChange}
-      />
-      {/* 选区右键菜单 */}
-      <SelectionContextMenu
-        position={selectionMenuPos}
-        open={!!selectionMenuPos}
-        onOpenChange={onSelectionMenuOpenChange}
-      />
+      {canvasActive && <>
+        <CanvasNodeContextMenu
+          nodeId={nodeContextMenu?.nodeId ?? null}
+          position={nodeContextMenu?.position ?? null}
+          open={nodeContextMenu?.open ?? false}
+          onOpenChange={onNodeContextMenuOpenChange}
+        />
+        {/* 选区右键菜单 */}
+        <SelectionContextMenu
+          position={selectionMenuPos}
+          open={!!selectionMenuPos}
+          onOpenChange={onSelectionMenuOpenChange}
+        />
+      </>}
     </div>
   );
 }

@@ -1,0 +1,27 @@
+.monitor { display: flex; flex-direction: column; min-height: 0; overflow: hidden; border-inline-start: 1px solid var(--pi-border); background: var(--pi-surface); }
+.viewport { flex: none; border-bottom: 1px solid var(--pi-border); }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; }
+.heading h3 { margin: 0; font-size: 14px; font-weight: 600; }
+.heading > div { display: flex; align-items: center; gap: 10px; }
+.screen { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 10; background: var(--pi-subtle); overflow: hidden; margin: 0 12px 12px; border-radius: 6px; }
+.screen img { width: 100%; height: 100%; object-fit: contain; }
+.expanded { position: fixed; inset: 10vh 10vw; z-index: 1000; background: var(--pi-surface); border: 1px solid var(--pi-border); border-radius: 8px; display: flex; flex-direction: column; }
+.expanded .screen { flex: 1; aspect-ratio: auto; }
+.logs { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.logContent { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 16px 12px; }
+.logContent:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: -2px; }
+.log { padding: 8px 0; border-bottom: 1px solid var(--pi-border); overflow-wrap: anywhere; }
+.log time { display: block; color: var(--pi-muted); font-size: 11px; font-variant-numeric: tabular-nums; margin-bottom: 3px; }
+.log span { font-size: 12px; user-select: text; white-space: pre-wrap; }
+.caption { flex: none; padding: 8px 16px; color: var(--pi-muted); font-size: 12px; }
+@media (max-width: 1250px) {
+  .monitor { grid-column: 1 / -1; border-inline-start: 0; border-top: 1px solid var(--pi-border); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .viewport { border-bottom: 0; border-inline-end: 1px solid var(--pi-border); }
+  .screen { aspect-ratio: auto; height: 240px; }
+  .expanded .screen { height: auto; }
+}
+@media (max-width: 650px) {
+  .monitor { display: flex; }
+  .viewport { border-inline-end: 0; }
+  .logs { min-height: 240px; }
+}

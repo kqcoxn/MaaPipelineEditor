@@ -32,6 +32,7 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
+	interfaceRunService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/interfacerun"
 	projectInterfaceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/projectinterface"
 	resourceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/resource"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
@@ -448,6 +449,9 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	piHandler := projectInterfaceProtocol.NewHandler(piSvc, eventBus, wsServer)
 	rt.RegisterHandler(piHandler)
+	interfaceRunner := interfaceRunService.New(piSvc, mfwSvc, eventBus, Version)
+	defer interfaceRunner.Close()
+	rt.RegisterHandler(projectInterfaceProtocol.NewRunHandler(interfaceRunner, eventBus, wsServer))
 
 	// 注册 debug-vNext 协议处理器
 	debugHandler := debugapi.NewHandler(mfwSvc, cfg.EffectiveRoot(), piSvc, Version)

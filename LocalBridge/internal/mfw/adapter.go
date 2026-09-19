@@ -457,6 +457,17 @@ func (a *MaaFWAdapter) InitTasker() error {
 	return nil
 }
 
+// DestroyTasker releases a finished tasker before its external Agent clients.
+func (a *MaaFWAdapter) DestroyTasker() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.tasker != nil {
+		a.tasker.Destroy()
+		a.tasker = nil
+	}
+	a.initialized = false
+}
+
 // GetTasker 获取 Tasker
 func (a *MaaFWAdapter) GetTasker() *maa.Tasker {
 	a.mu.RLock()

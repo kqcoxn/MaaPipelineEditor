@@ -67,6 +67,9 @@ type Status struct {
 }
 
 type ContextRequest struct {
+	Purpose        string                          `json:"purpose,omitempty"`
+	RequestID      string                          `json:"requestId"`
+	TaskName       string                          `json:"taskName,omitempty"`
 	Revision       string                          `json:"revision"`
 	Language       string                          `json:"language,omitempty"`
 	ControllerName string                          `json:"controllerName"`
@@ -90,7 +93,24 @@ type AgentPlan struct {
 	Identifier string   `json:"identifier,omitempty"`
 }
 
+type OptionNode struct {
+	Name       string         `json:"name"`
+	Definition map[string]any `json:"definition"`
+	Children   []OptionNode   `json:"children,omitempty"`
+}
+
+type OptionGroup struct {
+	Scope string       `json:"scope"`
+	Nodes []OptionNode `json:"nodes"`
+}
+
 type RuntimePlan struct {
+	RequestID    string        `json:"requestId"`
+	TaskName     string        `json:"taskName,omitempty"`
+	Entry        string        `json:"entry,omitempty"`
+	OptionGroups []OptionGroup `json:"optionGroups"`
+	Diagnostics  []Diagnostic  `json:"diagnostics,omitempty"`
+
 	ContextID         string           `json:"contextId"`
 	ProjectID         string           `json:"projectId"`
 	Revision          string           `json:"revision"`
@@ -103,7 +123,6 @@ type RuntimePlan struct {
 	Controller        map[string]any   `json:"controller"`
 	Resource          map[string]any   `json:"resource"`
 	ResourcePaths     []string         `json:"resourcePaths"`
-	Options           map[string]any   `json:"options,omitempty"`
 	OptionValues      map[string]any   `json:"optionValues,omitempty"`
 	PipelineOverrides []map[string]any `json:"pipelineOverrides,omitempty"`
 	Agents            []AgentPlan      `json:"agents,omitempty"`

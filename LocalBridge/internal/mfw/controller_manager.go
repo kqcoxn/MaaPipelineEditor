@@ -18,6 +18,7 @@ import (
 
 // 控制器管理器
 type ControllerManager struct {
+	reserved    map[string]bool
 	controllers map[string]*ControllerInfo
 	mu          sync.RWMutex
 }
@@ -25,6 +26,7 @@ type ControllerManager struct {
 // 创建控制器管理器
 func NewControllerManager() *ControllerManager {
 	return &ControllerManager{
+		reserved:    make(map[string]bool),
 		controllers: make(map[string]*ControllerInfo),
 	}
 }
@@ -485,6 +487,10 @@ func destroyController(info *ControllerInfo) {
 // 断开控制器
 func (cm *ControllerManager) DisconnectController(controllerID string) error {
 	cm.mu.Lock()
+	if cm.reserved[controllerID] {
+		cm.mu.Unlock()
+		return fmt.Errorf("设备正在运行，请先停止任务")
+	}
 	info, exists := cm.controllers[controllerID]
 	if !exists {
 		cm.mu.Unlock()
@@ -725,7 +731,7 @@ func (cm *ControllerManager) CleanupInactive(timeout time.Duration) {
 	now := time.Now()
 	stale := make([]*ControllerInfo, 0)
 	for id, info := range cm.controllers {
-		if now.Sub(info.LastActiveAt) > timeout {
+		if !cm.reserved[id] && now.Sub(info.LastActiveAt) > timeout {
 			delete(cm.controllers, id)
 			stale = append(stale, info)
 			logger.Debug("MFW", "清理非活跃控制器: %s", id)

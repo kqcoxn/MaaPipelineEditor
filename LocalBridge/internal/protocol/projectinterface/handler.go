@@ -37,7 +37,8 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		h.send(conn, "/lte/interface/status", h.service.Status())
 	case "/etl/interface/snapshot":
 		var req struct {
-			Language string `json:"language"`
+			Language  string `json:"language"`
+			RequestID string `json:"requestId"`
 		}
 		if !decode(msg.Data, &req) {
 			h.sendError(conn, "pi_invalid_request", "请求格式错误")
@@ -45,10 +46,10 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		}
 		snapshot, err := h.service.Snapshot(req.Language)
 		if err != nil {
-			h.sendError(conn, "pi_snapshot_unavailable", err.Error())
+			h.send(conn, "/lte/interface/error", map[string]any{"code": "pi_snapshot_unavailable", "message": err.Error(), "requestId": req.RequestID})
 			break
 		}
-		h.send(conn, "/lte/interface/snapshot", snapshot)
+		h.send(conn, "/lte/interface/snapshot", map[string]any{"requestId": req.RequestID, "snapshot": snapshot})
 	case "/etl/interface/diagnostics":
 		h.send(conn, "/lte/interface/diagnostics", map[string]any{"diagnostics": h.service.Status().Diagnostics})
 	case "/etl/interface/context/resolve":
@@ -59,7 +60,7 @@ func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Me
 		}
 		plan, err := h.service.ResolveContext(req)
 		if err != nil {
-			h.sendError(conn, "pi_context_resolve_failed", err.Error())
+			h.send(conn, "/lte/interface/error", map[string]any{"code": "pi_context_resolve_failed", "message": err.Error(), "requestId": req.RequestID})
 			break
 		}
 		h.send(conn, "/lte/interface/context", plan)

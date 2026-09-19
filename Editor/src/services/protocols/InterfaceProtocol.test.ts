@@ -31,11 +31,13 @@ describe("InterfaceProtocol", () => {
     protocol.requestStatus();
     protocol.requestSnapshot("zh_cn");
     protocol.resolveContext({
+      requestId: "resolve-1",
+      taskName: "Daily",
       revision: "r1",
       language: "zh_cn",
       controllerName: "c",
       resourceName: "r",
-      optionValues: {},
+      optionValues: { global: {}, resource: {}, controller: {}, task: {} },
       agentEnabled: { "pi-agent-1": false },
       agentOverrides: {
         "pi-agent-1": { childExec: "python", childArgs: ["agent.py"] },

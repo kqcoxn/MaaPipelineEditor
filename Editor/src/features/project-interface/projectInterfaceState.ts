@@ -1,3 +1,4 @@
+import type { ProjectInterfaceTask } from "./types";
 export type InterfaceObject = Record<string, unknown>;
 export type InterfaceConfigurationSource = "project_interface" | "manual";
 
@@ -88,4 +89,9 @@ function normalizeKey(key: string): string {
   };
   if (aliases[key]) return aliases[key];
   return key.length === 1 ? key.toUpperCase() : key;
+}
+
+export function taskUnavailableReason(task: ProjectInterfaceTask, controller: string, resource: string): string | undefined {
+  if (task.controller?.length && !task.controller.includes(controller)) return "不适用于当前控制器";
+  if (task.resource?.length && !task.resource.includes(resource)) return "不适用于当前资源";
 }

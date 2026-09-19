@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import { modal } from "@/utils/ui/antdAppApi";
 import { parse as parseJsonc, visit } from "jsonc-parser";
@@ -595,6 +596,7 @@ async function pipelineToFlowInternal(
     // 自动布局
     if (!isIncludePos) void LayoutHelper.auto();
 
+    useWorkspaceStore.getState().showCanvas();
     return true;
   } catch (err) {
     modal.error({

@@ -18,6 +18,8 @@ type Service struct {
 	controllerManager *ControllerManager
 	resourceManager   *ResourceManager
 	taskManager       *TaskManager
+	executionOwner    string
+	controllerSetups  int
 	initialized       bool
 	mu                sync.RWMutex
 }
@@ -144,6 +146,13 @@ func (s *Service) Initialize() (err error) {
 func (s *Service) Shutdown() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if s.controllerSetups > 0 {
+		return fmt.Errorf("设备正在连接，请稍后重载服务")
+	}
+	if s.executionOwner != "" {
+		return fmt.Errorf("%s 正在运行，请先停止再重载服务", s.executionOwner)
+	}
 
 	if !s.initialized {
 		return nil

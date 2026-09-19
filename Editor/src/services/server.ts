@@ -1,3 +1,4 @@
+import { InterfaceRunProtocol } from "./protocols/InterfaceRunProtocol";
 import { desktopContext } from "@/features/desktop/host";
 import { message, notification } from "@/utils/ui/antdAppApi";
 import {
@@ -81,6 +82,8 @@ export class LocalWebSocketServer {
   }
 
   // 注册连接状态变化回调
+  getAddress(): string { return this.url; }
+
   onStatus(callback: (connected: boolean) => void) {
     this.statusListeners.add(callback);
     return () => this.statusListeners.delete(callback);
@@ -357,6 +360,7 @@ export const debugProtocolClient = new DebugProtocolClient();
 export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
 export const interfaceProtocol = new InterfaceProtocol();
+export const interfaceRunProtocol = new InterfaceRunProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -380,6 +384,7 @@ export function initializeWebSocket() {
   configProtocol.register(localServer);
 
   interfaceProtocol.register(localServer);
+  interfaceRunProtocol.register(localServer);
 
   // 注册 debug-vNext 协议客户端
   debugProtocolClient.register(localServer);

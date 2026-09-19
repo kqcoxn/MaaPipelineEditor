@@ -146,6 +146,7 @@ func (l *loader) validateSemantics(entryPath, interfaceRoot string, doc map[stri
 	resources := objectArray(doc["resource"])
 	controllerNames := namesOf(controllers)
 	resourceNames := namesOf(resources)
+	result = append(result, duplicateNameDiagnostics(entryPath, "/task", objectArray(doc["task"]))...)
 	result = append(result, duplicateNameDiagnostics(entryPath, "/controller", controllers)...)
 	result = append(result, duplicateNameDiagnostics(entryPath, "/resource", resources)...)
 

@@ -1,4 +1,4 @@
-﻿import {
+import {
   useEffect,
   useMemo,
   useState,
@@ -136,6 +136,7 @@ export function OverviewPanel({
 }: {
   controller: DebugModalController;
 }) {
+
   const {
     capabilityStatus,
     capabilityError,

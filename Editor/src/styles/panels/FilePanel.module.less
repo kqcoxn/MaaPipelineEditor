@@ -12,5 +12,60 @@
   .tabs {
     margin: 0 12px;
     flex: 1;
+    min-width: 0;
+  }
+
+  .interfaceTab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 2px;
+    padding: 8px 16px;
+    border: 0;
+    background: transparent;
+    color: var(--interface-tab-color);
+    font-family: inherit;
+    line-height: 1.5715;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: var(--interface-tab-primary);
+      transform: translateX(-50%);
+      transition: width 0.2s ease;
+    }
+
+    &:hover,
+    &[aria-pressed="true"] {
+      color: var(--interface-tab-primary);
+    }
+
+    &[aria-pressed="true"] {
+      background: var(--interface-tab-active-bg);
+
+      &::after {
+        width: 80%;
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--interface-tab-primary);
+      outline-offset: -2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &,
+      &::after {
+        transition: none;
+      }
+    }
   }
 }

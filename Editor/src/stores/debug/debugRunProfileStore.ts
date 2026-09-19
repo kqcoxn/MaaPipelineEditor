@@ -83,6 +83,7 @@ interface DebugRunProfileState extends DebugRunProfilePreset {
     sessionId?: string,
     input?: DebugRunInput,
     overrides?: DebugPipelineOverride[],
+    resourceScope?: { paths: string[]; strict: boolean },
   ) => DebugRunRequest;
 }
 
@@ -390,11 +391,12 @@ export const useDebugRunProfileStore = create<DebugRunProfileState>(
           },
         })),
 
-      buildRunRequest: (mode, requestedTarget, sessionId, input, overrides) => {
+      buildRunRequest: (mode, requestedTarget, sessionId, input, overrides, resourceScope) => {
         const storeProfile = get().profile;
         const bundle = buildDebugSnapshotBundle(
           undefined,
-          storeProfile.resourcePaths,
+          resourceScope?.paths ?? storeProfile.resourcePaths,
+          resourceScope?.strict,
         );
         const mfwState = useMFWStore.getState();
         const target =

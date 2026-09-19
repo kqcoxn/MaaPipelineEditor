@@ -67,14 +67,7 @@ export function useDebugModalController() {
     () => new Set(),
   );
   const agentTestTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const pendingRunRef = useRef<
-    | {
-        mode: DebugRunMode;
-        target?: DebugNodeTarget;
-        input?: DebugRunRequest["input"];
-      }
-    | undefined
-  >();
+  const pendingRunRef = useRef<{ mode: DebugRunMode; target?: DebugNodeTarget; input?: DebugRunRequest["input"] } | undefined>(undefined);
   const {
     modalOpen,
     activePanel,
@@ -353,13 +346,14 @@ export function useDebugModalController() {
     }
   }, [clearProtocolError, lastError?.code, resetOverrideDraftState]);
 
-  const startRun = async (
+  const executeRun = async (
     mode: DebugRunMode,
     target?: DebugNodeTarget,
     input?: DebugRunRequest["input"],
   ): Promise<void> => {
+    const runContext = piContext;
     clearProtocolError();
-    if (projectInterface.mode === "project_interface" && (!piContext || projectInterface.error)) {
+    if (projectInterface.mode === "project_interface" && (!runContext?.contextId || projectInterface.error)) {
       message.error(projectInterface.error ?? "Project Interface 上下文尚未就绪，请刷新配置或切换到手动模式");
       return;
     }
@@ -438,10 +432,11 @@ export function useDebugModalController() {
         session?.sessionId,
         input,
         overrideEntries,
+        runContext ? { paths: runContext.resourcePaths, strict: Boolean(runContext.taskName) } : undefined,
       );
-      request.configurationSource = piContext ? "project_interface" : "manual";
-      request.projectContextId = piContext?.contextId;
-      if (piContext) request.profile.resourcePaths = piContext.resourcePaths;
+      request.configurationSource = runContext ? "project_interface" : "manual";
+      request.projectContextId = runContext?.contextId;
+      if (runContext) request.profile.resourcePaths = runContext.resourcePaths;
       const preflightDiagnostics = validateRunRequest(request);
       diagnosticsState.setPreflightDiagnostics(preflightDiagnostics);
       const blockingDiagnostic = preflightDiagnostics.find(
@@ -473,6 +468,11 @@ export function useDebugModalController() {
     }
   };
 
+  const startRun = async (mode: DebugRunMode, target?: DebugNodeTarget, input?: DebugRunRequest["input"]) => {
+    try { await executeRun(mode, target, input); }
+    catch (error) { message.error(error instanceof Error ? error.message : "任务启动失败"); }
+  };
+
   const startRunRef = useRef(startRun);
   startRunRef.current = startRun;
   useEffect(() => {
@@ -483,7 +483,7 @@ export function useDebugModalController() {
       message.error("资源检查未通过，请按资源配置中的错误位置和建议修复。");
       return;
     }
-    if (resourcePreflightStatus !== "ready") return;
+    if (resourcePreflightStatus !== "ready" || capabilityStatus !== "ready") return;
     const pendingRun = pendingRunRef.current;
     pendingRunRef.current = undefined;
     void startRunRef.current(
@@ -491,9 +491,9 @@ export function useDebugModalController() {
       pendingRun.target,
       pendingRun.input,
     );
-  }, [resourcePreflight.error, resourcePreflightStatus]);
+  }, [resourcePreflight.error, resourcePreflightStatus, capabilityStatus]);
   useEffect(() => {
-    if (!connected) pendingRunRef.current = undefined;
+    if (!connected) { pendingRunRef.current = undefined; }
   }, [connected]);
   useEffect(
     () =>

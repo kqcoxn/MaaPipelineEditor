@@ -7,7 +7,7 @@ tmp_dir = "build"
 [build]
   cmd = "go mod tidy ; go build -o ./build/mpelb.exe ./cmd/lb"
   bin = "./build/mpelb.exe"
-  full_bin = "./build/mpelb.exe --root ./test-json --interface ./assets/interface.json --log-level DEBUG"
+  full_bin = "./build/mpelb.exe --root ./test-json --log-level DEBUG"
   include_ext = ["go", "toml", "yaml", "yml", "json"]
   exclude_dir = ["build", "test-json", "node_modules", "vendor", ".git"]
   exclude_file = []
@@ -31,4 +31,5 @@ tmp_dir = "build"
   main_only = false
 
 [misc]
-  clean_on_exit = true
+  # build/runtime 保存开发依赖，退出时必须保留整个 build 目录。
+  clean_on_exit = false

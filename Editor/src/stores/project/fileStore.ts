@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { fileSignature } from "./fileDirtyState";
 import { recordPipelineExport } from "@/features/achievements/exportEvents";
 import { emitAchievementEvent, hasAchievementListeners } from "@/features/achievements/bus";
@@ -475,6 +476,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
 
   // 切换文件
   switchFile: (fileName: string) => {
+    useWorkspaceStore.getState().showCanvas();
     let activeKey = null;
     let needReload = false;
     let reloadFilePath: string | undefined;

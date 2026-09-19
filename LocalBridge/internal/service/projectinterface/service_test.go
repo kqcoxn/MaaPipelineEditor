@@ -19,6 +19,36 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestMissingExplicitEntryReportsRootAndRecovery(t *testing.T) {
+	root := t.TempDir()
+	bus := eventbus.New()
+	files, err := fileservice.NewService(root, nil, []string{".json"}, 10, 100, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := files.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(files.Stop)
+	service, err := NewService(root, "./assets/interface.json", files, bus)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(service.Close)
+	service.Refresh()
+	status := service.Status()
+	if status.State != StateInvalid || status.Mode != "explicit" || status.EffectivePath != filepath.Join(root, "assets", "interface.json") {
+		t.Fatalf("unexpected status: %#v", status)
+	}
+	if len(status.Diagnostics) != 1 || !strings.Contains(status.Diagnostics[0].Message, root) || !strings.Contains(status.Diagnostics[0].Message, "留空自动检索") {
+		t.Fatalf("missing recovery guidance: %#v", status.Diagnostics)
+	}
+	service.Reload("")
+	if service.Status().State != StateNotFound || service.Status().Mode != "auto" {
+		t.Fatalf("clearing the override should restore discovery: %#v", service.Status())
+	}
+}
+
 func TestServiceDiscoveryAndContextResolution(t *testing.T) {
 	root := t.TempDir()
 	mustMkdir(t, filepath.Join(root, "resource", "base"))
@@ -84,7 +114,7 @@ func TestServiceDiscoveryAndContextResolution(t *testing.T) {
 	if len(plan.ResourcePaths) != 2 {
 		t.Fatalf("expected ordered resource and attach paths, got %#v", plan.ResourcePaths)
 	}
-	if plan.OptionValues["Difficulty"] != "Hard" {
+	if objectMap(plan.OptionValues["global"])["Difficulty"] != "Hard" {
 		t.Fatalf("default option missing: %#v", plan.OptionValues)
 	}
 	if len(plan.PipelineOverrides) != 1 {
@@ -487,7 +517,7 @@ func TestHotkeyOptionUsesControllerVirtualKeyCodes(t *testing.T) {
 			}},
 		}},
 	}
-	values, _, overrides, diagnostics := resolveOptions(document, "desktop", "Win32", "base", nil)
+	values, _, overrides, diagnostics := resolveOptions(objectMap(document["option"]), stringSlice(document["global_option"]), "desktop", "Win32", "base", nil)
 	if len(diagnostics) != 0 {
 		t.Fatalf("unexpected diagnostics: %#v", diagnostics)
 	}
@@ -499,7 +529,7 @@ func TestHotkeyOptionUsesControllerVirtualKeyCodes(t *testing.T) {
 		t.Fatalf("unexpected Win32 key codes: %#v", pipeline)
 	}
 
-	_, _, adbOverrides, diagnostics := resolveOptions(document, "desktop", "Adb", "base", map[string]any{"shortcut": map[string]any{"Action": "Alt+E"}})
+	_, _, adbOverrides, diagnostics := resolveOptions(objectMap(document["option"]), stringSlice(document["global_option"]), "desktop", "Adb", "base", map[string]any{"shortcut": map[string]any{"Action": "Alt+E"}})
 	if len(diagnostics) != 0 {
 		t.Fatalf("unexpected Adb diagnostics: %#v", diagnostics)
 	}
@@ -526,7 +556,7 @@ func TestInputPipelineTypeAndI18nOnlySupportedFields(t *testing.T) {
 	if resource["name"] != "$Resource" || resource["path"].([]any)[0] != "$Path" {
 		t.Fatalf("non-i18n fields were translated: %#v", resource)
 	}
-	values, _, _, diagnostics := resolveOptions(document, "c", "Adb", "", nil)
+	values, _, _, diagnostics := resolveOptions(objectMap(document["option"]), stringSlice(document["global_option"]), "c", "Adb", "", nil)
 	if len(diagnostics) != 0 {
 		t.Fatal(diagnostics)
 	}

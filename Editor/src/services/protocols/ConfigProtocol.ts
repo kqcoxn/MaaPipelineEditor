@@ -41,9 +41,9 @@ export interface BackendRuntimeConfig {
  */
 export interface ConfigResponse {
   success: boolean;
-  config: BackendConfig;
-  runtime: BackendRuntimeConfig;
-  config_path: string;
+  config?: BackendConfig;
+  runtime?: BackendRuntimeConfig;
+  config_path?: string;
   message?: string;
 }
 
@@ -87,13 +87,12 @@ export class ConfigProtocol extends BaseProtocol {
    */
   private handleConfigData(data: ConfigResponse): void {
     try {
+      // Failures must also settle waiting UI requests.
+      this.configCallbacks.forEach((callback) => callback(data));
       if (!data.success) {
         message.error(data.message || "获取配置失败");
         return;
       }
-
-      // 通知所有回调
-      this.configCallbacks.forEach((callback) => callback(data));
 
       // 如果有保存成功的消息，显示提示
       if (data.message) {
@@ -111,6 +110,7 @@ export class ConfigProtocol extends BaseProtocol {
    */
   private handleReloadResponse(data: any): void {
     try {
+      this.reloadCallbacks.forEach((callback) => callback(data));
       if (!data.success) {
         message.error(data.error || "重载失败");
         return;
@@ -118,8 +118,6 @@ export class ConfigProtocol extends BaseProtocol {
 
       message.success("配置重载完成");
 
-      // 通知所有回调
-      this.reloadCallbacks.forEach((callback) => callback(data));
     } catch (error) {
       console.error(
         "[ConfigProtocol] Failed to handle reload response:",

@@ -1,16 +1,19 @@
 import { StrictMode, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useConfigStore } from "@/stores/app/configStore";
 import { localServer } from "./services/server";
 import { repairFileCacheForRoot, useFileStore } from "./stores/project/fileStore";
 import { resetFileCacheForTests } from "./stores/project/fileCache";
 import App from "./App";
+import { useWorkspaceStore } from "./stores/ui/workspaceStore";
 
 const embedMocks = vi.hoisted(() => ({
   dispose: vi.fn(),
   register: vi.fn(),
   isEmbedEnvironment: vi.fn(() => true),
+  isEmbed: vi.fn(() => true),
 }));
 
 const startupMocks = vi.hoisted(() => ({
@@ -20,7 +23,12 @@ const startupMocks = vi.hoisted(() => ({
   initializeLocalBridgeConnectionState: vi.fn(),
   updateBootScreen: vi.fn(),
   finishBootScreenWhenReady: vi.fn(() => Promise.resolve()),
+  initializePI: vi.fn(() => vi.fn()),
+  shortcuts: vi.fn(),
 }));
+
+vi.mock("./features/project-interface/projectInterfaceService", () => ({ initializeProjectInterface: startupMocks.initializePI }));
+vi.mock("./features/project-interface/ProjectHome", () => ({ ProjectHome: () => <div>项目首页内容</div> }));
 
 vi.mock("./utils/embedBridge", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./utils/embedBridge")>()),
@@ -41,14 +49,14 @@ vi.mock("./services/localBridgeConnection", () => ({
 }));
 vi.mock("./hooks/useEmbedMode", () => ({
   useEmbedMode: () => ({
-    isEmbed: true,
+    isEmbed: embedMocks.isEmbed(),
     isReady: false,
     isCapAllowed: () => false,
     isPanelHidden: () => false,
   }),
 }));
 vi.mock("./hooks/useGlobalShortcuts", () => ({
-  useGlobalShortcuts: () => undefined,
+  useGlobalShortcuts: startupMocks.shortcuts,
 }));
 vi.mock("./hooks/useEmbedChangeNotifier", () => ({
   useEmbedChangeNotifier: () => undefined,
@@ -67,7 +75,8 @@ vi.mock("./contexts/ThemeContext", () => ({
 }));
 
 vi.mock("./components/Header", () => ({ default: () => null }));
-vi.mock("./components/Flow", () => ({ default: () => null }));
+// React Flow explicitly makes measured nodes visible, overriding inherited visibility.
+vi.mock("./components/Flow", () => ({ default: () => <input aria-label="canvas-state" defaultValue="unsaved" style={{ visibility: "visible" }} /> }));
 vi.mock("./components/JsonViewer", () => ({ default: () => null }));
 vi.mock("./components/debug/DebugRuntimeHost", () => ({
   DebugRuntimeHost: () => null,
@@ -83,7 +92,9 @@ vi.mock("./components/panels/main/EdgePanel", () => ({ default: () => null }));
 vi.mock("./components/panels/main/LiveScreenPanel", () => ({
   default: () => null,
 }));
-vi.mock("./components/panels/main/SearchPanel", () => ({ default: () => null }));
+vi.mock("./components/panels/main/SearchPanel", () => ({
+  default: () => createPortal(<div>canvas-search-popup</div>, document.body),
+}));
 vi.mock("./components/panels/main/FilePanel", () => ({ default: () => null }));
 vi.mock("./components/panels/settings/SettingsPanel", () => ({
   default: () => null,
@@ -120,6 +131,10 @@ describe("App startup", () => {
     embedMocks.register.mockReturnValue(embedMocks.dispose);
     embedMocks.isEmbedEnvironment.mockReset();
     embedMocks.isEmbedEnvironment.mockReturnValue(true);
+    embedMocks.isEmbed.mockReturnValue(true);
+    startupMocks.initializePI.mockClear();
+    startupMocks.shortcuts.mockClear();
+    useWorkspaceStore.getState().showCanvas();
     startupMocks.restoreFileCache.mockReset();
     startupMocks.restoreFileCache.mockResolvedValue(false);
     startupMocks.initializeFileCachePersistence.mockClear();
@@ -170,6 +185,36 @@ describe("App startup", () => {
 
     expect(localStorage.getItem("_mpe_config")).toBe(cachedConfig);
     expect(embedMocks.dispose).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves the mounted canvas and disables its shortcuts while Home is visible", async () => {
+    embedMocks.isEmbed.mockReturnValue(false);
+    embedMocks.isEmbedEnvironment.mockReturnValue(false);
+    await act(async () => { render(<App />); });
+    const canvas = screen.getByLabelText("canvas-state");
+    expect(screen.getByText("canvas-search-popup")).toBeInTheDocument();
+    fireEvent.change(canvas, { target: { value: "edited" } });
+    await act(async () => { useWorkspaceStore.getState().showHome(); });
+    expect(screen.getByLabelText("canvas-state")).toBe(canvas);
+    expect(canvas).toHaveValue("edited");
+    expect(canvas.parentElement).toHaveAttribute("inert");
+    expect(canvas.parentElement).toHaveAttribute("aria-hidden", "true");
+    expect(canvas.parentElement).toHaveStyle({ display: "none" });
+    expect(screen.queryByText("canvas-search-popup")).toBeNull();
+    expect(startupMocks.shortcuts).toHaveBeenLastCalledWith(false);
+    act(() => { useWorkspaceStore.getState().showCanvas(); });
+    expect(canvas.parentElement).not.toHaveAttribute("inert");
+    expect(canvas.parentElement).not.toHaveStyle({ display: "none" });
+    expect(screen.getByText("canvas-search-popup")).toBeInTheDocument();
+    expect(canvas).toHaveValue("edited");
+    expect(startupMocks.shortcuts).toHaveBeenLastCalledWith(true);
+  });
+
+  it("does not initialize project Home services in embedded mode", async () => {
+    await act(async () => { render(<App />); });
+    expect(startupMocks.initializePI).not.toHaveBeenCalled();
+    act(() => { useWorkspaceStore.getState().showHome(); });
+    expect(screen.getByLabelText("canvas-state").parentElement).not.toHaveAttribute("inert");
   });
 
   it("keeps the boot screen until cached canvas restoration completes", async () => {

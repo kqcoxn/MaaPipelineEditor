@@ -226,8 +226,9 @@ func (h *ConfigHandler) sendError(conn *server.Connection, err *errors.LBError) 
 
 func (h *ConfigHandler) sendConfigError(conn *server.Connection, code, message string, detail interface{}) {
 	errorMsg := models.Message{
-		Path: "/error",
+		Path: "/lte/config/data",
 		Data: map[string]interface{}{
+			"success": false,
 			"code":    code,
 			"message": message,
 			"detail":  detail,

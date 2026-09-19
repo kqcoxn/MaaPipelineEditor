@@ -1,4 +1,4 @@
-import { message, modal } from "@/utils/ui/antdAppApi";
+import { modal } from "@/utils/ui/antdAppApi";
 import {
   Modal,
   Form,
@@ -18,8 +18,9 @@ import {
   FolderOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
-import { useEffect, useState, useCallback } from "react";
-import { configProtocol, interfaceProtocol, localServer } from "../../services/server";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { configProtocol, interfaceProtocol } from "../../services/server";
+import { useBackendConfigRequests } from "./useBackendConfigRequests";
 import type { ProjectInterfaceStatus } from "@/features/project-interface/types";
 import type {
   BackendConfig,
@@ -39,31 +40,25 @@ const rootSourceLabels: Record<BackendRuntimeConfig["root_source"], string> = {
 
 const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
   const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [reloading, setReloading] = useState(false);
+  const { loading, saving, reloading, startRequest, finishRequest } = useBackendConfigRequests(open);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   const [configPath, setConfigPath] = useState("");
   const [runtimeConfig, setRuntimeConfig] = useState<BackendRuntimeConfig>();
   const [interfaceStatus, setInterfaceStatus] = useState<ProjectInterfaceStatus>();
 
   // 加载配置
   const loadConfig = useCallback(() => {
-    if (!localServer.isConnected()) {
-      message.warning("请先连接本地服务");
-      return;
-    }
-
-    setLoading(true);
-    configProtocol.requestGetConfig();
-  }, []);
+    startRequest("loading", () => configProtocol.requestGetConfig());
+  }, [startRequest]);
 
   // 处理配置数据
   useEffect(() => {
     if (!open) return;
 
     const unsubscribe = configProtocol.onConfigData((data: ConfigResponse) => {
-      setLoading(false);
-      setSaving(false);
+      finishRequest("loading");
+      finishRequest("saving");
 
       if (data.success && data.config) {
         // 设置表单值
@@ -81,7 +76,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           maafw_enabled: data.config.maafw.enabled,
           interface_path: data.config.interface?.path ?? "",
         });
-        setConfigPath(data.config_path);
+        setConfigPath(data.config_path ?? "");
         setRuntimeConfig(data.runtime);
 
         // 如果是保存后的响应，自动触发重载并关闭面板
@@ -98,19 +93,11 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             ),
             okText: "知道了",
             onOk: () => {
-              onClose();
+              onCloseRef.current();
             },
           });
 
-          // 延迟500ms后自动触发重载
-          setTimeout(() => {
-            setReloading(true);
-            const success = configProtocol.requestReload();
-            if (!success) {
-              message.error("自动重载失败，请手动点击重启按钮");
-              setReloading(false);
-            }
-          }, 500);
+          startRequest("reloading", () => configProtocol.requestReload());
         }
       }
     });
@@ -125,22 +112,22 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
       unsubscribe();
       unsubscribeInterface();
     };
-  }, [open, form, loadConfig, onClose]);
+  }, [open, form, loadConfig, startRequest, finishRequest]);
 
   // 监听重载响应
   useEffect(() => {
+    if (!open) return;
     const unsubscribe = configProtocol.onReload(() => {
-      setReloading(false);
+      finishRequest("reloading");
     });
 
     return unsubscribe;
-  }, []);
+  }, [open, finishRequest]);
 
   // 保存配置
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      setSaving(true);
 
       const config: Partial<BackendConfig> = {
         server: {
@@ -173,7 +160,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
         },
       };
 
-      configProtocol.requestSetConfig(config);
+      startRequest("saving", () => configProtocol.requestSetConfig(config));
     } catch (error) {
       console.error("表单验证失败:", error);
     }
@@ -181,22 +168,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
 
   // 重启服务
   const handleReload = () => {
-    if (!localServer.isConnected()) {
-      message.warning("请先连接本地服务");
-      return;
-    }
-
-    setReloading(true);
-    const success = configProtocol.requestReload();
-    if (!success) {
-      message.error("发送重载请求失败");
-      setReloading(false);
-    }
-
-    // 设置超时保护
-    setTimeout(() => {
-      setReloading(false);
-    }, 5000);
+    startRequest("reloading", () => configProtocol.requestReload());
   };
 
   return (
@@ -260,7 +232,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           wrapperCol={{ span: 18 }}
         >
           {/* 服务器配置 */}
-          <Divider orientation="left" plain>
+          <Divider titlePlacement="start" plain>
             服务器配置
           </Divider>
 
@@ -290,7 +262,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           </Form.Item>
 
           {/* 文件配置 */}
-          <Divider orientation="left" plain>
+          <Divider titlePlacement="start" plain>
             文件配置
           </Divider>
 
@@ -389,7 +361,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           </Form.Item>
 
           {/* 日志配置 */}
-          <Divider orientation="left" plain>
+          <Divider titlePlacement="start" plain>
             日志配置
           </Divider>
 
@@ -417,7 +389,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           </Form.Item>
 
           {/* MaaFramework 配置 */}
-          <Divider orientation="left" plain>
+          <Divider titlePlacement="start" plain>
             MaaFramework 配置
           </Divider>
 
@@ -429,7 +401,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
           </Form.Item>
 
-          <Divider orientation="left" plain>
+          <Divider titlePlacement="start" plain>
             Project Interface
           </Divider>
           <Form.Item

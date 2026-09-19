@@ -1,3 +1,5 @@
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
+import { initializeProjectInterface } from "@/features/project-interface/projectInterfaceService";
 import { initializeDesktopSession } from "@/features/desktop/closeSession";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import style from "./styles/layout/App.module.less";
@@ -69,12 +71,15 @@ import { AchievementUnlockIsland } from "./features/achievements/components/Achi
 
 const isPreviewMode = import.meta.env.MODE === "preview";
 
+const loadProjectHome = () => import("@/features/project-interface/ProjectHome").then(module => ({ default: module.ProjectHome }));
 const loadJsonViewer = () => import("./components/JsonViewer");
 
 /**主程序 */
 function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
+  const home = useWorkspaceStore(s => s.view === "home") && !isEmbed;
+  useEffect(() => { if (!isEmbedEnvironment()) return initializeProjectInterface(); }, []);
   const shouldSkipNewcomerGuide = isEmbed || isPreviewMode;
 
   // 处理文件拖拽
@@ -112,7 +117,7 @@ function App() {
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
   const enableShortcuts =
     !isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly"));
-  useGlobalShortcuts(enableShortcuts);
+  useGlobalShortcuts(enableShortcuts && !home);
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
@@ -328,29 +333,42 @@ function App() {
           <Content className={style.content}>
             {showPanel("file") && <FilePanel />}
             <div className={style.workspace}>
-              {showToolbar && <ToolbarPanel />}
-              <MainFlow />
-              <OptionalFeatureHosts
-                allowAIHistory={showPanel("ai-history")}
-                allowBusinessArchitecture={showPanel("business-architecture")}
-              />
-              {showPanel("json") && (
-                <LazyFeature
-                  loader={loadJsonViewer}
-                  loadingLabel="正在加载 JSON 预览功能包"
-                />
-              )}
-              {showPanel("liveScreen") && <LiveScreenPanel />}
-              {showPanel("field") && <FieldPanel />}
-              {showPanel("edge") && <EdgePanel />}
+              {home && <LazyFeature loader={loadProjectHome} loadingLabel="正在加载项目首页" />}
+              <div
+                aria-hidden={home}
+                inert={home}
+                style={{ position: "absolute", inset: 0, display: home ? "none" : undefined }}
+              >
+                {/* React Flow nodes explicitly set visibility: visible. Hide the
+                    container's layout box while retaining the mounted canvas. */}
+                <MainFlow />
+                {/* Canvas panels can portal into document.body, so suspend them
+                    with the canvas instead of relying on ancestor styles. */}
+                {!home && <>
+                  {showToolbar && <ToolbarPanel />}
+                  <OptionalFeatureHosts
+                    allowAIHistory={showPanel("ai-history")}
+                    allowBusinessArchitecture={showPanel("business-architecture")}
+                  />
+                  {showPanel("json") && (
+                    <LazyFeature
+                      loader={loadJsonViewer}
+                      loadingLabel="正在加载 JSON 预览功能包"
+                    />
+                  )}
+                  {showPanel("liveScreen") && <LiveScreenPanel />}
+                  {showPanel("field") && <FieldPanel />}
+                  {showPanel("edge") && <EdgePanel />}
+                  {showPanel("config") && <FileConfigPanel />}
+                  <ToolPanel.Add />
+                  <ToolPanel.Global />
+                  {showPanel("search") && <SearchPanel />}
+                  <ToolPanel.Layout />
+                  {showPanel("error") && <ErrorPanel />}
+                </>}
+              </div>
               {showPanel("config") && <SettingsPanel />}
-              {showPanel("config") && <FileConfigPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
-              <ToolPanel.Add />
-              <ToolPanel.Global />
-              {showPanel("search") && <SearchPanel />}
-              <ToolPanel.Layout />
-              {showPanel("error") && <ErrorPanel />}
               {showPanel("logger") && <LoggerPanel />}
             </div>
           </Content>

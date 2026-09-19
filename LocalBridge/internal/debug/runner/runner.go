@@ -35,13 +35,14 @@ type Runner struct {
 }
 
 type Run struct {
-	ID        string
-	SessionID string
-	Mode      protocol.RunMode
-	Entry     string
-	StartedAt time.Time
-	Runtime   *debugruntime.Runtime
-	Done      chan struct{}
+	ID               string
+	SessionID        string
+	Mode             protocol.RunMode
+	Entry            string
+	StartedAt        time.Time
+	Runtime          *debugruntime.Runtime
+	Done             chan struct{}
+	releaseExecution func()
 
 	mu            sync.RWMutex
 	stopRequested bool
@@ -82,6 +83,7 @@ func (r *Runner) Start(
 	req protocol.RunRequest,
 	eventSender EventSender,
 	snapshotSender SnapshotSender,
+	release func(),
 ) (StartResult, error) {
 	if req.SessionID == "" {
 		return StartResult{}, fmt.Errorf("缺少必需参数: sessionId")
@@ -133,13 +135,14 @@ func (r *Runner) Start(
 	}
 
 	run := &Run{
-		ID:        runID,
-		SessionID: req.SessionID,
-		Mode:      req.Mode,
-		Entry:     entry,
-		StartedAt: time.Now().UTC(),
-		Runtime:   runtime,
-		Done:      make(chan struct{}),
+		ID:               runID,
+		SessionID:        req.SessionID,
+		Mode:             req.Mode,
+		Entry:            entry,
+		StartedAt:        time.Now().UTC(),
+		Runtime:          runtime,
+		Done:             make(chan struct{}),
+		releaseExecution: release,
 	}
 
 	r.mu.Lock()
@@ -290,6 +293,7 @@ func (r *Runner) failStart(
 
 func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender SnapshotSender) {
 	defer close(run.Done)
+	defer run.releaseExecution()
 	result := run.Runtime.Wait()
 	run.Runtime.Destroy()
 

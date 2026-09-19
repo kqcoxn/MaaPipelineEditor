@@ -1,0 +1,183 @@
+.home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px 24px;
+  gap: 16px;
+  overflow: auto;
+  background: var(--pi-bg);
+  color: var(--pi-text);
+}
+
+.projectOverview {
+  flex: none;
+  background: var(--pi-surface);
+  border: 1px solid var(--pi-border);
+  border-radius: 10px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+}
+
+.header > button { flex: none; }
+.projectIdentity { flex: 1; min-width: 0; }
+.projectTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.projectPath {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--pi-muted);
+}
+.projectPath > span:first-child { flex: none; }
+.projectPath > span:last-child { min-width: 0; font-size: 12px; }
+
+.environment {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--pi-border);
+}
+.environmentTitle { font-weight: 600; }
+.environmentField { display: flex; align-items: center; gap: 10px; }
+.environmentField label { color: var(--pi-muted); flex: none; }
+.environmentSelect { width: 170px; }
+.device { margin-inline-start: auto; }
+
+.summary {
+  flex: none;
+  max-height: 160px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.summary summary { cursor: pointer; padding: 8px 0; }
+
+.body {
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr);
+  flex: 1;
+  min-height: 300px;
+  overflow: hidden;
+  background: var(--pi-surface);
+  border: 1px solid var(--pi-border);
+  border-radius: 10px;
+}
+.tasks, .detail { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.tasks { border-inline-end: 1px solid var(--pi-border); }
+.filters {
+  // Only the list scrolls: filters must never give up their height to long lists.
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 16px 14px;
+  gap: 10px;
+  border-bottom: 1px solid var(--pi-border);
+}
+.listHeading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.listHeading h2, .sectionHeading h3, .description h3 { font-size: 14px; font-weight: 600; margin: 0; }
+.listHeading > span { font-size: 12px; color: var(--pi-muted); font-variant-numeric: tabular-nums; }
+.taskList { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 8px; scrollbar-width: thin; }
+.task {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 2px;
+  padding: 11px 12px;
+  text-align: start;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.taskLabel { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.taskLabel strong { font-weight: 500; line-height: 1.5; }
+.taskLabel > span { flex: none; font-size: 11px; }
+.task > span { font-size: 12px; color: var(--pi-muted); line-height: 1.5; }
+.taskEntry { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.task:hover { background: var(--pi-hover); }
+.task:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: -2px; }
+.task.selected { background: var(--pi-selected); color: var(--pi-primary); border-color: var(--pi-selected-border); }
+.task.selected strong { font-weight: 600; }
+.task > .unavailable { color: var(--pi-warning); }
+
+.detailContent { padding: 28px 32px; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.detailContent > * + * { margin-top: 24px; }
+.taskHeader { padding-bottom: 24px; border-bottom: 1px solid var(--pi-border); }
+.eyebrow { color: var(--pi-muted); font-size: 12px; margin-bottom: 8px; }
+.taskMetadata { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 14px; }
+.taskMetadata > span { display: flex; align-items: baseline; gap: 8px; overflow-wrap: anywhere; }
+.taskMetadata > span > span:first-child { flex: none; font-size: 12px; }
+.description { max-width: 880px; padding: 16px 20px; background: var(--pi-subtle); border-radius: 6px; overflow-wrap: anywhere; }
+.description h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: var(--pi-muted); }
+.optionsSection { max-width: 880px; }
+.sectionHeading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.sectionHeading > span { font-size: 12px; }
+.actions { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 24px; border-top: 1px solid var(--pi-border); }
+.empty { flex: 1; min-height: 200px; display: flex; align-items: center; justify-content: center; flex-direction: column; overflow: auto; overflow-wrap: anywhere; }
+
+@media (max-width: 1100px) {
+  .home { padding: 16px; }
+  .body { grid-template-columns: 252px minmax(0, 1fr); }
+  .header, .environment { padding-inline: 18px; }
+  .environment { gap: 12px 16px; }
+  .environmentTitle { display: none; }
+  .detailContent { padding: 24px; }
+}
+@media (max-width: 850px) {
+  .home { padding: 12px; gap: 12px; }
+  .header { align-items: flex-start; flex-wrap: wrap; padding: 16px; }
+  .projectIdentity { flex-basis: 100%; }
+  .environment { padding: 12px 16px; }
+  .environmentField { flex: 1 1 180px; }
+  .environmentSelect { flex: 1; width: auto; }
+  .device { margin-inline-start: 0; flex-basis: 100%; }
+  .body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 240px minmax(320px, 1fr); min-height: 560px; }
+  .tasks { border-inline-end: 0; border-bottom: 1px solid var(--pi-border); }
+  .filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(120px, .65fr); padding: 12px; }
+  .listHeading { grid-column: 1 / -1; }
+  .detailContent { padding: 20px 16px; }
+  .actions { padding: 12px; }
+}
+
+// Interface is a GUI workspace: task selection, configuration and monitoring.
+.body { grid-template-columns: 260px minmax(300px, 1fr) minmax(300px, 30%); }
+.detailContent { padding: 24px; }
+.taskRow { display: flex; align-items: center; gap: 4px; padding-inline-start: 10px; border: 1px solid transparent; border-radius: 6px; margin-bottom: 2px; }
+.taskRow > label { flex: none; }
+.taskRow .task { flex: 1; padding: 10px 6px; margin: 0; border: 0; border-radius: 4px; }
+.taskRow .task strong { font-weight: 500; line-height: 1.5; }
+.taskRow:hover { background: var(--pi-hover); }
+.selectedRow { background: var(--pi-selected); border-color: var(--pi-selected-border); }
+.selectedRow .task { color: var(--pi-primary); }
+.reorder { display: flex; flex-direction: column; flex: none; }
+.runControls { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.runFooter { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 14px 20px; background: var(--pi-surface); border: 1px solid var(--pi-border); border-radius: 8px; }
+.runSummary { display: flex; flex-direction: column; gap: 4px; min-width: 220px; max-width: 440px; flex: 1; }
+.runSummary > span + span { font-size: 12px; }
+@media (max-width: 1250px) {
+  .body { grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: minmax(340px, 1fr) 320px; min-height: 660px; }
+}
+@media (max-width: 850px) {
+  .body { grid-template-columns: minmax(0, 1fr); grid-template-rows: 320px minmax(360px, 1fr) 320px; min-height: 1000px; }
+  .filters { display: flex; }
+  .detailContent { padding: 20px 16px; }
+}
+@media (max-width: 650px) {
+  .body { grid-template-rows: 320px minmax(360px, 1fr) 580px; min-height: 1260px; }
+}
+.projectUnavailable { grid-column: 1 / 3; padding: 24px; }
+@media (max-width: 850px) { .projectUnavailable { grid-column: 1; grid-row: 1 / 3; } }

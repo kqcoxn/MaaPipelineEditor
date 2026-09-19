@@ -36,9 +36,13 @@ export interface ProjectInterfaceSnapshot {
     label?: string;
     controller?: Array<Record<string, unknown>>;
     resource?: Array<Record<string, unknown>>;
+    task?: ProjectInterfaceTask[];
+    group?: Array<{ name: string; label?: string }>;
     option?: Record<string, Record<string, unknown>>;
   };
   diagnostics?: ProjectInterfaceDiagnostic[];
+  provenance?: Record<string, { file: string; line: number; column: number }>;
+  sources?: string[];
 }
 
 export interface ProjectInterfaceAgentPlan {
@@ -55,7 +59,42 @@ export interface ProjectInterfaceAgentOverride {
   childArgs?: string[];
 }
 
+export type OptionScope = "global" | "resource" | "controller" | "task" | "pretask";
+export type OptionValues = Record<string, unknown>;
+export type ScopedOptionValues = Record<Exclude<OptionScope, "pretask">, OptionValues> & { pretask?: OptionValues };
+export interface ProjectInterfaceTask extends Record<string, unknown> {
+  name: string;
+  label?: string;
+  entry: string;
+  description?: string;
+  controller?: string[];
+  resource?: string[];
+  group?: string[];
+  option?: string[];
+}
+export interface ProjectInterfaceOptionNode {
+  name: string;
+  definition: Record<string, unknown>;
+  children?: ProjectInterfaceOptionNode[];
+}
+export interface ProjectInterfaceContextRequest {
+  purpose?: "interface" | "debug";
+  requestId: string;
+  revision: string;
+  language: string;
+  controllerName: string;
+  resourceName: string;
+  taskName?: string;
+  optionValues: ScopedOptionValues;
+  agentEnabled?: Record<string, boolean>;
+  agentOverrides?: Record<string, ProjectInterfaceAgentOverride>;
+}
 export interface ProjectInterfaceRuntimePlan {
+  requestId: string;
+  taskName?: string;
+  entry?: string;
+  optionGroups?: Array<{ scope: OptionScope; nodes: ProjectInterfaceOptionNode[] }>;
+  diagnostics?: ProjectInterfaceDiagnostic[];
   contextId: string;
   projectId: string;
   revision: string;
@@ -67,8 +106,7 @@ export interface ProjectInterfaceRuntimePlan {
   controller: Record<string, unknown>;
   resource: Record<string, unknown>;
   resourcePaths: string[];
-  options?: Record<string, Record<string, unknown>>;
-  optionValues?: Record<string, unknown>;
+  optionValues?: ScopedOptionValues;
   agents?: ProjectInterfaceAgentPlan[];
 }
 

@@ -125,10 +125,15 @@ function displayNameFromRuntimeName(runtimeName: string, prefix?: string): strin
 export function buildDebugSnapshotBundle(
   localFiles: LocalFileInfo[] | undefined = useLocalFileStore.getState().files,
   resourcePaths: string[] = [],
+  strictResourceScope = false,
 ): DebugSnapshotBundle {
   const generatedAt = new Date().toISOString();
   const fileState = useFileStore.getState();
-  const fileSources = buildFileSources();
+  const inScope = (path?: string) => Boolean(path && resourcePaths.some(root => {
+    const normalized = normalizeResolverPath(root);
+    return normalizeResolverPath(path).startsWith(`${normalized}/pipeline/`);
+  }));
+  const fileSources = buildFileSources().filter(file => !strictResourceScope || inScope(file.path));
   const rootFileId = fileState.currentFile.fileName;
 
   const resolverNodes = fileSources.flatMap((file) =>
@@ -149,6 +154,7 @@ export function buildDebugSnapshotBundle(
       .filter((path): path is string => Boolean(path)),
   );
   const localResolverNodes = localFiles
+    .filter(file => !strictResourceScope || inScope(file.file_path))
     .filter((file) => !loadedSourcePaths.has(file.file_path))
     .flatMap((file) =>
       (file.nodes ?? [])

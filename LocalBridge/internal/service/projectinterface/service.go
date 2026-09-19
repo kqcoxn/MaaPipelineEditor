@@ -1,7 +1,9 @@
 package projectinterface
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -172,6 +174,9 @@ func (s *Service) resolveExplicitEntry(configured string) (string, error) {
 	}
 	resolved, err := filepath.EvalSymlinks(candidate)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("PI 入口不存在: %s。相对入口以文件根目录 %s 为基准；请修改入口路径，或留空自动检索", candidate, s.root)
+		}
 		return "", fmt.Errorf("解析显式 PI 入口失败: %w", err)
 	}
 	return filepath.Clean(resolved), nil
@@ -352,7 +357,14 @@ func (s *Service) ResolveContext(req ContextRequest) (*RuntimePlan, error) {
 	if err != nil {
 		return nil, err
 	}
+	if plan.ContextID == "" {
+		return plan, nil
+	}
 	s.mu.Lock()
+	if s.current != current || s.status.State != StateReady {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("PI revision 已变化，请刷新后重试")
+	}
 	s.contexts[plan.ContextID] = plan
 	s.mu.Unlock()
 	s.eventBus.Publish(EventContextResolved, cloneRuntimePlan(plan))
@@ -401,16 +413,8 @@ func cloneRuntimePlan(plan *RuntimePlan) *RuntimePlan {
 	if plan == nil {
 		return nil
 	}
-	copy := *plan
-	copy.Controller = cloneMap(plan.Controller)
-	copy.Resource = cloneMap(plan.Resource)
-	copy.ResourcePaths = append([]string(nil), plan.ResourcePaths...)
-	copy.Agents = append([]AgentPlan(nil), plan.Agents...)
-	copy.Options = cloneMap(plan.Options)
-	copy.OptionValues = cloneMap(plan.OptionValues)
-	copy.PipelineOverrides = make([]map[string]any, len(plan.PipelineOverrides))
-	for index, item := range plan.PipelineOverrides {
-		copy.PipelineOverrides[index] = cloneMap(item)
-	}
+	raw, _ := json.Marshal(plan)
+	var copy RuntimePlan
+	_ = json.Unmarshal(raw, &copy)
 	return &copy
 }

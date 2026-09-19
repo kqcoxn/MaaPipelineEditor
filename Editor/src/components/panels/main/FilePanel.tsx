@@ -13,8 +13,9 @@ import {
   SortableContext,
   useSortable,
 } from "@dnd-kit/sortable";
-import { Tabs, Input, Button, Tooltip } from "antd";
-import { FileAddOutlined } from "@ant-design/icons";
+import { Tabs, Input, Button, Tooltip, theme } from "antd";
+import { HomeOutlined, FileAddOutlined } from "@ant-design/icons";
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { useFileStore } from "@/stores/project/fileStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
@@ -48,6 +49,9 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 
 function FilePanel() {
   const { isEmbed } = useEmbedMode();
+  const { token } = theme.useToken();
+  const home = useWorkspaceStore(s => s.view === "home");
+  const showCanvas = useWorkspaceStore(s => s.showCanvas);
 
   // 当前文件名
   const files = useFileStore((state) => state.files);
@@ -81,9 +85,10 @@ function FilePanel() {
     if (isValid) setActiveKey(key);
   }, [setFileName]);
   const onTabChange = useCallback((key: string) => {
+    showCanvas();
     const newKey = switchFile(key);
     if (newKey) setActiveKey(newKey);
-  }, [switchFile]);
+  }, [switchFile, showCanvas]);
   const onDragEnd = useFileStore((state) => state.onDragEnd);
   const addFile = useFileStore((state) => state.addFile);
   const removeFile = useFileStore((state) => state.removeFile);
@@ -110,13 +115,13 @@ function FilePanel() {
   return (
     <div className={style.panel}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <Input
+        {home ? <span className={style.filename}>项目首页</span> : <Input
           className={style.filename}
           placeholder="文件名"
           value={fileName}
           status={fileNameState}
           onChange={onLabelChange}
-        />
+        />}
         {!isEmbed && (
           <Tooltip title="本地文件" placement="bottom">
             <Button
@@ -132,11 +137,36 @@ function FilePanel() {
       </div>
       <Tabs
         className={style.tabs}
+        tabBarExtraContent={!isEmbed ? {
+          left: (
+            <Tooltip title="项目首页" placement="bottom">
+              <button
+                type="button"
+                className={style.interfaceTab}
+                aria-label="Interface 项目首页"
+                aria-pressed={home}
+                style={{
+                  "--interface-tab-color": token.colorText,
+                  "--interface-tab-primary": token.colorPrimary,
+                  "--interface-tab-active-bg": token.colorFillQuaternary,
+                  height: token.controlHeightLG,
+                  fontSize: token.fontSize,
+                  borderRadius: `${token.borderRadiusLG}px ${token.borderRadiusLG}px 0 0`,
+                } as React.CSSProperties}
+                onClick={() => useWorkspaceStore.getState().showHome()}
+              >
+                <HomeOutlined />
+                <span>Interface</span>
+              </button>
+            </Tooltip>
+          ),
+        } : undefined}
         type="editable-card"
         hideAdd={isEmbed}
         items={tabs}
-        activeKey={activeKey}
+        activeKey={home ? "__project_home__" : activeKey}
         onChange={onTabChange}
+        onTabClick={onTabChange}
         onEdit={onEdit}
         renderTabBar={(tabBarProps, DefaultTabBar) => (
           <DndContext

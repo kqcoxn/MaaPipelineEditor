@@ -195,6 +195,13 @@ func (h *MFWHandler) handleRefreshLinuxSockets(conn *server.Connection, msg mode
 
 // 控制器相关处理方法
 func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
@@ -247,6 +254,13 @@ func (h *MFWHandler) handleCreateAdbController(conn *server.Connection, msg mode
 }
 
 func (h *MFWHandler) handleCreateWin32Controller(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
@@ -287,6 +301,13 @@ func (h *MFWHandler) handleCreateWin32Controller(conn *server.Connection, msg mo
 }
 
 func (h *MFWHandler) handleCreatePlayCoverController(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
@@ -325,6 +346,13 @@ func (h *MFWHandler) handleCreatePlayCoverController(conn *server.Connection, ms
 }
 
 func (h *MFWHandler) handleCreateGamepadController(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
@@ -364,6 +392,13 @@ func (h *MFWHandler) handleCreateGamepadController(conn *server.Connection, msg 
 }
 
 func (h *MFWHandler) handleCreateLinuxController(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))
@@ -403,6 +438,13 @@ func (h *MFWHandler) handleCreateLinuxController(conn *server.Connection, msg mo
 }
 
 func (h *MFWHandler) handleCreateMacosController(conn *server.Connection, msg models.Message) {
+	release, err := h.service.AcquireControllerSetup()
+	if err != nil {
+		h.sendMFWError(conn, "controller_busy", err.Error(), "")
+		return
+	}
+	defer release()
+
 	dataMap, ok := msg.Data.(map[string]interface{})
 	if !ok {
 		h.sendError(conn, errors.NewInvalidRequestError("请求数据格式错误"))

@@ -28,6 +28,13 @@ func ValidateCheckboxOptions(definitions, values map[string]any) error {
 		if min > max {
 			return fmt.Errorf("Option %s 的 min_count 不能超过 max_count", name)
 		}
+		if value := values[name]; value != nil {
+			switch value.(type) {
+			case []any, []string:
+			default:
+				return fmt.Errorf("Option %s 的多选值必须为数组", name)
+			}
+		}
 		selected := toStringValues(values[name])
 		unique := map[string]bool{}
 		for _, item := range selected {

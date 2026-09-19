@@ -213,6 +213,18 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
 		return
 	}
+	release, err := h.service.AcquireExecution("调试器", controllerIDFromOptions(req.Profile.Controller.Options))
+	if err != nil {
+		h.sendError(conn, "debug_runtime_busy", err.Error(), nil)
+		return
+	}
+	transferred := false
+	defer func() {
+		if !transferred {
+			release()
+		}
+	}()
+
 	if err := h.prepareProjectInterfaceRun(&req); err != nil {
 		var agentErr *projectInterfaceAgentStartError
 		if errors.As(err, &agentErr) {
@@ -247,7 +259,7 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		}
 	}
 
-	result, err := h.runner.Start(req, h.eventSender(conn), h.snapshotSender(conn))
+	result, err := h.runner.Start(req, h.eventSender(conn), h.snapshotSender(conn), release)
 	if err != nil {
 		detail := map[string]interface{}{"mode": req.Mode, "sessionId": req.SessionID}
 		if strings.Contains(strings.ToLower(err.Error()), "agent") {
@@ -257,6 +269,7 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		h.sendError(conn, "debug_run_start_failed", err.Error(), detail)
 		return
 	}
+	transferred = true
 	h.leaseSessionContext(result.SessionID, req.ProjectContextID)
 
 	h.send(conn, "/lte/debug/run_started", map[string]interface{}{
@@ -754,8 +767,21 @@ func (h *Handler) prepareProjectInterfaceRun(req *protocol.RunRequest) error {
 		return err
 	}
 	req.Profile.ResourcePaths = append([]string(nil), plan.ResourcePaths...)
-	if err := projectinterface.ValidateCheckboxOptions(plan.Options, plan.OptionValues); err != nil {
-		return err
+	if plan.TaskName != "" && req.Mode == "run-from-node" && (req.Target == nil || req.Target.RuntimeName != plan.Entry) {
+		return fmt.Errorf("PI 任务入口与启动目标不一致")
+	}
+	expectedType, _ := plan.Controller["type"].(string)
+	if !strings.EqualFold(expectedType, req.Profile.Controller.Type) {
+		return fmt.Errorf("已连接设备类型与 PI 控制器 %s 不匹配", expectedType)
+	}
+	if runutil.UsesLiveController(req.Mode) {
+		controllerInfo, err := h.service.ControllerManager().GetController(controllerIDFromOptions(req.Profile.Controller.Options))
+		if err != nil {
+			return err
+		}
+		if !strings.EqualFold(expectedType, controllerInfo.Type) {
+			return fmt.Errorf("设备实例与 PI 控制器 %s 不匹配", expectedType)
+		}
 	}
 	piOverrides := make([]protocol.PipelineOverride, 0, len(plan.PipelineOverrides))
 	for _, raw := range plan.PipelineOverrides {

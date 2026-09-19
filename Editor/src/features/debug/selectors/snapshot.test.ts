@@ -32,6 +32,15 @@ describe("snapshot resource override resolution", () => {
     }));
   });
 
+  it("excludes the current canvas when it is outside a strict PI resource scope", () => {
+    const currentFile = { fileName: "outside", nodes: [], edges: [], config: { prefix: "", filePath: "/other/pipeline/a.json" } };
+    useFileStore.setState({ currentFile, files: [currentFile] });
+    useFlowStore.setState({ nodes: [makePipelineNode("outside-node", "Entry")], edges: [] });
+    const bundle = buildDebugSnapshotBundle([], ["/project/resource"], true);
+    expect(bundle.graphSnapshot.files).toEqual([]);
+    expect(bundle.resolverSnapshot.nodes).toEqual([]);
+  });
+
   it("uses currentFile config for the active opened file", () => {
     const node = makePipelineNode("p_1", "Entry");
     const staleFile = {

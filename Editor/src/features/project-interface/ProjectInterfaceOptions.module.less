@@ -1,0 +1,8 @@
+.options, .tree { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.option { min-width: 0; }
+.home .option + .option { padding-top: 20px; border-top: 1px solid var(--pi-border); }
+.children { margin-inline-start: 20px; padding-top: 12px; }
+.home .children { margin-inline-start: 12px; padding-inline-start: 16px; padding-top: 16px; border-inline-start: 2px solid var(--pi-selected-border); }
+.noOptions { display: flex; align-items: center; gap: 14px; padding: 24px 20px; border: 1px dashed var(--pi-border); border-radius: 8px; }
+.noOptions > span { font-size: 24px; color: var(--pi-muted); }
+.noOptions p { color: var(--pi-muted); margin-top: 4px; font-size: 13px; }
