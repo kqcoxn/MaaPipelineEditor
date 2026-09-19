@@ -6,12 +6,7 @@
 .settings-page .page-heading {
   padding: 8px 0 4px;
 }
-.settings-page .page-heading > div {
-  display: grid;
-  gap: 6px;
-}
 .settings-page h1,
-.settings-page .page-heading p,
 .settings-page .panel h2,
 .settings-page .panel p {
   margin: 0;

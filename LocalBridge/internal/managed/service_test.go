@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -93,4 +94,51 @@ func TestGracefulStopTimeoutRetainsTargetIdentity(t *testing.T) {
 	if err != nil || after.ID != status.ID || after.State != "stopping" {
 		t.Fatalf("lost target identity after timeout: %+v %v", after, err)
 	}
+}
+
+func TestServiceCloseCompletesInFlightResponse(t *testing.T) {
+	isolateService(t)
+	lock, err := Acquire(filepath.Join(Directory(), "service.lock"), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Close()
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(entered)
+		<-release
+		_ = json.NewEncoder(w).Encode(map[string]bool{"stopping": true})
+	}))
+	defer server.Close()
+	shutdown := make(chan struct{})
+	server.Config.RegisterOnShutdown(func() { close(shutdown) })
+	s := &Service{lock: lock, server: server.Config, closed: make(chan struct{})}
+	result := make(chan error, 1)
+	go func() {
+		response, err := server.Client().Post(server.URL, "application/json", nil)
+		if err == nil {
+			defer response.Body.Close()
+			var body map[string]bool
+			err = json.NewDecoder(response.Body).Decode(&body)
+			if err == nil && !body["stopping"] {
+				err = errors.New("missing stop acknowledgement")
+			}
+		}
+		result <- err
+	}()
+	<-entered
+	go s.Close()
+	select {
+	case <-shutdown:
+	case <-s.Closed():
+		t.Error("service closed before completing its response")
+	case <-time.After(time.Second):
+		t.Error("service did not begin shutdown")
+	}
+	close(release)
+	if err := <-result; err != nil {
+		t.Errorf("in-flight response was interrupted: %v", err)
+	}
+	<-s.Closed()
 }

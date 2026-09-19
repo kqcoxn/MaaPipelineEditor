@@ -21,11 +21,6 @@
 .logs-page p {
   margin: 0;
 }
-.logs-description {
-  flex-shrink: 0;
-  color: var(--muted);
-  line-height: 1.6;
-}
 .logs-page .actions {
   gap: 12px;
   flex-wrap: wrap;

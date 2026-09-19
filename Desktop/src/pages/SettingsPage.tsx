@@ -39,11 +39,7 @@ export function SettingsPage({ model: m }: { model: Model }) {
   return (
     <div className="settings-page">
       <div className="page-heading">
-        <div>
-          <span className="eyebrow">MAKE IT YOURS</span>
-          <h1>启动器设置</h1>
-          <p>按自己的习惯，安排每一次启动。</p>
-        </div>
+        <h1>启动器设置</h1>
       </div>
       <section className="panel">
         <h2>窗口与会话</h2>

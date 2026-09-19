@@ -8,7 +8,7 @@ export function Home({ slides }: { slides: LinkItem[] }) {
         <div className="hero-copy">
           <div className="hero-message">
             <h1>连接你的想法</h1>
-            <p>由您设计，由我们支持，想法之外尽在其中！</p>
+            <p>由您设计，由我们支持。想法之外尽在其中！</p>
           </div>
           <PromoCarousel slides={slides} />
         </div>

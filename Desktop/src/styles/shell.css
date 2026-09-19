@@ -35,33 +35,35 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 0;
   text-align: center;
 }
 .brand strong {
   font-size: 18px;
-  line-height: 24px;
+  line-height: 22px;
   font-weight: 650;
   letter-spacing: 0;
 }
 .brand small {
   font-size: 14px;
-  line-height: 20px;
+  line-height: 18px;
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0;
 }
 .sidebar nav {
+  --nav-item-height: 52px;
+  --nav-item-gap: 4px;
   position: relative;
   isolation: isolate;
   display: grid;
-  gap: 8px;
+  gap: var(--nav-item-gap);
 }
 .sidebar nav button {
   display: flex;
   align-items: center;
   gap: 13px;
-  height: 52px;
+  height: var(--nav-item-height);
   font-size: var(--font-label);
   padding: 12px;
   position: relative;
@@ -84,7 +86,7 @@
 .nav-indicator {
   position: absolute;
   inset: 0 0 auto;
-  height: 52px;
+  height: var(--nav-item-height);
   border-radius: 11px;
   background: color-mix(in srgb, var(--primary) 20%, #d8eaff15);
   border: 1px solid var(--glass-edge);

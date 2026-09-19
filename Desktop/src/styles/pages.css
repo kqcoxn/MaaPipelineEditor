@@ -9,10 +9,6 @@
   font-weight: 500;
   margin: 14px 0 8px;
 }
-.page-heading p {
-  font-size: var(--font-body);
-  color: var(--muted);
-}
 .panel {
   padding: 23px;
   border: 1px solid var(--line);
@@ -74,7 +70,7 @@
   display: block;
   font-size: var(--font-caption);
   color: var(--muted);
-  margin-top: 7px;
+  margin-top: 2px;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;

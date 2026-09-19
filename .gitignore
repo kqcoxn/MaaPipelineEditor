@@ -15,6 +15,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Python bytecode caches
+__pycache__/
+*.pyc
+*.pyo
+
 node_modules
 dist
 dist-ssr

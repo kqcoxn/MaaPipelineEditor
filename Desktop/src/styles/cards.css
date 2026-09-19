@@ -36,7 +36,7 @@
   line-height: 1.35;
   letter-spacing: 0.01em;
   font-weight: 650;
-  margin: 0 0 15px;
+  margin: 0 0 6px;
   text-wrap: balance;
 }
 .hero p {
@@ -52,19 +52,23 @@
   flex-direction: column;
   width: 100%;
   max-width: 100%;
-  padding: 4px;
+  padding: 0;
   gap: 0;
   overflow: hidden;
   border-radius: 10px;
-  border: 1px solid var(--glass-edge);
+  border: 1px solid #ffffff30;
   background: var(--glass);
   color: var(--text);
   text-shadow: none;
   margin-top: 0;
+  transform-origin: left bottom;
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-normal) var(--ease-out),
+    transform 420ms var(--ease-out);
 }
-.hero-story:hover {
-  background: var(--panel);
-  border-color: var(--accent);
+.hero-story:focus-visible {
+  border-color: #ffffff60;
 }
 .carousel-images {
   display: block;
@@ -72,7 +76,7 @@
   isolation: isolate;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 8px;
+  border-radius: inherit;
   overflow: hidden;
 }
 .carousel-image {
@@ -149,6 +153,27 @@
   border-radius: 6px;
   backdrop-filter: blur(6px);
   pointer-events: none;
+  transition:
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
+}
+.hero-story:focus-visible .carousel-link-icon {
+  background: #17263ed9;
+  border-color: #ffffff60;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-story:hover {
+    border-color: #ffffff60;
+    box-shadow: 0 4px 14px #06162d30;
+    transform: scale(1.35);
+  }
+  .hero-story:hover .carousel-link-icon {
+    background: #17263ed9;
+    border-color: #ffffff60;
+  }
+  .hero-story:hover .carousel-link-icon svg {
+    transform: translate(1px, -1px);
+  }
 }
 @media (max-height: 720px) {
   .hero {
@@ -159,7 +184,6 @@
   }
   .hero h1 {
     font-size: 32px;
-    margin-bottom: 10px;
   }
   .hero p {
     line-height: 1.7;

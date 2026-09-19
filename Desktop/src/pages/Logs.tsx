@@ -125,10 +125,6 @@ export function Logs() {
           </Button>
         </div>
       </header>
-      <p className="logs-description">
-        查看启动器、安装过程与托管 LocalBridge
-        的输出。打包包含当前及上次会话日志；MFW 详细日志可在编辑器调试面板导出。
-      </p>
       <section className="panel logs-panel">
         <div className="logs-toolbar">
           <Select

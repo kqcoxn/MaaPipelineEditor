@@ -78,18 +78,13 @@
 .sidebar-bottom button:hover > svg:last-child:not(:first-child) {
   transform: translateX(3px);
 }
-.hero-story:hover svg {
-  transform: translate(2px, -2px);
-}
-.button:hover:not(:disabled),
-.hero-story:hover {
+.button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 .launch-button:hover:not(:disabled) > svg:not(.spin) {
   transform: translateX(2px);
 }
-.button:active:not(:disabled),
-.hero-story:active {
+.button:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
   transition-duration: 90ms;
 }
@@ -161,11 +156,10 @@
   .button:hover:not(:disabled),
   .hero-story:hover,
   .button:active:not(:disabled),
-  .hero-story:active,
   .sidebar button:active:not(:disabled),
   .project-select:active:not(:disabled),
   .sidebar button:hover > svg,
-  .hero-story:hover svg,
+  .hero-story:hover .carousel-link-icon svg,
   .launch-button:hover:not(:disabled) > svg:not(.spin) {
     transform: none;
   }

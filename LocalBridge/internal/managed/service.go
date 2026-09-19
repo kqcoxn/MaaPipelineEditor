@@ -123,7 +123,13 @@ func (s *Service) Done() <-chan struct{}   { return s.stop }
 func (s *Service) Closed() <-chan struct{} { return s.closed }
 func (s *Service) Close() {
 	s.closeOnce.Do(func() {
-		_ = s.server.Close()
+		// The stop handler may still be writing its response when the owner
+		// finishes cleanup. Drain it before releasing the service identity.
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := s.server.Shutdown(ctx); err != nil {
+			_ = s.server.Close()
+		}
 		_ = os.Remove(discoveryPath())
 		s.lock.Close()
 		close(s.closed)

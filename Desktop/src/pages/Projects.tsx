@@ -8,11 +8,7 @@ export function Projects({ model: m }: { model: Model }) {
   return (
     <>
       <div className="page-heading">
-        <div>
-          <span className="eyebrow">WORKSPACES</span>
-          <h1>项目管理</h1>
-          <p>添加已有目录，让下一次开始更简单。</p>
-        </div>
+        <h1>项目管理</h1>
         <Button
           disabled={m.busy}
           onClick={() => void m.run(() => invoke("add_project"))}

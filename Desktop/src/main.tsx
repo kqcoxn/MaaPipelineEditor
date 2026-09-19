@@ -106,7 +106,7 @@ function App() {
             className="nav-indicator"
             aria-hidden="true"
             style={{
-              transform: `translateY(${navigation.findIndex((item) => item.id === page) * 60}px)`,
+              transform: `translateY(calc(${navigation.findIndex((item) => item.id === page)} * (var(--nav-item-height) + var(--nav-item-gap))))`,
             }}
           />
           {navigation.map(({ id, label, icon: Icon }) => (
