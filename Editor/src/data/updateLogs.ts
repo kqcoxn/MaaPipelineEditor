@@ -125,7 +125,11 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-9",
     type: "major",
     updates: {
-      fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],
+      features: [
+        "🤯 MPE Desktop 重构归来，震撼美味！",
+        "📱 现已全面支持 PI，内置 MPE MfwTaskRunner，编辑后丝滑切换任务执行",
+      ],
+      fixes: ["修复设备自动重连时的输入输出参数问题"],
     },
   },
   {
@@ -133,7 +137,7 @@ export const updateLogs: UpdateLogItem[] = [
     date: "2026-9",
     type: "fix",
     updates: {
-      features: ["🤯 MPE Desktop 重构归来，震撼美味！"],
+      fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],
     },
   },
   {

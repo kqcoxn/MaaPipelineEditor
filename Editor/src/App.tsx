@@ -369,7 +369,7 @@ function App() {
               </div>
               {showPanel("config") && <SettingsPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
-              {showPanel("logger") && <LoggerPanel />}
+              {!home && showPanel("logger") && <LoggerPanel />}
             </div>
           </Content>
         </Layout>

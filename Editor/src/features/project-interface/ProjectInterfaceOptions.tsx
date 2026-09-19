@@ -9,7 +9,7 @@ import type { OptionScope, ProjectInterfaceOptionNode, ProjectInterfaceRuntimePl
 
 const labels: Record<OptionScope, string> = { pretask: "准备项目选项（连接设备前执行）", global: "全局选项", resource: "资源选项", controller: "控制器选项", task: "任务选项" };
 
-function OptionTree({ nodes, scope, plan, channel }: { nodes: ProjectInterfaceOptionNode[]; scope: OptionScope; plan: ProjectInterfaceRuntimePlan; channel: ContextChannel }) {
+function OptionTree({ nodes, scope, plan, channel, depth = 0 }: { depth?: number; nodes: ProjectInterfaceOptionNode[]; scope: OptionScope; plan: ProjectInterfaceRuntimePlan; channel: ContextChannel }) {
   const current = useProjectInterfaceStore(useShallow(s => ({ preferences: s.preferences, taskName: channel === "home" ? s.preferences.taskName : s.debugTaskName })));
   const values = scopedValues(current.preferences, current.taskName)[scope] ?? {};
   const setOptionValue = useProjectInterfaceStore(s => s.setOptionValue);
@@ -24,14 +24,9 @@ function OptionTree({ nodes, scope, plan, channel }: { nodes: ProjectInterfaceOp
     return node.name in values ? provided : resolved;
   };
   return <div className={styles.tree}>
-    {nodes.map((node, index) => <div className={styles.option} key={`${node.name}:${index}`}>
-      <ProjectInterfaceOption name={node.name} definition={node.definition} value={getValue(node)} onChange={value => setOptionValue(scope, node.name, value, channel)} />
-      {typeof node.definition.description === "string" && <Typography.Paragraph type="secondary" style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{node.definition.description}</Typography.Paragraph>}
-      {Array.isArray(node.definition.cases) && node.definition.cases.filter(item => {
-        const value = node.name in values ? values[node.name] : plan.optionValues?.[scope]?.[node.name];
-        return Array.isArray(value) ? value.includes(item.name) : value === item.name;
-      }).map(item => typeof item.description === "string" && <Typography.Paragraph key={String(item.name)} type="secondary" style={{ whiteSpace: "pre-wrap" }}>{String(item.label ?? item.name)}：{item.description}</Typography.Paragraph>)}
-      {node.children?.length ? <div className={styles.children}><OptionTree nodes={node.children} scope={scope} plan={plan} channel={channel} /></div> : null}
+    {nodes.map((node, index) => <div className={styles.option} data-type={node.definition.type ?? "select"} key={`${node.name}:${index}`}>
+      <ProjectInterfaceOption subordinate={channel === "home" && depth >= 2 && !node.children?.length} name={node.name} definition={node.definition} value={getValue(node)} onChange={value => setOptionValue(scope, node.name, value, channel)} />
+      {node.children?.length ? <div className={styles.children}><OptionTree depth={depth + 1} nodes={node.children} scope={scope} plan={plan} channel={channel} /></div> : null}
     </div>)}
   </div>;
 }

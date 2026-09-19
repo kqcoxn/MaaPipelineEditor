@@ -1,0 +1,61 @@
+.navigation { height: 100%; box-sizing: border-box; min-width: 0; overflow: auto; border-inline-end: 1px solid var(--pi-border); padding: 16px 8px; scrollbar-width: thin; }
+.navigation section + section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--pi-border); }
+.navigation h2 { margin: 0 10px 12px; font-size: 13px; color: var(--pi-muted); font-weight: 600; }
+.navigation p { margin: 0 10px 10px; font-size: 12px; color: var(--pi-muted); line-height: 1.6; }
+.navigation button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 10px; border: 0; border-radius: 6px; color: inherit; background: transparent; text-align: start; cursor: pointer; font: inherit; }
+.navigation button span { overflow-wrap: anywhere; min-width: 0; }
+.navigation button + button { margin-top: 4px; }
+.navigation small { flex: none; color: var(--pi-muted); font-variant-numeric: tabular-nums; }
+.navigation button:hover { background: var(--pi-hover); }
+.navigation button.activeGroup { background: var(--pi-selected); color: var(--pi-primary); font-weight: 600; }
+.navigation button:focus-visible, .taskName:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: -2px; }
+
+.tasks { height: 100%; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.listHeading { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 14px 12px; }
+.listHeading > div { display: flex; align-items: baseline; gap: 10px; flex: 1; white-space: nowrap; }
+.listHeading h2 { margin: 0; font-size: 17px; }
+.listHeading span { font-size: 12px; color: var(--pi-muted); }
+.listHeading > :last-child { width: 100%; max-width: 100%; }
+.tableScroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 12px; }
+.table { width: 100%; border-collapse: separate; border-spacing: 0 4px; table-layout: fixed; font-size: 13px; }
+.table th { position: sticky; top: 0; z-index: 1; text-align: start; background: var(--pi-surface); color: var(--pi-muted); font-weight: 500; }
+.table th, .table td { padding: 6px 6px; border-bottom: 1px solid var(--pi-border); }
+.table td { vertical-align: middle; overflow-wrap: anywhere; border-bottom: 0; }
+.table tbody td:first-child { border-radius: 8px 0 0 8px; }
+.table tbody td:last-child { border-radius: 0 8px 8px 0; }
+.table .checkColumn { width: 38px; }
+.table .orderColumn { width: 48px; }
+.table .statusColumn { width: 60px; }
+.table tr:hover td { background: var(--pi-hover); }
+.table .selectedRow td { background: var(--pi-selected); }
+.selectedRow td:first-child { box-shadow: inset 3px 0 var(--pi-primary); }
+.taskName { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; text-align: start; font: inherit; cursor: pointer; overflow-wrap: anywhere; }
+.taskName strong { font-weight: 500; line-height: 1.5; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.taskName > span { font-size: 11px; color: var(--pi-muted); }
+
+.status { color: var(--pi-muted); font-size: 12px; }
+.statusButton { display: block; width: 100%; min-height: 32px; padding: 0; border: 0; border-radius: 4px; background: transparent; text-align: start; font-family: inherit; cursor: pointer; }
+.statusButton:hover { color: var(--pi-primary); }
+.statusButton:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: 2px; }
+.status[data-status='running'], .status[data-status='preparing'] { color: var(--pi-primary); }
+.status[data-status='completed'] { color: var(--pi-success); }
+.status[data-status='failed'] { color: var(--pi-error); }
+.unavailable { display: block; color: var(--pi-warning); font-size: 12px; margin-top: 4px; }
+.reorder { display: flex; align-items: center; justify-content: flex-end; min-height: 32px; }
+.reorder { position: relative; }
+.dragHandle { cursor: grab; color: var(--pi-muted); padding: 4px; }
+.dragHandle:active { cursor: grabbing; }
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+.table th:first-child, .table td:first-child { padding-inline-start: 16px; }
+.dragHandle:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: 2px; }
+
+.draggingRow { opacity: .65; }
+.dragPreview { position: fixed; left: -10000px; top: 0; display: flex; align-items: center; gap: 10px; box-sizing: border-box; width: 260px; height: 40px; padding: 0 12px; border: 1px solid var(--pi-primary); border-radius: 8px; background: var(--pi-surface); color: var(--pi-text); pointer-events: none; }
+.dragPreview strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500; }
+.dragPreview > span { flex: none; font-size: 12px; color: var(--pi-muted); }
+.previewStatus { white-space: nowrap; }
+.previewHandle { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 20px; }
+.table tr.draggingRow td { background: var(--pi-selected); color: var(--pi-text); }
+.table tr.dropBefore td { background-image: linear-gradient(var(--pi-primary), var(--pi-primary)); background-size: 100% 2px; background-position: top; background-repeat: no-repeat; }
+.table tr.dropAfter td { background-image: linear-gradient(var(--pi-primary), var(--pi-primary)); background-size: 100% 2px; background-position: bottom; background-repeat: no-repeat; }

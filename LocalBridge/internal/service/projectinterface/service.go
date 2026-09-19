@@ -336,10 +336,10 @@ func (s *Service) Snapshot(language string) (*ProjectSnapshot, error) {
 	current, fallback, state := s.current, s.lastGood, s.status.State
 	s.mu.RUnlock()
 	if current != nil {
-		return current.Localize(language), nil
+		return current.displaySnapshot(language), nil
 	}
 	if fallback != nil {
-		result := fallback.Localize(language)
+		result := fallback.displaySnapshot(language)
 		result.Diagnostics = append(result.Diagnostics, Diagnostic{Severity: "error", Category: "runtime", Code: "pi.snapshot.last_good", Message: "当前 PI 无效，返回的内容仅供参考，不能用于运行"})
 		return result, nil
 	}

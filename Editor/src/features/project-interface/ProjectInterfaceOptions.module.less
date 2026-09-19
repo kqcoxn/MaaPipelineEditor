@@ -1,8 +1,47 @@
-.options, .tree { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+.options, .tree { display: flex; flex-direction: column; gap: 10px; width: 100%; min-width: 0; }
 .option { min-width: 0; }
-.home .option + .option { padding-top: 20px; border-top: 1px solid var(--pi-border); }
-.children { margin-inline-start: 20px; padding-top: 12px; }
-.home .children { margin-inline-start: 12px; padding-inline-start: 16px; padding-top: 16px; border-inline-start: 2px solid var(--pi-selected-border); }
-.noOptions { display: flex; align-items: center; gap: 14px; padding: 24px 20px; border: 1px dashed var(--pi-border); border-radius: 8px; }
-.noOptions > span { font-size: 24px; color: var(--pi-muted); }
-.noOptions p { color: var(--pi-muted); margin-top: 4px; font-size: 13px; }
+.home { container-type: inline-size; }
+.home > .tree { gap: 0; }
+.home > .tree > .option { padding: 16px 0; }
+.home > .tree > .option + .option { border-top: 1px solid var(--pi-border); }
+.home > .tree > .option:first-child { padding-top: 0; }
+.fieldRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 34px; }
+.fieldLabel { min-width: 0; font-size: 13px; font-weight: 500; line-height: 1.6; overflow-wrap: anywhere; }
+.fieldRow > button { flex: none; }
+.control { width: 52%; max-width: 260px; min-width: 110px; flex: 0 1 52%; }
+.fieldGroup { display: flex; flex-direction: column; gap: 6px; }
+.inputField { min-width: 0; }
+.inputGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 12px; }
+.inputStack { display: flex; flex-direction: column; gap: 6px; }
+.inputStack .control { width: 100%; max-width: none; min-width: 0; flex: none; }
+.inputStack .fieldLabel { font-weight: 400; }
+.choices { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px 12px; max-width: 65%; }
+.help { display: block; white-space: pre-wrap; font-size: 12px; line-height: 1.6; margin: 4px 0 0 !important; }
+.children { margin-inline-start: 12px; padding: 6px 0 0 12px; border-inline-start: 1px solid var(--pi-border, #e5e5e5); }
+.children .tree { gap: 2px; }
+.children .fieldLabel { font-weight: 400; }
+.children .children { margin-inline-start: 0; border: 0; padding: 0 0 2px 10px; }
+.noOptions { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--pi-subtle); border-radius: 8px; }
+.noOptions > span { font-size: 18px; color: var(--pi-muted); }
+.noOptions p { color: var(--pi-muted); margin: 4px 0 0; font-size: 12px; }
+
+.home .fieldRow { justify-content: flex-start; gap: 12px; flex-wrap: wrap; }
+.home .fieldGroup { gap: 10px; }
+.home .choices { justify-content: flex-start; max-width: 100%; }
+.home .children { margin: 10px 0 0; padding: 12px; border: 0; border-radius: 8px; background: var(--pi-subtle); }
+.home .children > .tree { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px 24px; align-items: start; }
+.home .children > .tree > .option { grid-column: 1 / -1; }
+.home .children .children { margin-top: 6px; padding: 0; background: transparent; border-radius: 0; }
+.home .children .children > .tree { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.home .subordinate { font-size: 12px; color: var(--pi-muted); }
+.home .control { min-width: 0; }
+@container (min-width: 460px) {
+  .home .children > .tree { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home .children > .tree > .option[data-type='switch'] { grid-column: auto; }
+}
+
+ .labelWithHelp { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.helpButton { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--pi-muted, #888); cursor: help; font-size: 13px; }
+.helpButton:hover { color: var(--pi-primary, #1677ff); background: var(--pi-hover, rgba(0, 0, 0, .04)); }
+.helpButton:focus-visible { outline: 2px solid var(--pi-primary, #1677ff); outline-offset: 2px; }
+.tooltipText { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }

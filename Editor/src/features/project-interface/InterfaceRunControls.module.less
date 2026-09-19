@@ -1,0 +1,36 @@
+.runControls { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.runFooter { display: flex; align-items: center; gap: 20px; padding: 5px 12px; min-height: 42px; box-sizing: border-box; background: var(--pi-surface); border: 1px solid var(--pi-border); border-radius: 8px; }
+.runSummary { display: flex; align-items: baseline; gap: 10px; flex: 0 1 auto; min-width: 140px; }
+.runSummary > span { line-height: 1.5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.runSummary > span + span { font-size: 12px; }
+.runProgress { display: flex; align-items: center; gap: 24px; flex: 1; min-width: 0; border-inline-start: 1px solid var(--pi-border); padding-inline-start: 20px; }
+.progressLine { display: flex; flex: 1; align-items: center; gap: 12px; font-size: 12px; font-variant-numeric: tabular-nums; min-width: 0; }
+.progressLine > span, .progressLine time { flex: none; color: var(--pi-muted); }
+.queue { position: relative; flex: none; font-size: 12px; }
+.queue summary { cursor: pointer; padding: 6px 0; color: var(--pi-text); }
+.queue summary span { margin-inline-start: 10px; color: var(--pi-muted); }
+.queue summary:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: 3px; }
+.sequence { position: absolute; bottom: calc(100% + 16px); left: 0; z-index: 10; width: min(340px, 70vw); max-height: min(320px, 50vh); box-sizing: border-box; margin: 0; padding: 8px; list-style: none; overflow: auto; scrollbar-width: thin; color: var(--pi-muted); background: var(--pi-surface); border: 1px solid var(--pi-border); border-radius: 8px; box-shadow: 0 4px 16px #00000014; }
+.sequence li { display: flex; align-items: baseline; gap: 6px; padding: 8px; overflow-wrap: anywhere; border-bottom: 1px solid var(--pi-border); }
+.sequence li:last-child { border-bottom: 0; }
+.sequence small { margin-inline-start: auto; flex: none; }
+.sequence li[data-status='running'] { color: var(--pi-primary); font-weight: 600; }
+.sequence li[data-status='completed'] { color: var(--pi-success); }
+.sequence li[data-status='failed'] { color: var(--pi-error); }
+@container pi-home (max-width: 1150px) {
+  .runFooter { gap: 12px; }
+  .runProgress { gap: 12px; padding-inline-start: 12px; }
+  .queue summary span { display: none; }
+  .sequence { left: auto; right: 0; }
+}
+@container pi-home (max-width: 950px) {
+  .runSummary { flex-basis: auto; }
+  .runProgress { flex-wrap: wrap; gap: 0; }
+  .progressLine { flex-basis: 100%; }
+}
+@media (max-width: 650px) {
+  .runFooter { flex-wrap: wrap; }
+  .runSummary { flex: 1; }
+  .runProgress { order: 3; flex-basis: 100%; border: 0; padding: 0; }
+  .sequence { left: 0; right: auto; }
+}
