@@ -2,6 +2,23 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::Manager;
 
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BackgroundMode {
+    Random,
+    #[default]
+    Carousel,
+    Fixed,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BuiltinBackground {
+    #[default]
+    CloudHarbor,
+    BlockWorkshop,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
@@ -20,6 +37,8 @@ pub struct Settings {
     pub onboarding_done: bool,
     pub theme: String,
     pub background: bool,
+    pub background_mode: BackgroundMode,
+    pub fixed_background: BuiltinBackground,
     pub ambient_animations: bool,
 }
 impl Default for Settings {
@@ -34,6 +53,8 @@ impl Default for Settings {
             onboarding_done: false,
             theme: "dark".into(),
             background: false,
+            background_mode: BackgroundMode::default(),
+            fixed_background: BuiltinBackground::default(),
             ambient_animations: true,
         }
     }

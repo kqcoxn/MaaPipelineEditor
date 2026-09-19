@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   House,
@@ -22,6 +22,7 @@ import { Home, Projects, Engine, SettingsPage } from "./pages";
 import { Logs } from "./pages/Logs";
 import { useLauncher, openLink } from "./model";
 import { prepareLauncherImages, revealWhenReady } from "./lib/startup";
+import { builtinBackgrounds, useBackground } from "./lib/useBackground";
 import "./style.css";
 // Apply to the entire launcher document, including menus/dialogs rendered in portals.
 document.addEventListener("contextmenu", (event) => event.preventDefault(), true);
@@ -30,6 +31,7 @@ function App() {
   const m = useLauncher();
   const [page, setPage] = useState("home");
   const s = m.snapshot;
+  const background = useBackground(s?.settings);
   // Wait for persisted preferences before starting decorative loops.
   const ambientAnimations = s?.settings.ambientAnimations ?? false;
   useEffect(
@@ -80,15 +82,14 @@ function App() {
   return (
     <div
       className={`app theme-${s?.settings.theme ?? "dark"} page-${page}`}
-      style={
-        s?.settings.background
-          ? ({
-              "--wallpaper": `url("${navigator.userAgent.includes("Windows") ? "http://mpe.localhost/__background" : "mpe://localhost/__background"}")`,
-            } as CSSProperties)
-          : undefined
-      }
+      data-background={background}
     >
-      {ambientAnimations && <BackgroundAmbience />}
+      <BackgroundAmbience
+        animated={ambientAnimations}
+        src={s?.settings.background
+          ? (navigator.userAgent.includes("Windows") ? "http://mpe.localhost/__background" : "mpe://localhost/__background")
+          : builtinBackgrounds.find(({ id }) => id === background)!.src}
+      />
       {page === "home" && ambientAnimations && <AmbientMotes />}
       {page === "home" && !s?.settings.background && (
         <SkyWorkflow animated={ambientAnimations} />

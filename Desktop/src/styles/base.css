@@ -90,10 +90,6 @@ button svg {
   position: relative;
   color: var(--text);
   background-color: var(--bg);
-  --wallpaper: url("/backgrounds/cloud-harbor-v6.png");
-  background-image: var(--wallpaper);
-  background-size: cover;
-  background-position: center;
   color-scheme: dark;
 }
 .app::before {

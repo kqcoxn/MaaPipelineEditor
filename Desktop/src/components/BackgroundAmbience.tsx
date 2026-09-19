@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { animate } from "motion/mini";
 import { useAmbientMotion } from "../lib/useAmbientMotion";
+import { BackgroundWallpaper } from "./BackgroundWallpaper";
 
 // Sample a smooth orbit for native playback. Linear interpolation along these
 // points keeps the camera moving instead of easing to a stop at every waypoint.
@@ -39,12 +40,14 @@ function createAmbience(element: HTMLDivElement) {
   ];
 }
 
-export function BackgroundAmbience() {
+export function BackgroundAmbience({ src, animated }: { src: string; animated: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useAmbientMotion(ref, createAmbience);
+  useAmbientMotion(ref, createAmbience, animated);
   return (
-    <div ref={ref} className="background-ambience" aria-hidden="true">
-      <div className="ambient-wallpaper" />
+    <div ref={ref} className="background-ambience" data-src={src} data-animated={animated} aria-hidden="true">
+      <div className="ambient-wallpaper">
+        <BackgroundWallpaper src={src} />
+      </div>
       <div className="ambient-light" />
     </div>
   );

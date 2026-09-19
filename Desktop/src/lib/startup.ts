@@ -22,9 +22,7 @@ export function revealWhenReady(
 }
 
 export function prepareLauncherImages(): Promise<unknown> {
-  const app = document.querySelector<HTMLElement>(".app");
-  const background = app && getComputedStyle(app).backgroundImage;
-  const url = background?.match(/^url\(["']?(.*?)["']?\)$/)?.[1];
+  const url = document.querySelector<HTMLElement>(".background-ambience")?.dataset.src;
   return Promise.allSettled(
     [url, "./logo.png"]
       .filter((src): src is string => Boolean(src))

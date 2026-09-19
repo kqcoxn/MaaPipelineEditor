@@ -34,6 +34,7 @@ export function LaunchDock({
 }: Props) {
   const s = m.snapshot;
   const ready = s?.environment.ready;
+  const needsEnvironment = !!s && !ready && !s.running;
   const locked = m.busy || s?.running;
   const status = !s
     ? "正在读取环境"
@@ -50,7 +51,7 @@ export function LaunchDock({
       ? "返回编辑器继续创作"
       : ready
         ? "一切就绪，开始创作"
-        : "在引擎页面检查与安装");
+        : "在环境管理中检查与安装");
   return (
     <footer className="launch-dock" aria-label="编辑器启动控制">
       <div className="launch-project">
@@ -147,10 +148,18 @@ export function LaunchDock({
         >
           {m.busy ? (
             <LoaderCircle className="spin" aria-hidden="true" />
+          ) : needsEnvironment ? (
+            <Box aria-hidden="true" />
           ) : (
             <Play fill="currentColor" aria-hidden="true" />
           )}
-          {m.busy ? "正在准备" : s?.running ? "编辑中" : "启动编辑器"}
+          {m.busy
+            ? "正在准备"
+            : s?.running
+              ? "编辑中"
+              : needsEnvironment
+                ? "进入环境管理"
+                : "启动编辑器"}
         </Button>
       </div>
     </footer>

@@ -9,6 +9,8 @@ export type Settings = {
   onboardingDone: boolean;
   theme: string;
   background: boolean;
+  backgroundMode: "carousel" | "random" | "fixed";
+  fixedBackground: "cloud-harbor" | "block-workshop";
   ambientAnimations: boolean;
 };
 export type Snapshot = {

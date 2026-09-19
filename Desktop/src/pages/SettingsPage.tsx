@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { openLink, useLauncher } from "../model";
+import { builtinBackgrounds } from "../lib/useBackground";
 import "../styles/settings.css";
 type Model = ReturnType<typeof useLauncher>;
 export function SettingsPage({ model: m }: { model: Model }) {
@@ -113,9 +114,67 @@ export function SettingsPage({ model: m }: { model: Model }) {
         </div>
         <div className="setting-row">
           <span>
+            <strong id="background-mode-label">图片模式</strong>
+            <small>
+              轮播每 25 秒切换，每次启动随机排列并按该顺序循环；随机每次打开时选一张；固定使用指定背景。
+            </small>
+          </span>
+          <Select
+            value={s.background ? "" : s.backgroundMode}
+            disabled={m.busy}
+            onValueChange={(value) => {
+              if (
+                value === "random" ||
+                value === "carousel" ||
+                value === "fixed"
+              )
+                void m.save({ backgroundMode: value, background: false });
+            }}
+          >
+            <SelectTrigger className="theme-select" aria-labelledby="background-mode-label">
+              <SelectValue placeholder="正在使用自定义背景" />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectGroup>
+                <SelectItem value="carousel">轮播</SelectItem>
+                <SelectItem value="random">随机</SelectItem>
+                <SelectItem value="fixed">固定</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        {s.backgroundMode === "fixed" && !s.background && (
+          <div className="setting-row">
+            <span>
+              <strong id="fixed-background-label">背景图片</strong>
+              <small>选择固定展示的内置背景。</small>
+            </span>
+            <Select
+              value={s.fixedBackground}
+              disabled={m.busy}
+              onValueChange={(value) => {
+                if (value === "cloud-harbor" || value === "block-workshop")
+                  void m.save({ fixedBackground: value });
+              }}
+            >
+              <SelectTrigger className="theme-select" aria-labelledby="fixed-background-label">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectGroup>
+                  {builtinBackgrounds.map(({ id, label }) => (
+                    <SelectItem key={id} value={id}>{label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        <div className="setting-row">
+          <span>
             <strong>自定义背景</strong>
             <small>
-              默认使用云海背景；可选择 PNG、JPEG、WebP，最大 20 MB。
+              可选择 PNG、JPEG、WebP，最大 20 MB。
             </small>
           </span>
           <div className="actions">
@@ -130,9 +189,10 @@ export function SettingsPage({ model: m }: { model: Model }) {
             {s.background && (
               <Button
                 variant="ghost"
+                disabled={m.busy}
                 onClick={() => void m.save({ background: false })}
               >
-                恢复默认
+                恢复内置背景
               </Button>
             )}
           </div>
