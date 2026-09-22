@@ -45,7 +45,7 @@ func editorFixture(t *testing.T) (*Service, string) {
 func editorDoc(t *testing.T, p *EditorProject, suffix string) EditorDocument {
 	t.Helper()
 	for _, d := range p.Documents {
-		if strings.HasSuffix(d.Path, suffix) {
+		if strings.HasSuffix(filepath.ToSlash(d.Path), suffix) {
 			return d
 		}
 	}

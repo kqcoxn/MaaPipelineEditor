@@ -1,3 +1,4 @@
+import { piToolDefinitions } from "../capabilities/project-interface/tools";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 vi.mock("@/features/achievements/bus", () => ({ emitAchievementEvent: vi.fn() }));
@@ -149,11 +150,11 @@ describe("HarnessRunner", () => {
     expect(emitAchievementEvent).not.toHaveBeenCalled();
     expect(run.toolCallCount).toBe(1);
     expect(run.capabilitySnapshot.toolNames).toEqual(
-      [...canvasToolDefinitions, mfwPipelineReferenceTool].map(
+      [...piToolDefinitions, ...canvasToolDefinitions, mfwPipelineReferenceTool].map(
         (tool) => tool.name,
       ),
     );
-    expect(run.capabilitySnapshot.skillIds).toEqual([MFW_PIPELINE_SKILL_ID]);
+    expect(run.capabilitySnapshot.skillIds).toEqual([MFW_PIPELINE_SKILL_ID, "maafw-project-interface", "mpe-pi-editing"]);
     expect(
       modelMock.complete.mock.calls[0][0].some((message) =>
         message.content.includes("本次 Run 已启用的全部 MPE 工具"),

@@ -1,3 +1,4 @@
+import { PiContextBar } from "@/features/ai-harness/capabilities/project-interface/PiContextBar";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { App as AntdApp, Button, Drawer, Popover, Tag, Tooltip } from "antd";
 import { Conversations, Prompts, Sender, Welcome } from "@ant-design/x";
@@ -421,6 +422,7 @@ function AIHistoryPanelContent({
             </Tooltip>
           </div>
 
+          <PiContextBar />
           <div className={style.messageList}>
             {sessionRuns.length === 0 ? (
               <section className={style.emptyState} aria-label="开始新对话">
@@ -433,10 +435,10 @@ function AIHistoryPanelContent({
                   title={
                     <span className={style.emptyBrand}>
                       <img src={MPE_LOGO_URL} alt="MPE Harness" />
-                      <span>从当前 Pipeline 开始</span>
+                      <span>从当前项目开始</span>
                     </span>
                   }
-                  description="询问流程逻辑，或直接让 Harness 帮你调整画布。"
+                  description="查询 PI 配置与流程逻辑，或让 Harness 编辑草稿和当前画布。"
                   variant="borderless"
                 />
                 <Prompts

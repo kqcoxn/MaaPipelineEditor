@@ -129,6 +129,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🤯 MPE Desktop 重构归来，震撼美味！",
         "📱 现已全面支持 PI，内置 Interface Editor 与 MPE MfwTaskRunner ，编辑后丝滑切换任务执行",
       ],
+      perfs: ["优化 MPE Harness 对 PI 的支持"],
       fixes: ["修复设备自动重连时的输入输出参数问题"],
     },
   },

@@ -180,7 +180,7 @@ describe("AIHistoryPanel", () => {
   it("用品牌欢迎态引导新对话", async () => {
     renderPanel();
 
-    expect(await screen.findByText("从当前 Pipeline 开始")).toBeInTheDocument();
+    expect(await screen.findByText("从当前项目开始")).toBeInTheDocument();
     expect(screen.queryByText("暂无对话")).not.toBeInTheDocument();
     fireEvent.click(screen.getByText("检查当前 Pipeline"));
     expect(screen.getByPlaceholderText("输入目标或问题")).toHaveValue(

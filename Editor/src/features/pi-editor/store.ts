@@ -7,6 +7,7 @@ import type { PiProject, PiTab, PiHistory, PiChange, PiDocument } from './types'
 
 interface PiState { project?: PiProject; address: string; tabs: PiTab[]; busy: boolean; error?: string; revision: number }
 interface PiActions {
+  applyHarnessBatch: (project: PiProject, contents: Record<string, string>) => void;
   refresh: () => Promise<void>;
   open: (path: string, selected?: string) => Promise<void>;
   update: (path: string, content: string) => void;
@@ -27,6 +28,24 @@ const tabFrom = (doc: PiDocument): PiTab => ({ ...doc, base: doc.content, select
 export const piDirty = (tab: PiTab) => tab.content !== tab.base || tab.version === 'missing';
 export const usePiEditorStore = create<PiState & PiActions>()(subscribeWithSelector((set, get) => ({
   address: '', tabs: [], busy: false, revision: 0,
+  applyHarnessBatch(project, contents) {
+    const state = get();
+    if (state.busy) throw new Error('PI 正在保存，请稍后重试');
+    const sameProject = state.project?.entryPath === project.entryPath && state.address === localServer.getAddress();
+    if (!sameProject && state.tabs.some(piDirty)) throw new Error('另一项目仍有未保存草稿');
+    const documents = Object.keys(contents).map(path => {
+      const doc = project.documents.find(d => d.path === path);
+      if (!doc || doc.version === 'missing') throw new Error('仅支持已读取的现有 PI 文档');
+      const tab = sameProject ? state.tabs.find(t => t.path === path) : undefined;
+      if (tab && (tab.version !== doc.version || tab.content !== doc.content)) throw new Error('PI 草稿已变化');
+      return doc;
+    });
+    const tabs = sameProject ? [...state.tabs] : [];
+    documents.forEach(doc => { if (!tabs.some(t => t.path === doc.path)) tabs.push(tabFrom(doc)); });
+    // Loading and applying happen synchronously without navigation or an await boundary.
+    set({ project, address: localServer.getAddress(), tabs });
+    get().batch(contents);
+  },
   async refresh() {
     const address = localServer.getAddress();
     const state = get();

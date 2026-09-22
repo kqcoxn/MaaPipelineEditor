@@ -352,7 +352,7 @@ function App() {
                 {!home && !pi && <>
                   {showToolbar && <ToolbarPanel />}
                   <OptionalFeatureHosts
-                    allowAIHistory={showPanel("ai-history")}
+                    allowAIHistory={false}
                     allowBusinessArchitecture={showPanel("business-architecture")}
                   />
                   {showPanel("json") && (
@@ -372,6 +372,7 @@ function App() {
                   {showPanel("error") && <ErrorPanel />}
                 </>}
               </div>
+              <OptionalFeatureHosts allowAIHistory={showPanel("ai-history")} allowBusinessArchitecture={false} />
               {showPanel("config") && <SettingsPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
               {!home && !pi && showPanel("logger") && <LoggerPanel />}

@@ -1,3 +1,10 @@
+import { usePiEditorStore } from "@/features/pi-editor/store";
+import { projectBinding } from "../capabilities/project-interface/context";
+import { piCommandBus } from "../capabilities/project-interface/commandBus";
+import { readWorkspaceContext, validateWorkspace } from "./workspaceContext";
+import { piHarnessModule } from "../capabilities/project-interface/module";
+import { piSkillsModule } from "../skills/project-interface/module";
+import { piToolDefinitions } from "../capabilities/project-interface/tools";
 import { canvasCommandBus } from "../capabilities/canvas/commandBus";
 import { businessArchitectureHarnessModule } from "../capabilities/business-architecture/module";
 import { canvasHarnessModule } from "../capabilities/canvas/module";
@@ -15,10 +22,11 @@ import { registerHarnessModules } from "./registerModules";
 
 export const canvasCapabilityPack: CapabilityPack = {
   id: CANVAS_CAPABILITY_PACK_ID,
-  version: "1.1.0",
-  description: "MaaFW Pipeline 协议及当前文件画布、节点和连接的完整受控操作",
-  skillIds: [mfwPipelineSkill.id],
+  version: "1.2.0",
+  description: "PI 项目查询、配置分析、关联草稿及当前 Pipeline 画布的受控操作",
+  skillIds: [mfwPipelineSkill.id, "maafw-project-interface", "mpe-pi-editing"],
   toolNames: [
+    ...piToolDefinitions.map(tool => tool.name),
     ...canvasToolDefinitions.map((tool) => tool.name),
     mfwPipelineReferenceTool.name,
   ],
@@ -27,6 +35,8 @@ export const canvasCapabilityPack: CapabilityPack = {
 export function createDefaultHarnessDependencies(): HarnessRunnerDependencies {
   const { registry, toolHandlers } = registerHarnessModules([
     canvasHarnessModule,
+    piHarnessModule,
+    piSkillsModule,
     mfwPipelineHarnessModule,
     semanticLayoutHarnessModule,
     businessArchitectureHarnessModule,
@@ -35,9 +45,12 @@ export function createDefaultHarnessDependencies(): HarnessRunnerDependencies {
   return {
     registry,
     toolHandlers,
-    readContextSnapshot: () => canvasCommandBus.readSummary(),
+    getProjectBinding: projectBinding,
+    getPiRevision: () => usePiEditorStore.getState().revision,
+    releaseContext: runId => piCommandBus.release(runId),
+    readContextSnapshot: readWorkspaceContext,
     getContextStateVersion: () => canvasCommandBus.getStateVersion(),
-    validateContext: (context) => canvasCommandBus.validateCanvas(context),
+    validateContext: validateWorkspace,
   };
 }
 

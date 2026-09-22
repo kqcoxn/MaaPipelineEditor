@@ -40,6 +40,8 @@ type EditorIndexItem struct {
 	Effective bool   `json:"effective"`
 }
 type EditorProject struct {
+	snapshot *ProjectSnapshot
+
 	EntryPath   string            `json:"entryPath"`
 	Documents   []EditorDocument  `json:"documents"`
 	Definitions []EditorIndexItem `json:"definitions"`
@@ -264,6 +266,11 @@ func (s *Service) readEditor(req EditorRequest) (*EditorProject, error) {
 				}
 			}
 		}
+	}
+	result.snapshot = &ProjectSnapshot{EntryPath: entry, InterfaceRoot: root, ProjectRoot: root, Document: merged, Provenance: provenance, documents: map[string]*SourceDocument{}}
+	for _, doc := range result.Documents {
+		data, _ := parseEditorDocument(doc.Content)
+		result.snapshot.documents[doc.Path] = &SourceDocument{Path: doc.Path, Raw: []byte(doc.Content), Data: data}
 	}
 	return result, nil
 }

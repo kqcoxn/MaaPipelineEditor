@@ -1,3 +1,4 @@
+import { PiToolDetails } from "@/features/ai-harness/capabilities/project-interface/PiToolDetails";
 import { memo, useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { Avatar, Tag } from "antd";
@@ -144,6 +145,7 @@ function renderToolDetails(projection: ToolProjection): ReactNode {
       <ToolField label="参数">
         {projection.requested.argumentsSummary || "{}"}
       </ToolField>
+      <PiToolDetails result={result} />
       {result?.data !== undefined && (
         <ToolField label="结果">{formatToolValue(result.data)}</ToolField>
       )}
@@ -162,7 +164,7 @@ function renderToolDetails(projection: ToolProjection): ReactNode {
       )}
       {result && (
         <ToolField label="状态">
-          v{result.stateVersion}{result.undoable ? " · 可撤销" : ""}
+          {result.stateDomain === "pi" ? "PI 草稿 " : ""}v{result.stateVersion}{result.undoable ? " · 可撤销" : ""}
         </ToolField>
       )}
     </div>

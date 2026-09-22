@@ -34,7 +34,7 @@ func (s *ProjectSnapshot) Localize(requested string) *ProjectSnapshot {
 	return localized
 }
 
-func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, error) {
+func (s *ProjectSnapshot) ResolveContext(req ContextRequest, traces ...*optionTrace) (*RuntimePlan, error) {
 	if strings.TrimSpace(req.Revision) != "" && req.Revision != s.Revision {
 		return nil, fmt.Errorf("PI revision 已变化，请刷新后重试")
 	}
@@ -64,7 +64,7 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest) (*RuntimePlan, erro
 		return nil, err
 	}
 	controllerType, _ := controller["type"].(string)
-	task, groups, values, overrides, diagnostics := resolveTaskOptions(localized.Document, req, controllerName, controllerType, resourceName)
+	task, groups, values, overrides, diagnostics := resolveTaskOptions(localized.Document, req, controllerName, controllerType, resourceName, traces...)
 
 	agents, err := resolveAgents(localized.Document["agent"])
 	if err != nil {
@@ -208,7 +208,7 @@ func resolveAgents(value any) ([]AgentPlan, error) {
 	return result, nil
 }
 
-func resolveOptions(definitions map[string]any, references []string, controllerName, controllerType, resourceName string, provided map[string]any) (map[string]any, map[string]any, []map[string]any, []Diagnostic) {
+func resolveOptions(definitions map[string]any, references []string, controllerName, controllerType, resourceName string, provided map[string]any, traces ...*optionTrace) (map[string]any, map[string]any, []map[string]any, []Diagnostic) {
 	values := map[string]any{}
 	for key, value := range provided {
 		values[key] = value
@@ -218,12 +218,12 @@ func resolveOptions(definitions map[string]any, references []string, controllerN
 	var diagnostics []Diagnostic
 	stack := map[string]bool{}
 	for _, name := range references {
-		resolveOption(name, definitions, controllerName, controllerType, resourceName, values, active, &overrides, &diagnostics, stack)
+		resolveOption(name, definitions, controllerName, controllerType, resourceName, values, active, &overrides, &diagnostics, stack, traces...)
 	}
 	return values, active, overrides, diagnostics
 }
 
-func resolveOption(name string, definitions map[string]any, controllerName, controllerType, resourceName string, values, active map[string]any, overrides *[]map[string]any, diagnostics *[]Diagnostic, stack map[string]bool) {
+func resolveOption(name string, definitions map[string]any, controllerName, controllerType, resourceName string, values, active map[string]any, overrides *[]map[string]any, diagnostics *[]Diagnostic, stack map[string]bool, traces ...*optionTrace) {
 	if stack[name] {
 		*diagnostics = append(*diagnostics, Diagnostic{Severity: "error", Category: "runtime", Code: "pi.option.cycle", Message: "Option 递归引用形成环: " + name, Pointer: "/option/" + escapePointer(name)})
 		return
@@ -234,6 +234,7 @@ func resolveOption(name string, definitions map[string]any, controllerName, cont
 		return
 	}
 	if !optionApplicable(definition, controllerName, resourceName) {
+		traceInactive(traces, definitions, name, "不适用于当前控制器或资源", map[string]bool{})
 		return
 	}
 	stack[name] = true
@@ -243,12 +244,14 @@ func resolveOption(name string, definitions map[string]any, controllerName, cont
 	if typeName == "" {
 		typeName = "select"
 	}
+	traceEvent(traces, name, "/option/"+escapePointer(name), nil, nil, true, "选项适用")
 	value, exists := values[name]
 	if !exists {
 		value = defaultOptionValue(typeName, definition)
 		values[name] = value
 	}
 
+	traceUnselected(traces, definitions, name, definition, value)
 	switch typeName {
 	case "select", "switch":
 		selected, _ := value.(string)
@@ -258,8 +261,9 @@ func resolveOption(name string, definitions map[string]any, controllerName, cont
 		}
 		if selectedCase := findNamed(objectArray(definition["cases"]), selected); selectedCase != nil {
 			appendPipelineOverride(overrides, selectedCase["pipeline_override"], nil)
+			traceCase(traces, name, definition, selectedCase)
 			for _, nested := range stringSlice(selectedCase["option"]) {
-				resolveOption(nested, definitions, controllerName, controllerType, resourceName, values, active, overrides, diagnostics, stack)
+				resolveOption(nested, definitions, controllerName, controllerType, resourceName, values, active, overrides, diagnostics, stack, traces...)
 			}
 		}
 	case "checkbox":
@@ -270,17 +274,20 @@ func resolveOption(name string, definitions map[string]any, controllerName, cont
 				continue
 			}
 			appendPipelineOverride(overrides, item["pipeline_override"], nil)
+			traceCase(traces, name, definition, item)
 			for _, nested := range stringSlice(item["option"]) {
-				resolveOption(nested, definitions, controllerName, controllerType, resourceName, values, active, overrides, diagnostics, stack)
+				resolveOption(nested, definitions, controllerName, controllerType, resourceName, values, active, overrides, diagnostics, stack, traces...)
 			}
 		}
 	case "input":
 		replacements := resolveInputReplacements(definition, value, diagnostics, name)
 		values[name] = replacements
 		appendPipelineOverride(overrides, definition["pipeline_override"], replacements)
+		traceEvent(traces, name, "/option/"+escapePointer(name)+"/pipeline_override", definition["pipeline_override"], replacements, true, "")
 	case "hotkey":
 		replacements := resolveHotkeyReplacements(definition, value, controllerType, diagnostics, name)
 		appendPipelineOverride(overrides, definition["pipeline_override"], replacements)
+		traceEvent(traces, name, "/option/"+escapePointer(name)+"/pipeline_override", definition["pipeline_override"], replacements, true, "")
 	}
 }
 

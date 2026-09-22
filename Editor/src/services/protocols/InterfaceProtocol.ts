@@ -1,3 +1,4 @@
+import { PiHarnessRequests } from "./PiHarnessRequests";
 import type { PiReply, PiRequest, PiProject } from "@/features/pi-editor/types";
 import { BaseProtocol } from "./BaseProtocol";
 import type { LocalWebSocketServer } from "../server";
@@ -12,6 +13,7 @@ import type {
 type Listener<T> = (data: T) => void;
 
 export class InterfaceProtocol extends BaseProtocol {
+  readonly harness = new PiHarnessRequests();
   private editorRequests = new Map<string, { resolve: (value: PiProject) => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
   private statusListeners = new Set<Listener<ProjectInterfaceStatus>>();
   private snapshotListeners = new Set<Listener<{ requestId: string; snapshot: ProjectInterfaceSnapshot }>>();
@@ -26,6 +28,7 @@ export class InterfaceProtocol extends BaseProtocol {
 
   register(wsClient: LocalWebSocketServer): void {
     this.wsClient = wsClient;
+    this.harness.register(wsClient);
     wsClient.registerRoute("/lte/interface/editor/result", (data: PiReply) => {
       const pending = this.editorRequests.get(data.requestId);
       if (!pending) return;

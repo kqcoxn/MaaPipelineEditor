@@ -31,6 +31,7 @@ export class ToolDispatcher {
     retryAttempt = 0,
   ): Promise<ToolExecutionResult> {
     const currentVersion = context.expectedStateVersion;
+    if (context.signal.aborted) return rejected("non_retryable", "请求已取消", currentVersion);
     if (budget.toolCallCount >= run.policySnapshot.maxToolCalls) {
       return rejected("non_retryable", "已达到工具调用预算", currentVersion);
     }
@@ -64,7 +65,7 @@ export class ToolDispatcher {
         currentVersion,
       );
     }
-    const fingerprint = `${call.name}:${stableStringify(call.arguments)}`;
+    const fingerprint = `${context.projectBinding ?? ""}:${context.expectedStateVersion}:${context.piRevision ?? 0}:${call.name}:${stableStringify(call.arguments)}`;
     if (retryAttempt === 0 && budget.fingerprints.has(fingerprint)) {
       return rejected("non_retryable", "拒绝重复的工具和参数调用", currentVersion);
     }

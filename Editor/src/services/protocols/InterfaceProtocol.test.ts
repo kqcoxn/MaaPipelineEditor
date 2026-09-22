@@ -8,6 +8,8 @@ class FakeWebSocketServer {
   readonly sent: Array<{ path: string; data: unknown }> = [];
   private readonly routes = new Map<string, RouteHandler>();
 
+  onStatus(_callback: (connected: boolean) => void) { return () => {}; }
+
   registerRoute(path: string, handler: RouteHandler): void {
     this.routes.set(path, handler);
   }

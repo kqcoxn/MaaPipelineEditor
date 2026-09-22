@@ -1,3 +1,6 @@
+import { openPiAssistant } from "@/features/ai-harness/capabilities/project-interface/context";
+import { findNodeAtLocation } from "jsonc-parser";
+import { jsonPath } from "./json";
 import { type CSSProperties } from 'react';
 import { Alert, Button, Input, Select, Space, Switch, Typography, theme } from 'antd';
 import { modal } from '@/utils/ui/antdAppApi';
@@ -79,13 +82,14 @@ export function PiEditor() {
     store.getState().patch(tab.path, pointer, value); store.getState().select(tab.path, pointer);
   });
   return <section aria-label="PI 文件编辑器" className={styles.editor} style={{ '--pi-bg': token.colorBgContainer, '--pi-border': token.colorBorderSecondary, '--pi-text': token.colorText, '--pi-active': token.colorPrimaryBg, '--pi-muted': token.colorTextSecondary, '--pi-primary': token.colorPrimary, '--pi-subtle': token.colorFillQuaternary, '--pi-surface': token.colorBgLayout } as CSSProperties}>
+    <div><Button onClick={openPiAssistant}>AI 辅助</Button></div>
     {error && <Alert type="error" showIcon title={error} />}
     {tab.conflict && <Alert type="warning" showIcon title={tab.conflict} action={<Space><Button onClick={() => conflictDialog(tab)}>对比并合并</Button><Button onClick={() => modal.confirm({ title: '放弃关联草稿并重新载入？', onOk: async () => { store.getState().discard(tab.path); await store.getState().refresh(); } })}>重新载入</Button></Space>} />}
     <div className={styles.body}>
       <PiSidebar key={tab.path} tab={tab} definitions={definitions} busy={busy} invalid={!!parsed.error} onAdd={addObject} />
       <main className={styles.content} inert={busy}>
       {parsed.error && <Alert type="error" title={parsed.error} showIcon />}
-      {tab.mode === 'source' || parsed.error ? <div style={{ flex: 1, minHeight: 0 }}><MfwJsonEditor key={tab.path} height="100%" language="json" value={tab.content} onChange={value => { if (value !== undefined) store.getState().update(tab.path, value); }} options={{ readOnly: busy, minimap: { enabled: false }, automaticLayout: true }} /></div> : <div className={styles.form} key={tab.path + tab.selected}>
+      {tab.mode === 'source' || parsed.error ? <div style={{ flex: 1, minHeight: 0 }}><MfwJsonEditor key={tab.path + tab.selected} onMount={editor => { const tree=readJson(tab.content).tree; const node=tree && findNodeAtLocation(tree,jsonPath(tab.content,tab.selected)); const model=editor.getModel(); if(node&&model){const pos=model.getPositionAt(node.offset);editor.setPosition(pos);editor.revealLineInCenter(pos.lineNumber);} }} height="100%" language="json" value={tab.content} onChange={value => { if (value !== undefined) store.getState().update(tab.path, value); }} options={{ readOnly: busy, minimap: { enabled: false }, automaticLayout: true }} /></div> : <div className={styles.form} key={tab.path + tab.selected}>
         {def && <DefinitionActions tab={tab} def={def} />}
         {tab.kind !== 'entry' && !def ? <Typography.Paragraph>在左侧选择或新建对象，或切换源码编辑整个文件。</Typography.Paragraph> : <ObjectForm tab={tab} />}
       </div>}

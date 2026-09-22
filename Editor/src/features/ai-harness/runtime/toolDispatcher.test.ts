@@ -127,5 +127,7 @@ describe("ToolDispatcher", () => {
         await dispatcher.dispatch(call, run, canvasCapabilityPack, context, budget)
       ).error?.message,
     ).toContain("重复");
+    expect((await dispatcher.dispatch(call, run, canvasCapabilityPack, { ...context, expectedStateVersion: 2 }, budget)).ok).toBe(true);
+    expect((await dispatcher.dispatch(call, run, canvasCapabilityPack, { ...context, expectedStateVersion: 2, piRevision: 1 }, budget)).ok).toBe(true);
   });
 });

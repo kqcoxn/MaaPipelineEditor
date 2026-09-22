@@ -68,6 +68,10 @@ export interface BusinessProfile {
 }
 
 export interface ToolExecutionContext {
+  projectBinding?: string;
+  piRevision?: number;
+  piConfigurationGeneration?: number;
+  changedDomains?: Array<"canvas" | "pi">;
   runId: string;
   sessionId: string;
   fileName: string;
@@ -83,6 +87,8 @@ export interface ToolExecutionError {
 }
 
 export interface ToolExecutionResult<T = unknown> {
+  stateDomain?: "canvas" | "pi";
+  changedDomains?: Array<"canvas" | "pi">;
   ok: boolean;
   data?: T;
   error?: ToolExecutionError;
@@ -126,6 +132,7 @@ export interface HarnessRun {
   toolCallCount: number;
   tokenUsage: TokenUsage;
   changedCanvas: boolean;
+  changedDomains?: Array<"canvas" | "pi">;
   error?: string;
   summary?: string;
 }

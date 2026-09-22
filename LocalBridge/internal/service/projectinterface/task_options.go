@@ -1,8 +1,10 @@
 package projectinterface
 
+import "fmt"
+
 // Each PI scope has its own values, including when the same option is used by
 // more than one scope. Only active branches contribute to the runtime override.
-func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, controllerType, resourceName string) (map[string]any, []OptionGroup, map[string]any, []map[string]any, []Diagnostic) {
+func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, controllerType, resourceName string, traces ...*optionTrace) (map[string]any, []OptionGroup, map[string]any, []map[string]any, []Diagnostic) {
 	task := findNamed(objectArray(doc["task"]), req.TaskName)
 	var diagnostics []Diagnostic
 	if req.TaskName != "" {
@@ -27,6 +29,14 @@ func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, 
 		}
 	}
 	appendPipelineOverride(&overrides, task["pipeline_override"], nil)
+	for _, trace := range traces {
+		trace.scope = "task-own"
+	}
+	for i, item := range objectArray(doc["task"]) {
+		if item["name"] == req.TaskName {
+			traceEvent(traces, "", fmt.Sprintf("/task/%d/pipeline_override", i), task["pipeline_override"], nil, true, "")
+		}
+	}
 	for _, scope := range []struct {
 		name string
 		refs []string
@@ -40,8 +50,11 @@ func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, 
 		if scope.name == "pretask" && req.Purpose != "interface" {
 			continue
 		}
+		for _, trace := range traces {
+			trace.scope = scope.name
+		}
 		provided := objectMap(req.OptionValues[scope.name])
-		current, active, scopeOverrides, scopeDiagnostics := resolveOptions(definitions, scope.refs, controllerName, controllerType, resourceName, provided)
+		current, active, scopeOverrides, scopeDiagnostics := resolveOptions(definitions, scope.refs, controllerName, controllerType, resourceName, provided, traces...)
 		for i := range scopeDiagnostics {
 			scopeDiagnostics[i].Data = map[string]any{"scope": scope.name}
 		}
