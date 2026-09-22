@@ -1,3 +1,5 @@
+import { usePiEditorStore, piDirty } from "@/features/pi-editor/store";
+import { closePiTab, createPiFileDialog } from "@/features/pi-editor/dialogs";
 import { CSS } from "@dnd-kit/utilities";
 import style from "../../../styles/panels/FilePanel.module.less";
 
@@ -19,26 +21,28 @@ import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { useFileStore } from "@/stores/project/fileStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
+import { useFileTabOrder } from "./useFileTabOrder";
 
 interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
-  "data-node-key": string;
+  tabId: string;
+  children: React.ReactElement<React.HTMLAttributes<HTMLDivElement> & React.RefAttributes<HTMLDivElement>>;
 }
 
 const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
   ({ ...props }) => {
     const { attributes, listeners, setNodeRef, transform, transition } =
       useSortable({
-        id: props["data-node-key"],
+        id: props.tabId,
       });
 
     const style: React.CSSProperties = {
-      ...props.style,
+      ...props.children.props.style,
       transform: CSS.Translate.toString(transform),
       transition,
       cursor: "move",
     };
 
-    return React.cloneElement(props.children as React.ReactElement, {
+    return React.cloneElement(props.children, {
       ref: setNodeRef,
       style,
       ...attributes,
@@ -50,6 +54,9 @@ const DraggableTabNode: React.FC<Readonly<DraggableTabPaneProps>> = memo(
 function FilePanel() {
   const { isEmbed } = useEmbedMode();
   const { token } = theme.useToken();
+  const pi = useWorkspaceStore(s => s.view === "pi");
+  const piPath = useWorkspaceStore(s => s.piPath);
+  const piTabs = usePiEditorStore(s => s.tabs);
   const home = useWorkspaceStore(s => s.view === "home");
   const showCanvas = useWorkspaceStore(s => s.showCanvas);
 
@@ -67,13 +74,15 @@ function FilePanel() {
 
   // 文件列表
   const [activeKey, setActiveKey] = useState("");
-  const tabs = useMemo(() => {
+  const fileTabs = useMemo(() => {
     setActiveKey(fileName);
     return files.map((file) => ({
       key: file.fileName,
       label: file.fileName,
     }));
   }, [files, fileName]);
+  const items = useMemo(() => [...fileTabs, ...(!isEmbed ? piTabs.map(t => ({ key: "__pi__:" + t.path, label: `PI · ${t.relativePath}${piDirty(t) ? " ●" : ""}` })) : [])], [fileTabs, piTabs, isEmbed]);
+  const { tabs, onDragEnd } = useFileTabOrder(items);
   // 变化监测
   const sensor = useSensor(PointerSensor, {
     activationConstraint: { distance: 10 },
@@ -85,11 +94,11 @@ function FilePanel() {
     if (isValid) setActiveKey(key);
   }, [setFileName]);
   const onTabChange = useCallback((key: string) => {
+    if (key.startsWith("__pi__:")) { useWorkspaceStore.getState().showPi(key.slice(7)); return; }
     showCanvas();
     const newKey = switchFile(key);
     if (newKey) setActiveKey(newKey);
   }, [switchFile, showCanvas]);
-  const onDragEnd = useFileStore((state) => state.onDragEnd);
   const addFile = useFileStore((state) => state.addFile);
   const removeFile = useFileStore((state) => state.removeFile);
   const onEdit = useCallback(
@@ -100,22 +109,24 @@ function FilePanel() {
       let newKey;
       switch (action) {
         case "add":
+          if (pi) { createPiFileDialog(); return; }
           newKey = addFile();
           break;
         case "remove":
+          if (typeof key === "string" && key.startsWith("__pi__:")) { closePiTab(key.slice(7)); return; }
           newKey = removeFile(key as string);
           break;
       }
       if (newKey) setActiveKey(newKey);
     },
-    [addFile, removeFile],
+    [addFile, removeFile, pi],
   );
 
   // 渲染
   return (
     <div className={style.panel}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {home ? <span className={style.filename}>项目首页</span> : <Input
+        {pi ? <span className={style.filename} title={piPath}>PI · {piTabs.find(t => t.path === piPath)?.relativePath}</span> : home ? <span className={style.filename}>项目首页</span> : <Input
           className={style.filename}
           placeholder="文件名"
           value={fileName}
@@ -164,7 +175,7 @@ function FilePanel() {
         type="editable-card"
         hideAdd={isEmbed}
         items={tabs}
-        activeKey={home ? "__project_home__" : activeKey}
+        activeKey={home ? "__project_home__" : pi ? "__pi__:" + piPath : activeKey}
         onChange={onTabChange}
         onTabClick={onTabChange}
         onEdit={onEdit}
@@ -181,11 +192,10 @@ function FilePanel() {
               <DefaultTabBar {...tabBarProps}>
                 {(node) => (
                   <DraggableTabNode
-                    {...(node as React.ReactElement<DraggableTabPaneProps>)
-                      .props}
+                    tabId={String(node.key)}
                     key={node.key}
                   >
-                    {node}
+                    {node as DraggableTabPaneProps['children']}
                   </DraggableTabNode>
                 )}
               </DefaultTabBar>

@@ -316,6 +316,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("服务启动失败，请查看上述日志")
 	}
 	defer piSvc.Close()
+	piSvc.SetEditorLease(mfwSvc.AcquireProjectEdit)
 	piSvc.Start()
 
 	// 创建资源扫描服务

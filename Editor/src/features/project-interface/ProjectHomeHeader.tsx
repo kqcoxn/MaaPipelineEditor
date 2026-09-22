@@ -1,4 +1,6 @@
-import { Select, Tag, Typography } from "antd";
+import { usePiEditorStore } from "@/features/pi-editor/store";
+import { reportPiError } from "@/features/pi-editor/dialogs";
+import { Button, Select, Tag, Typography } from "antd";
 import { asObjectArray, compatibleResources } from "./projectInterfaceState";
 import { useProjectInterfaceStore } from "./projectInterfaceStore";
 import type { ProjectInterfaceSnapshot, ProjectInterfaceStatus } from "./types";
@@ -24,6 +26,7 @@ export function ProjectHomeHeader({ snapshot, status, connected }: {
           <Tag color={connected && status?.state === "ready" ? "success" : "default"}>
             {connected ? status?.state === "ready" ? "PI 已加载" : "PI 待配置" : "LocalBridge 未连接"}
           </Tag>
+          <Button size="small" disabled={!connected || !status?.effectivePath} onClick={() => { if (status?.effectivePath) void usePiEditorStore.getState().open(status.effectivePath).catch(reportPiError); }}>编辑项目文件</Button>
         </div>
       </div>
     {snapshot && <div className={styles.environment} aria-label="运行环境">

@@ -1,3 +1,4 @@
+import { initializePiEditor } from "@/features/pi-editor/lifecycle";
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { initializeProjectInterface } from "@/features/project-interface/projectInterfaceService";
 import { initializeDesktopSession } from "@/features/desktop/closeSession";
@@ -72,14 +73,17 @@ import { AchievementUnlockIsland } from "./features/achievements/components/Achi
 const isPreviewMode = import.meta.env.MODE === "preview";
 
 const loadProjectHome = () => import("@/features/project-interface/ProjectHome").then(module => ({ default: module.ProjectHome }));
+const loadPiEditor = () => import("@/features/pi-editor/PiEditor").then(module => ({ default: module.PiEditor }));
 const loadJsonViewer = () => import("./components/JsonViewer");
 
 /**主程序 */
 function App() {
   // 嵌入模式状态
   const { isEmbed, isReady, isCapAllowed, isPanelHidden } = useEmbedMode();
+  const pi = useWorkspaceStore(s => s.view === "pi") && !isEmbed;
   const home = useWorkspaceStore(s => s.view === "home") && !isEmbed;
   useEffect(() => { if (!isEmbedEnvironment()) return initializeProjectInterface(); }, []);
+  useEffect(() => { if (!isEmbedEnvironment()) return initializePiEditor(); }, []);
   const shouldSkipNewcomerGuide = isEmbed || isPreviewMode;
 
   // 处理文件拖拽
@@ -117,7 +121,7 @@ function App() {
   // 启用全局快捷键（嵌入模式下根据 capabilities 控制）
   const enableShortcuts =
     !isEmbed || (isCapAllowed("allowUndoRedo") && !isCapAllowed("readOnly"));
-  useGlobalShortcuts(enableShortcuts && !home);
+  useGlobalShortcuts(enableShortcuts && !home && !pi);
 
   // 嵌入模式变更通知
   useEmbedChangeNotifier(isEmbed && isReady);
@@ -333,18 +337,19 @@ function App() {
           <Content className={style.content}>
             {showPanel("file") && <FilePanel />}
             <div className={style.workspace}>
+              {pi && <LazyFeature loader={loadPiEditor} loadingLabel="正在加载 PI 编辑器" />}
               {home && <LazyFeature loader={loadProjectHome} loadingLabel="正在加载项目首页" />}
               <div
-                aria-hidden={home}
-                inert={home}
-                style={{ position: "absolute", inset: 0, display: home ? "none" : undefined }}
+                aria-hidden={home || pi}
+                inert={home || pi}
+                style={{ position: "absolute", inset: 0, display: home || pi ? "none" : undefined }}
               >
                 {/* React Flow nodes explicitly set visibility: visible. Hide the
                     container's layout box while retaining the mounted canvas. */}
                 <MainFlow />
                 {/* Canvas panels can portal into document.body, so suspend them
                     with the canvas instead of relying on ancestor styles. */}
-                {!home && <>
+                {!home && !pi && <>
                   {showToolbar && <ToolbarPanel />}
                   <OptionalFeatureHosts
                     allowAIHistory={showPanel("ai-history")}
@@ -369,7 +374,7 @@ function App() {
               </div>
               {showPanel("config") && <SettingsPanel />}
               {showPanel("local-file") && <LocalFileListPanel />}
-              {!home && showPanel("logger") && <LoggerPanel />}
+              {!home && !pi && showPanel("logger") && <LoggerPanel />}
             </div>
           </Content>
         </Layout>

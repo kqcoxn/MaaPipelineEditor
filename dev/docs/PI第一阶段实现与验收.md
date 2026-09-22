@@ -29,7 +29,7 @@ Interface 是独立的项目运行界面，画布／调试器负责开发与诊�
 
 自动验证覆盖：任务顺序、失败与取消后不执行后续项、动态入口无需索引、过期和不兼容任务、覆盖隔离、日志边界、预任务参数与工作目录、执行互斥、队列缓存、请求关联及断线恢复。使用 Go 测试、Vitest、ESLint、antd lint 和 Editor 构建，不启动开发服务器或浏览器测试。
 
-手测使用 `/Users/kqcoxn/_Programs/MaaDuDuL-backup/assets/interface.json`：
+手测使用 `/Users/kqcoxn/_Programs/MaaDuDuL-backup/interface.json`：
 
 1. 确认 Interface 显示任务、配置、画面与日志；缩窄窗口后仍能访问全部内容。
 2. 勾选两个低风险任务，调整顺序、应用预设、刷新后核对缓存；点击名称只浏览，不改变勾选。

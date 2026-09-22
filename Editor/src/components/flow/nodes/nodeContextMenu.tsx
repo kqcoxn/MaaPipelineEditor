@@ -1,3 +1,4 @@
+import { getFullNodeName } from "@/utils/node/nodeNameHelper";
 import { message } from "@/utils/ui/antdAppApi";
 
 import type { ReactNode } from "react";
@@ -319,6 +320,13 @@ export function getNodeContextMenuConfig(
   }
 
   const config: NodeContextMenuConfig[] = [
+    {
+      key: "pi-create-task",
+      label: "创建为 PI 任务",
+      icon: <FlagOutlined />,
+      visible: node => node.type === NodeTypeEnum.Pipeline && !isEmbedEnvironment(),
+      onClick: node => { void import("@/features/pi-editor/dialogs").then(m => m.createPiTaskFromNode(getFullNodeName(node.data.label))).catch(error => message.error(String(error))); },
+    },
     {
       key: "debug-set-entry",
       label: "设为入口节点",

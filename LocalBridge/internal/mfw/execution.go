@@ -57,3 +57,15 @@ func (s *Service) AcquireControllerSetup() (func(), error) {
 	var once sync.Once
 	return func() { once.Do(func() { s.mu.Lock(); s.controllerSetups--; s.mu.Unlock() }) }, nil
 }
+
+// AcquireProjectEdit excludes execution without requiring native libraries to be initialized.
+func (s *Service) AcquireProjectEdit() (func(), error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.executionOwner != "" || s.controllerSetups > 0 {
+		return nil, fmt.Errorf("运行、准备或设备连接尚未结束，请稍后保存 PI")
+	}
+	s.executionOwner = "PI 文件保存"
+	var once sync.Once
+	return func() { once.Do(func() { s.mu.Lock(); s.executionOwner = ""; s.mu.Unlock() }) }, nil
+}

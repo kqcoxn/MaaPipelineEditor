@@ -1,16 +1,20 @@
-﻿import { List } from "../../SimpleList";
+import { PiFileList } from "@/features/pi-editor/PiFileList";
+import { usePiEditorStore } from "@/features/pi-editor/store";
+import { createPiFileDialog } from "@/features/pi-editor/dialogs";
+import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
+import { LocalFileRow } from "./LocalFileRow";
 import {
   App as AntdApp,
   Tooltip,
-  Badge,
   Button,
   Input,
   Empty,
-  Tag,
+  Segmented,
+  theme,
 } from "antd";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, type CSSProperties } from "react";
 import {
-  FileOutlined,
+  PlusOutlined,
   FolderOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -31,6 +35,12 @@ import styles from "../../../styles/panels/LocalFileListPanel.module.less";
 
 export const LocalFileListPanel: React.FC = () => {
   const { message } = AntdApp.useApp();
+  const { token } = theme.useToken();
+  const view = useWorkspaceStore(s => s.view);
+  const project = usePiEditorStore(s => s.project);
+  const [fileType, setFileType] = useState<'pipeline' | 'interface'>(view === 'canvas' ? 'pipeline' : 'interface');
+  const lastOpenView = useRef<string | undefined>(undefined);
+  const wasOpen = useRef(false);
   const showLocalFilePanel = useConfigStore(
     (state) => state.status.showLocalFilePanel,
   );
@@ -51,25 +61,29 @@ export const LocalFileListPanel: React.FC = () => {
   );
   const setRefreshing = useLocalFileStore((state) => state.setRefreshing);
   const [searchText, setSearchText] = useState("");
+  useEffect(() => {
+    if (showLocalFilePanel && !wasOpen.current) {
+      if (lastOpenView.current !== view) setFileType(view === 'canvas' ? 'pipeline' : 'interface');
+      lastOpenView.current = view;
+    }
+    wasOpen.current = showLocalFilePanel;
+  }, [showLocalFilePanel, view]);
+  const displayedRoot = fileType === 'pipeline' ? rootPath : project?.entryPath.replace(/[\\/][^\\/]+$/, '') || '';
+  const scopedFiles = useMemo(() => filterLocalFilesByFolderFilter(files, folderFilter), [files, folderFilter]);
 
   // 过滤文件列表
   const filteredFiles = useMemo(() => {
-    const folderFilteredFiles = filterLocalFilesByFolderFilter(
-      files,
-      folderFilter,
-    );
-
     if (!searchText.trim()) {
-      return folderFilteredFiles;
+      return scopedFiles;
     }
-    const searchLower = searchText.toLowerCase();
-    return folderFilteredFiles.filter(
+    const searchLower = searchText.trim().toLowerCase();
+    return scopedFiles.filter(
       (file) =>
         file.file_name.toLowerCase().includes(searchLower) ||
         file.relative_path.toLowerCase().includes(searchLower) ||
         file.bundle_name.toLowerCase().includes(searchLower),
     );
-  }, [files, folderFilter, searchText]);
+  }, [scopedFiles, searchText]);
 
   // 请求重新加载文件列表
   const handleRefresh = () => {
@@ -84,6 +98,7 @@ export const LocalFileListPanel: React.FC = () => {
 
     // 发送请求
     localServer.send("/etl/refresh_file_list", {});
+    void usePiEditorStore.getState().refresh().catch(() => {});
   };
 
   // 打开文件
@@ -114,17 +129,22 @@ export const LocalFileListPanel: React.FC = () => {
   );
 
   return (
-    <div className={panelClass}>
+    <div className={panelClass} style={{
+      '--files-bg': token.colorBgContainer,
+      '--files-text': token.colorText,
+      '--files-muted': token.colorTextSecondary,
+      '--files-fill': token.colorFillQuaternary,
+      '--files-hover': token.colorFillTertiary,
+      '--files-border': token.colorBorderSecondary,
+      '--files-primary': token.colorPrimary,
+    } as CSSProperties}>
       <div className={classNames("header", styles.header)}>
         <div className={styles.title}>
           <FolderOutlined />
           <span className={styles.titleText}>本地文件</span>
           <span style={{ marginLeft: -12, marginTop: 2 }}>
-            <WikiAnchor path="20.本地服务/10.本地文件管理.html" title="本地文件管理" description="管理资源目录下Pipeline文件" />
+            <WikiAnchor path="20.本地服务/10.本地文件管理.html" title="本地文件管理" description="浏览 Pipeline 与 Interface 项目文件" />
           </span>
-          {files.length > 0 && (
-            <Badge count={files.length} showZero overflowCount={999} />
-          )}
         </div>
         <div className={styles.actions}>
           <Tooltip title="刷新文件列表">
@@ -132,6 +152,7 @@ export const LocalFileListPanel: React.FC = () => {
               type="text"
               size="small"
               icon={<ReloadOutlined />}
+              aria-label="刷新文件列表"
               onClick={handleRefresh}
             />
           </Tooltip>
@@ -140,32 +161,44 @@ export const LocalFileListPanel: React.FC = () => {
               type="text"
               size="small"
               icon={<CloseOutlined />}
+              aria-label="关闭文件面板"
               onClick={closePanel}
             />
           </Tooltip>
         </div>
       </div>
 
-      {rootPath && (
+      <div className={styles.typeSwitch}>
+        <Segmented block value={fileType} onChange={value => setFileType(value as typeof fileType)} options={[
+          { value: 'pipeline', label: <span className={styles.typeLabel}>Pipeline <span className={styles.count}>{scopedFiles.length}</span></span> },
+          { value: 'interface', label: <span className={styles.typeLabel}>Interface <span className={styles.count}>{project?.documents.length ?? 0}</span></span> },
+        ]} />
+      </div>
+
+      {displayedRoot && (
         <div className={styles.rootPath}>
-          <Tooltip title={rootPath}>
-            <div className={styles.rootPathText}>{rootPath}</div>
+          <Tooltip title={displayedRoot}>
+            <div className={styles.rootPathText}>{displayedRoot}</div>
           </Tooltip>
         </div>
       )}
 
       <div className={styles.searchBar}>
         <Input
-          placeholder="搜索文件..."
+          placeholder={fileType === 'pipeline' ? '搜索 Pipeline 文件…' : '搜索 Interface 文件…'}
+          aria-label="搜索文件"
           prefix={<SearchOutlined />}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           allowClear
         />
+        {fileType === 'interface' && <Tooltip title="新建 PI 文件">
+          <Button type="text" icon={<PlusOutlined />} aria-label="新建 PI 文件" disabled={!project} onClick={createPiFileDialog} />
+        </Tooltip>}
       </div>
 
       <div className={styles.fileList}>
-        {filteredFiles.length === 0 ? (
+        {fileType === 'interface' ? <PiFileList search={searchText} onOpen={closePanel} /> : filteredFiles.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
@@ -173,34 +206,12 @@ export const LocalFileListPanel: React.FC = () => {
             }
           />
         ) : (
-          <List
-            size="small"
-            split={false}
-            dataSource={filteredFiles}
-            renderItem={(file) => (
-              <List.Item
-                className={styles.fileItem}
-                onClick={() => handleOpenFile(file)}
-              >
-                <div className={styles.fileInfo}>
-                  <FileOutlined className={styles.fileIcon} />
-                  <div className={styles.fileDetails}>
-                    <div className={styles.fileNameRow}>
-                      <div className={styles.fileName}>{file.file_name}</div>
-                      {file.bundle_name && (
-                        <Tooltip title={`所属资源：${file.bundle_name}`}>
-                          <Tag className={styles.bundleTag} variant="filled">
-                            {file.bundle_name}
-                          </Tag>
-                        </Tooltip>
-                      )}
-                    </div>
-                    <div className={styles.filePath}>{file.relative_path}</div>
-                  </div>
-                </div>
-              </List.Item>
-            )}
-          />
+          <section aria-label="Pipeline 文件">
+            {filteredFiles.map(file => <LocalFileRow key={file.file_path}
+              name={file.file_name} relativePath={file.relative_path} path={file.file_path}
+              badge={file.bundle_name} onOpen={() => handleOpenFile(file)}
+            />)}
+          </section>
         )}
       </div>
     </div>

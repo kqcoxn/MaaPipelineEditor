@@ -1,0 +1,22 @@
+.editor { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; color: var(--pi-text); background: var(--pi-bg); }
+.body { display: flex; flex: 1; min-height: 0; }
+.content { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; padding: 16px 20px 12px; background: var(--pi-surface); }
+.form { overflow: auto; flex: 1; padding: 8px clamp(0px, 2vw, 24px) 32px; container: pi-form / inline-size; scrollbar-gutter: stable; }
+.form > * { max-width: 1120px; margin-left: auto; margin-right: auto; }
+.definitionActions { display: flex; flex-direction: column; gap: 16px; padding: 20px 24px; margin-bottom: 20px; background: var(--pi-bg); border: 1px solid var(--pi-border); border-radius: 12px; overflow-wrap: anywhere; }
+.definitionHeading { display: flex; flex-direction: column; gap: 8px; }
+.definitionTitle { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; margin: 0; font-size: 18px; font-weight: 600; line-height: 1.5; }
+.definitionKind { color: var(--pi-muted); font-size: 13px; font-weight: 400; }
+.definitionSources { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.currentPath { color: var(--pi-muted); font-size: 12px; overflow-wrap: anywhere; }
+.definitionLink { height: auto; max-width: 100%; padding: 2px 0; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.definitionActions details { margin: 0; }
+.usageRow { margin-top: 8px; }
+.definitionActions details[open] summary { margin-bottom: 12px; }
+.definitionActions summary { cursor: pointer; color: var(--pi-muted); font-size: 13px; }
+.diagnostics { max-height: 180px; overflow: auto; border-top: 1px solid var(--pi-border); padding: 8px; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .compare { grid-template-columns: 1fr; } .content { padding: 12px; } }
+
+
+@container pi-form (max-width: 700px) { .definitionActions { padding: 16px; } }

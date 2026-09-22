@@ -1,3 +1,4 @@
+import { hasUnsavedPiSession } from "@/features/pi-editor/closeGuard";
 import { modal, message } from "@/utils/ui/antdAppApi";
 import { saveFlow, useFileStore } from "@/stores/project/fileStore";
 import {
@@ -44,7 +45,8 @@ export function initializeDesktopSession(): () => void {
       const running = ["running", "stopping"].includes(
         useDebugSessionStore.getState().session?.status ?? "",
       );
-      if (!running) {
+      const unsavedPi = hasUnsavedPiSession();
+      if (!running && !unsavedPi) {
         void reply(true).catch(() => {
           active = false;
         });
@@ -52,8 +54,8 @@ export function initializeDesktopSession(): () => void {
       }
       modal.confirm({
         title: "结束编辑会话",
-        content: "当前任务将随服务一起停止。",
-        okText: "停止任务并退出",
+        content: unsavedPi ? "PI 文件有未保存草稿，退出会丢弃这些修改。请取消并返回编辑器保存，或明确放弃草稿。" + (running ? "当前任务也会停止。" : "") : "当前任务将随服务一起停止。",
+        okText: unsavedPi ? "放弃 PI 草稿并退出" : "停止任务并退出",
         cancelText: "取消",
         closable: false,
         maskClosable: false,

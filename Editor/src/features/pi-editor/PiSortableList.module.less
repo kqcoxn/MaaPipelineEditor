@@ -1,0 +1,8 @@
+.row { position: relative; min-width: 0; }
+.row[data-dragging='true'] { z-index: 2; background: var(--pi-bg); border-radius: 6px; box-shadow: 0 0 0 1px var(--pi-primary); }
+.handle { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 28px; padding: 0; flex-shrink: 0; border: 0; border-radius: 4px; background: transparent; color: var(--pi-muted); cursor: grab; touch-action: none; vertical-align: middle; }
+.handle:hover:enabled { background: var(--pi-active); color: var(--pi-primary); }
+.handle:active:enabled { cursor: grabbing; }
+.handle:disabled { opacity: .3; cursor: default; }
+.handle:focus-visible { outline: 2px solid var(--pi-primary); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .row { transition: none !important; } }

@@ -19,8 +19,11 @@ const EventContextDisposed = "project_interface.context_disposed"
 const EventContextResolved = "project_interface.context_resolved"
 
 type Service struct {
+	editorWrite    func(string, []byte, os.FileMode) error
 	mu             sync.RWMutex
 	refreshMu      sync.Mutex
+	editorLease    func() (func(), error)
+	editorSources  []string
 	root           string
 	canonicalRoot  string
 	configuredPath string
@@ -134,6 +137,12 @@ func (s *Service) Refresh() {
 		}
 	}
 
+	if err := s.recoverEditor(filepath.Dir(entry)); err != nil {
+		status.State = StateInvalid
+		status.Diagnostics = []Diagnostic{editorDiagnostic(entry, "", "error", err.Error())}
+		s.commit(status, nil)
+		return
+	}
 	snapshot, err := s.loader.load(entry)
 	if err != nil {
 		status.State = StateInvalid
@@ -263,13 +272,16 @@ func projectPipelineRoots(snapshot *ProjectSnapshot) []string {
 }
 
 func (s *Service) updateWatchedSources(status Status, snapshot *ProjectSnapshot) {
-	if s.watcher == nil || status.Mode != "explicit" {
-		if s.watcher != nil {
-			s.watcher.Update(nil)
-		}
+	if s.watcher == nil {
 		return
 	}
 	paths := []string{status.EffectivePath}
+	s.mu.RLock()
+	paths = append(paths, s.editorSources...)
+	if snapshot == nil && s.lastGood != nil && s.lastGood.EntryPath == status.EffectivePath {
+		paths = append(paths, s.lastGood.Sources...)
+	}
+	s.mu.RUnlock()
 	if snapshot != nil {
 		paths = append(paths, snapshot.Sources...)
 	}

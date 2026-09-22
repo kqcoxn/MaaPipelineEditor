@@ -18,7 +18,8 @@ initDevConsole();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConfigProvider locale={antdZhCN}>
-      <AntdApp component={false}>
+      {/* 保留 DOM 以承载 CSS 变量，并延续编辑器的全高布局。 */}
+      <AntdApp style={{ width: "100%", height: "100%" }}>
         <AntdFeedbackBridge />
         <App />
       </AntdApp>

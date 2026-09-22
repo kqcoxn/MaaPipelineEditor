@@ -33,6 +33,8 @@ func (h *Handler) GetRoutePrefix() []string { return []string{"/etl/interface/"}
 
 func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	switch msg.Path {
+	case "/etl/interface/editor/read", "/etl/interface/editor/validate", "/etl/interface/editor/save":
+		h.handleEditor(msg, conn)
 	case "/etl/interface/status":
 		h.send(conn, "/lte/interface/status", h.service.Status())
 	case "/etl/interface/snapshot":

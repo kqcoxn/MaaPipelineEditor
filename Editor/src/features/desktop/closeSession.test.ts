@@ -1,3 +1,4 @@
+import { registerPiCloseGuard } from "@/features/pi-editor/closeGuard";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -63,6 +64,19 @@ describe("desktop close handshake", () => {
   afterEach(() => {
     dispose();
     delete window.__TAURI__;
+  });
+
+  it("requires an explicit discard decision for unsaved PI drafts even without a running task", async () => {
+    const unregister = registerPiCloseGuard(() => true);
+    try {
+      requestClose();
+      expect(mocks.confirm).toHaveBeenCalledTimes(1);
+      expect(mocks.confirm.mock.calls[0][0].content).toContain("未保存草稿");
+      expect(mocks.confirm.mock.calls[0][0].okText).toBe("放弃 PI 草稿并退出");
+      expect(mocks.invoke).not.toHaveBeenCalledWith("desktop_reply", { accept: true });
+      await mocks.confirm.mock.calls[0][0].onCancel();
+      expect(mocks.invoke).toHaveBeenCalledWith("desktop_reply", { accept: false });
+    } finally { unregister(); }
   });
 
   it("caches unsaved files and exits without a save prompt or disk write", async () => {

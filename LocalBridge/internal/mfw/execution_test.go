@@ -47,3 +47,27 @@ func TestPreparationCannotOverlapDeviceConnection(t *testing.T) {
 	}
 	release()
 }
+
+func TestProjectEditWorksWithoutNativeRuntimeAndExcludesExecution(t *testing.T) {
+	s := NewService()
+	release, err := s.AcquireProjectEdit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.initialized = true
+	if _, err = s.AcquireExecution("Interface", ""); err == nil {
+		t.Fatal("execution overlaps PI save")
+	}
+	if _, err = s.AcquireControllerSetup(); err == nil {
+		t.Fatal("preparation/connection overlaps PI save")
+	}
+	release()
+	run, err := s.AcquireExecution("Interface", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.AcquireProjectEdit(); err == nil {
+		t.Fatal("PI save overlaps execution")
+	}
+	run()
+}

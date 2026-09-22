@@ -3,10 +3,11 @@
   left: 10px;
   top: 10px;
   width: 320px;
+  max-width: calc(100vw - 20px);
   max-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--files-bg);
   border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   overflow: hidden;
@@ -18,8 +19,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 4px 12px 4px;
-  border-bottom: 1px solid #e8e8e8;
-  background: #fff;
+  border-bottom: 1px solid var(--files-border);
+  background: var(--files-bg);
   flex-shrink: 0;
 }
 
@@ -29,7 +30,7 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #000000d9;
+  color: var(--files-text);
 }
 
 .actions {
@@ -43,11 +44,11 @@
 }
 
 .rootPath {
-  padding: 2px 8px 4px 8px;
-  background: #f5f5f5;
+  padding: 5px 8px;
+  background: var(--files-fill);
   border-radius: 6px;
   font-size: 12px;
-  color: #8c8c8c;
+  color: var(--files-muted);
   flex-shrink: 0;
 }
 
@@ -59,49 +60,55 @@
 }
 
 .searchBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   padding: 8px 0px 4px 0px;
-  margin-bottom: 8px;
+  margin-bottom: 3px;
   flex-shrink: 0;
 }
 
 .fileList {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 8px 0;
-
-  :global {
-    .ant-empty {
-      margin-top: 40px;
-    }
-  }
+  scrollbar-gutter: stable;
+  padding: 4px 0;
 }
 
 .fileItem {
-  padding: 8px 16px;
-  margin: 0;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background-color: #f5f5f5;
-  }
-}
-
-.fileInfo {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--files-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--files-primary);
+    outline-offset: -2px;
+  }
 }
 
 .fileIcon {
   font-size: 16px;
-  color: #1890ff;
+  color: var(--files-primary);
   margin-top: 2px;
   flex-shrink: 0;
 }
 
 .fileDetails {
+  display: block;
   flex: 1;
   min-width: 0;
 }
@@ -111,14 +118,14 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .fileName {
   flex: 1;
   min-width: 0;
   font-size: 14px;
-  color: #000000d9;
+  color: var(--files-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -127,15 +134,39 @@
 .bundleTag {
   flex-shrink: 0;
   max-width: 96px;
-  margin-inline-end: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--files-fill);
+  color: var(--files-muted);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .filePath {
+  display: block;
   font-size: 12px;
-  color: #8c8c8c;
+  color: var(--files-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.typeSwitch {
+  padding: 12px 0 8px;
+  flex-shrink: 0;
+}
+
+.typeLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count {
+  color: var(--files-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }

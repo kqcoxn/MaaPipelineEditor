@@ -6,8 +6,6 @@ import { localFileContentSignature } from "@/features/achievements/localSync";
 import { notification } from "@/utils/ui/antdAppApi";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import type { DragEndEvent } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { visit } from "jsonc-parser";
 
 import { useFlowStore, type NodeType, type EdgeType } from "@/stores/flow";
@@ -392,7 +390,6 @@ type FileState = {
   switchFile: (fileName: string) => string | null;
   addFile: (options?: { isSwitch: boolean }) => string | null;
   removeFile: (fileName: string) => string | null;
-  onDragEnd: (result: DragEndEvent) => void;
   replace: (files: FileType[], currentFileName?: string) => unknown;
   // 本地文件操作方法
   openFileFromLocal: (
@@ -445,12 +442,11 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       isValid = !isFileNameRepate(fileName);
       if (!isValid) return {};
       // 修改
-      let files = state.files;
+      const files = [...state.files];
       let currentFile = state.currentFile;
       const index = findFileIndex(currentFile.fileName);
       currentFile = { ...state.currentFile, fileName };
       files[index] = currentFile;
-      files = [...files];
       return { files, currentFile };
     });
     if (!isValid) {
@@ -581,19 +577,6 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       return { files: newFiles };
     });
     return activeKey;
-  },
-
-  // 拖拽文件
-  onDragEnd({ active, over }) {
-    if (active.id !== over?.id) {
-      set((state) => {
-        let files = state.files;
-        const activeIndex = findFileIndex(active.id as string);
-        const overIndex = findFileIndex(over?.id as string);
-        files = arrayMove(files, activeIndex, overIndex);
-        return { files };
-      });
-    }
   },
 
   // 替换
