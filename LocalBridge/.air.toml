@@ -7,7 +7,8 @@ tmp_dir = "build"
 [build]
   cmd = "go mod tidy ; go build -o ./build/mpelb.exe ./cmd/lb"
   bin = "./build/mpelb.exe"
-  full_bin = "./build/mpelb.exe --root ./test-json --log-level DEBUG"
+  # 调试项目与 MaaPipelineEditor 位于同一父目录，使用相对路径适配不同设备。
+  full_bin = "./build/mpelb.exe --root ../../MaaDuDuL-backup --log-level DEBUG"
   include_ext = ["go", "toml", "yaml", "yml", "json"]
   exclude_dir = ["build", "test-json", "node_modules", "vendor", ".git"]
   exclude_file = []

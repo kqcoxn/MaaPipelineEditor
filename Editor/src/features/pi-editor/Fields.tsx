@@ -7,16 +7,18 @@ import { editJson, readJson, valueAt, escapePointer } from './json';
 import { askPiText, reportPiError } from './dialogs';
 import { copyDefinition } from './operations';
 import type { PiTab } from './types';
+import { PiFieldLabel, usePiFieldHelp } from './PiFieldHelp';
 
 export function JsonField({ tab, pointer, label }: { tab: PiTab; pointer: string; label: string }) {
+  const help = usePiFieldHelp(tab, pointer, label);
   const value = valueAt(tab.content, pointer);
   const canonical = JSON.stringify(value ?? (['/import', '/path', '/attach_resource_path'].some(p => pointer.endsWith(p)) ? [] : {}), null, 2);
-  return <Form.Item className={styles.field} label={label}>
-    <div className={styles.codeField}><pre className={styles.codePreview} aria-label={label} tabIndex={0}>{canonical}</pre><div className={styles.codeFooter}>
+  return <Form.Item className={styles.field} label={help.label}>
+    <div className={styles.codeField}><pre className={styles.codePreview} aria-label={label} aria-describedby={help.descriptionId} tabIndex={0}>{canonical}</pre><div className={styles.codeFooter}>
     <Button size="small" type="text" icon={<CodeOutlined />} onClick={() => {
       let draft = canonical;
-      modal.confirm({ title: label, width: 760, maskClosable: false, keyboard: false,
-        content: <Input.TextArea className={styles.codeInput} aria-label={label + '源码'} defaultValue={draft} autoSize={{ minRows: 8, maxRows: 24 }} onChange={e => { draft = e.target.value; }} />,
+      modal.confirm({ title: <PiFieldLabel label={label} help={help.help} descriptionId={help.descriptionId ? help.descriptionId + '-dialog' : undefined} />, width: 760, maskClosable: false, keyboard: false,
+        content: <Input.TextArea className={styles.codeInput} aria-label={label + '源码'} aria-describedby={help.descriptionId ? help.descriptionId + '-dialog' : undefined} defaultValue={draft} autoSize={{ minRows: 8, maxRows: 24 }} onChange={e => { draft = e.target.value; }} />,
         okText: '应用到文件草稿', cancelText: '放弃字段修改',
         onOk: () => {
           try { const parsed = JSON.parse(draft); store.getState().patch(tab.path, pointer, parsed); }
@@ -27,14 +29,15 @@ export function JsonField({ tab, pointer, label }: { tab: PiTab; pointer: string
   </Form.Item>;
 }
 export function TextField({ tab, pointer, label, multiline = false, disabled = false }: { tab: PiTab; pointer: string; label: string; multiline?: boolean; disabled?: boolean }) {
+  const help = usePiFieldHelp(tab, pointer, label);
   const value = valueAt(tab.content, pointer);
   const text = typeof value === 'string' ? value : '';
   const project = store(s => s.project);
   const translations = text.startsWith('$') ? project?.definitions.filter(d => d.kind === 'translation' && d.name === text.slice(1)) ?? [] : [];
   const references = project?.references.filter(r => r.kind === 'translation' && r.name === text.slice(1)) ?? [];
   const change = (value: string) => store.getState().patch(tab.path, pointer, value || undefined);
-  return <Form.Item className={styles.field} label={label}>
-    {multiline ? <Input.TextArea aria-label={label} autoSize={{ minRows: 2, maxRows: 5 }} value={text} disabled={disabled} onChange={e => change(e.target.value)} /> : <Input aria-label={label} value={text} disabled={disabled} onChange={e => change(e.target.value)} />}
+  return <Form.Item className={styles.field} label={help.label}>
+    {multiline ? <Input.TextArea aria-label={label} aria-describedby={help.descriptionId} autoSize={{ minRows: 2, maxRows: 5 }} value={text} disabled={disabled} onChange={e => change(e.target.value)} /> : <Input aria-label={label} aria-describedby={help.descriptionId} value={text} disabled={disabled} onChange={e => change(e.target.value)} />}
     {!!translations.length && <div className={styles.translations}><div className={styles.translationHeading}><span><TranslationOutlined /> 翻译预览</span><span>{references.length} 处引用</span></div>{translations.map(d => {
       const source = store.getState().tabs.find(t => t.path === d.file) ?? project?.documents.find(t => t.path === d.file);
       return <div className={styles.translationRow} key={d.file}><Typography.Text className={styles.translationValue}>{source ? String(valueAt(source.content, d.pointer) ?? '') : ''}</Typography.Text><Button className={styles.translationLink} title={source?.relativePath ?? d.file} size="small" type="link" onClick={() => { void store.getState().open(d.file, d.pointer).catch(reportPiError); }}>{source?.relativePath.split('/').at(-1) ?? '编辑翻译'} ↗</Button></div>;
@@ -50,22 +53,26 @@ export function TextField({ tab, pointer, label, multiline = false, disabled = f
   </Form.Item>;
 }
 export function BoolField({ tab, pointer, label }: { tab: PiTab; pointer: string; label: string }) {
-  return <Form.Item className={styles.field} label={label}><Space><Switch aria-label={label} checked={valueAt(tab.content, pointer) === true} onChange={v => store.getState().patch(tab.path, pointer, v)} /><Button type="text" size="small" onClick={() => store.getState().patch(tab.path, pointer, undefined)}>使用协议默认值</Button></Space></Form.Item>;
+  const help = usePiFieldHelp(tab, pointer, label);
+  return <Form.Item className={styles.field} label={help.label}><Space><Switch aria-label={label} aria-describedby={help.descriptionId} checked={valueAt(tab.content, pointer) === true} onChange={v => store.getState().patch(tab.path, pointer, v)} /><Button type="text" size="small" onClick={() => store.getState().patch(tab.path, pointer, undefined)}>使用协议默认值</Button></Space></Form.Item>;
 }
 export function NumberField({ tab, pointer, label }: { tab: PiTab; pointer: string; label: string }) {
+  const help = usePiFieldHelp(tab, pointer, label);
   const value = valueAt(tab.content, pointer);
-  return <Form.Item className={styles.field} label={label}><InputNumber aria-label={label} value={typeof value === 'number' ? value : null} onChange={v => store.getState().patch(tab.path, pointer, v ?? undefined)} /></Form.Item>;
+  return <Form.Item className={styles.field} label={help.label}><InputNumber aria-label={label} aria-describedby={help.descriptionId} value={typeof value === 'number' ? value : null} onChange={v => store.getState().patch(tab.path, pointer, v ?? undefined)} /></Form.Item>;
 }
 export function ChoiceField({ tab, pointer, label, options, multiple = false }: { tab: PiTab; pointer: string; label: string; options: string[]; multiple?: boolean }) {
+  const help = usePiFieldHelp(tab, pointer, label);
   const value = valueAt(tab.content, pointer);
-  return <Form.Item className={styles.field} label={label}><Select aria-label={label} style={{ width: '100%' }} allowClear mode={multiple ? 'multiple' : undefined} value={value as string | string[] | undefined} options={options.map(v => ({ value: v, label: v }))} onChange={v => store.getState().patch(tab.path, pointer, v)} /></Form.Item>;
+  return <Form.Item className={styles.field} label={help.label}><Select aria-label={label} aria-describedby={help.descriptionId} style={{ width: '100%' }} allowClear mode={multiple ? 'multiple' : undefined} value={value as string | string[] | undefined} options={options.map(v => ({ value: v, label: v }))} onChange={v => store.getState().patch(tab.path, pointer, v)} /></Form.Item>;
 }
 export function ReferenceField({ tab, pointer, kind, label }: { tab: PiTab; pointer: string; kind: string; label: string }) {
+  const help = usePiFieldHelp(tab, pointer, label);
   const project = store(s => s.project);
   const raw = valueAt(tab.content, pointer);
   const values: string[] = Array.isArray(raw) ? raw : [];
   const options = [...new Set(project?.definitions.filter(d => d.kind === kind && d.effective).map(d => d.name))];
-  return <Form.Item className={styles.field} label={label}><Select aria-label={label} mode="tags" style={{ width: '100%' }} value={values} options={options.map(value => ({ value, label: value }))} onChange={v => store.getState().patch(tab.path, pointer, v)} />
+  return <Form.Item className={styles.field} label={help.label}><Select aria-label={label} aria-describedby={help.descriptionId} mode="tags" style={{ width: '100%' }} value={values} options={options.map(value => ({ value, label: value }))} onChange={v => store.getState().patch(tab.path, pointer, v)} />
     <div className={styles.referenceList}>{values.map((name, i) => {
       const def = project?.definitions.find(d => d.kind === kind && d.name === name && d.effective);
       return <div className={styles.referenceRow} key={`${name}:${i}`}><Button size="small" type="link" disabled={!def} onClick={() => { if (def) void store.getState().open(def.file, def.pointer).catch(reportPiError); }}>{name} → 定义</Button>

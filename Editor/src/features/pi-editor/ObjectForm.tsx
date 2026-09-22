@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Button, Form, Select, Space, Typography } from 'antd';
 import { usePiEditorStore as store } from './store';
 import { valueAt, escapePointer, readJson } from './json';
@@ -7,16 +7,18 @@ import type { PiTab } from './types';
 import { PiSortableList } from './PiSortableList';
 import { FormSection } from './FormSection';
 import { ImportEditor } from './ImportEditor';
+import { PiFieldLabel, usePiFieldHelp } from './PiFieldHelp';
 import styles from './PiForm.module.less';
 import { PlusOutlined } from '@ant-design/icons';
 import { useLocalFileStore } from '@/stores/project/localFileStore';
 
 function OverrideField({ tab, pointer }: { tab: PiTab; pointer: string }) {
+  const helpId = useId();
   const files = useLocalFileStore(s => s.files);
   const nodes = files.flatMap(f => f.nodes.map(n => n.label));
   const [node, setNode] = useState<string>();
-  return <section><Form.Item className={styles.field} label="覆盖目标节点"><Space.Compact style={{ width: '100%' }}>
-    <Select aria-label="覆盖目标节点" showSearch mode="tags" style={{ width: '100%' }} value={node ? [node] : []} options={[...new Set(nodes)].map(value => ({ value, label: value }))} onChange={values => setNode(values.at(-1))} />
+  return <section><Form.Item className={styles.field} label={<PiFieldLabel label="覆盖目标节点" descriptionId={helpId} help={{ description: '选择或输入 Pipeline 节点名称，按 Enter 确认后点击“添加”，再编辑下方该节点的覆盖字段。' }} />}><Space.Compact style={{ width: '100%' }}>
+    <Select aria-label="覆盖目标节点" aria-describedby={helpId} showSearch mode="tags" style={{ width: '100%' }} value={node ? [node] : []} options={[...new Set(nodes)].map(value => ({ value, label: value }))} onChange={values => setNode(values.at(-1))} />
     <Button disabled={!node} onClick={() => { if (node && valueAt(tab.content, pointer + '/' + escapePointer(node)) === undefined) store.getState().patch(tab.path, pointer + '/' + escapePointer(node), {}); }}>添加</Button>
   </Space.Compact></Form.Item><JsonField key={pointer} tab={tab} pointer={pointer} label="Pipeline 覆盖内容" /></section>;
 }
@@ -43,6 +45,7 @@ function ChildrenEditor({ tab, pointer, kind }: { tab: PiTab; pointer: string; k
 }
 export function ObjectForm({ tab }: { tab: PiTab }) {
   const pointer = tab.selected;
+  const entryHelp = usePiFieldHelp(tab, pointer + '/entry', 'Pipeline 入口');
   const kind = pointer.split('/')[1] ?? '';
   const raw = valueAt(tab.content, pointer);
   const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
@@ -78,7 +81,7 @@ export function ObjectForm({ tab }: { tab: PiTab }) {
       {text('label', '显示名称')}{text('description', '说明', true)}{text('icon', '图标')}
       </FormSection>
       {kind === 'task' && <FormSection title="任务配置" description="设置运行入口、适用范围及关联选项。">
-        <Form.Item className={styles.field} label="Pipeline 入口"><Select aria-label="Pipeline 入口" mode="tags" showSearch style={{ width: '100%' }} value={typeof value.entry === 'string' ? [value.entry] : []} options={[...new Set(nodes)].map(value => ({ value, label: value }))} onChange={values => store.getState().patch(tab.path, pointer + '/entry', values.at(-1) ?? '')} /></Form.Item>
+        <Form.Item className={styles.field} label={entryHelp.label}><Select aria-label="Pipeline 入口" aria-describedby={entryHelp.descriptionId} mode="tags" showSearch style={{ width: '100%' }} value={typeof value.entry === 'string' ? [value.entry] : []} options={[...new Set(nodes)].map(value => ({ value, label: value }))} onChange={values => store.getState().patch(tab.path, pointer + '/entry', values.at(-1) ?? '')} /></Form.Item>
         <BoolField tab={tab} pointer={pointer + '/default_check'} label="默认勾选" />
         {reference('group', '所属分组')}<div className={styles.fieldGrid}>{reference('controller', '适用控制器')}{reference('resource', '适用资源')}</div>{reference('option', '任务选项')}
         <OverrideField tab={tab} pointer={pointer + '/pipeline_override'} />

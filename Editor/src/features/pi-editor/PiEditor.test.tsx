@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 vi.mock('@/services/server', () => ({ interfaceProtocol: { requestEditor: vi.fn() }, localServer: { getAddress: () => 'test' } }));
 vi.mock('@/components/json/MfwJsonEditor', () => ({ MfwJsonEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => <textarea aria-label="PI 源码" value={value} onChange={e => onChange(e.target.value)} /> }));
 import { PiEditor } from './PiEditor';
@@ -30,6 +30,27 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe('PI structured editor', () => {
+  it('shows field help on label hover or focus without expanding the form or changing the draft', async () => {
+    const before = store.getState().tabs[0].content;
+    render(<PiEditor />);
+    expect(screen.getByRole('combobox', { name: 'Pipeline 入口' })).toHaveAccessibleDescription(/起点节点的名称，不是文件名/);
+    expect(screen.getByRole('switch', { name: '默认勾选' })).toHaveAccessibleDescription(/默认 false/);
+    expect(screen.getByRole('combobox', { name: '覆盖目标节点' })).toHaveAccessibleDescription(/按 Enter/);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Start', { selector: 'pre' })).not.toBeInTheDocument();
+    const label = screen.getByText('Pipeline 入口', { selector: 'strong' });
+    fireEvent.mouseEnter(label);
+    const popup = await screen.findByRole('tooltip');
+    expect(within(popup).getByText(/起点节点的名称，不是文件名/)).toBeInTheDocument();
+    expect(within(popup).getByText('Start', { selector: 'pre' })).toBeInTheDocument();
+    fireEvent.mouseLeave(label);
+    // happy-dom relies on Ant Design's 1s motion deadline after the hover delay.
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument(), { timeout: 2500 });
+    fireEvent.focus(label);
+    expect(await screen.findByRole('tooltip')).toBeInTheDocument();
+    expect(store.getState().tabs[0].content).toBe(before);
+    expect(store.getState().tabs[0].undo).toHaveLength(0);
+  });
   it('edits raw labels and retains comments without replacing translation references', () => {
     render(<PiEditor />);
     expect(screen.getByLabelText('显示名称')).toHaveValue('$label');

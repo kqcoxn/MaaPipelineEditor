@@ -126,7 +126,13 @@ function FilePanel() {
   return (
     <div className={style.panel}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {pi ? <span className={style.filename} title={piPath}>PI · {piTabs.find(t => t.path === piPath)?.relativePath}</span> : home ? <span className={style.filename}>项目首页</span> : <Input
+        {pi || home ? <Input
+          className={style.filename}
+          title={pi ? piPath : undefined}
+          aria-label="当前页面名称"
+          value={pi ? `PI · ${piTabs.find(t => t.path === piPath)?.relativePath ?? ""}` : "项目首页"}
+          readOnly
+        /> : <Input
           className={style.filename}
           placeholder="文件名"
           value={fileName}
