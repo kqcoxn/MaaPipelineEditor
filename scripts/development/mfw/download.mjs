@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { createReadStream, createWriteStream } from "node:fs";
-import { pipeline } from "node:stream/promises";
+import { createReadStream } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
+import { request, transfer } from "./transfer.mjs";
 
 const RETRY_DELAYS = [5000, 15000];
 const NETWORK_CODES = new Set([
@@ -14,31 +14,18 @@ export function isTransient(error) {
     || NETWORK_CODES.has(error.code) || (error.cause ? isTransient(error.cause) : false);
 }
 
-export async function withRetry(operation, { wait = sleep, log = console.log } = {}) {
+export async function withRetry(operation, { wait = sleep, log = console.log, signal } = {}) {
   for (let attempt = 0; ; attempt++) {
+    signal?.throwIfAborted();
     try {
       return await operation();
     } catch (error) {
-      if (attempt >= RETRY_DELAYS.length || !isTransient(error)) throw error;
+      if (signal?.aborted || attempt >= RETRY_DELAYS.length || !isTransient(error)) throw error;
       const delay = RETRY_DELAYS[attempt];
-      log(`临时网络失败，${delay / 1000} 秒后重试 (${attempt + 1}/2): ${error.message}`);
-      await wait(delay);
+      log(`Retry ${attempt + 1}/2 in ${delay / 1000}s: ${error.message}`);
+      await wait(delay, undefined, { signal });
     }
   }
-}
-
-async function response(url, timeout, headers = {}) {
-  const result = await fetch(url, {
-    headers: { "User-Agent": "MaaPipelineEditor-dev-runtime", ...headers },
-    signal: AbortSignal.timeout(timeout),
-  });
-  if (!result.ok) {
-    await result.body?.cancel();
-    const error = new Error(`HTTP ${result.status}: ${url}`);
-    error.status = result.status;
-    throw error;
-  }
-  return result;
 }
 
 export function selectAsset(release, plan) {
@@ -53,24 +40,29 @@ export function selectAsset(release, plan) {
   return asset;
 }
 
-export async function downloadRuntime(plan, destination) {
+export async function downloadRuntime(plan, destination, { signal } = {}) {
   const api = `https://api.github.com/repos/MaaXYZ/MaaFramework/releases/tags/${encodeURIComponent(plan.version)}`;
   const headers = process.env.GITHUB_TOKEN ? { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {};
-  const release = await withRetry(async () => (await response(api, 30000, headers)).json());
+  const release = await withRetry(async () => {
+    const timeout = AbortSignal.timeout(30000);
+    return (await request(api, { headers, signal: signal ? AbortSignal.any([signal, timeout]) : timeout })).json();
+  }, { signal });
   const asset = selectAsset(release, plan);
-  console.log(`下载 ${asset.name} (${Math.round(asset.size / 1024 / 1024)} MiB)`);
-  await withRetry(async () => {
-    const result = await response(asset.browser_download_url, 600000);
-    await pipeline(result.body, createWriteStream(destination));
-  });
+  console.log(`Downloading ${asset.name} (${Math.round(asset.size / 1024 / 1024)} MiB)`);
+  await downloadFile(asset.browser_download_url, destination, asset, { signal });
+}
+
+export async function downloadFile(url, destination, expected = {}, { signal } = {}) {
+  const expectedSize = await withRetry(() => transfer(url, destination, { size: expected.size, signal }), { signal });
   const hash = createHash("sha256");
   let size = 0;
   for await (const chunk of createReadStream(destination)) {
     size += chunk.length;
     hash.update(chunk);
   }
-  if (size !== asset.size) throw new Error(`下载大小不匹配: ${size} / ${asset.size}`);
+  if (!size) throw new Error("下载文件为空");
+  if (expectedSize !== undefined && size !== expectedSize) throw new Error(`下载大小不匹配: ${size} / ${expectedSize}`);
   const digest = `sha256:${hash.digest("hex")}`;
-  if (asset.digest && asset.digest !== digest) throw new Error("发行包 SHA-256 校验失败");
-  console.log(asset.digest ? "发行包大小与 SHA-256 校验通过" : "发行包大小校验通过（上游未提供 SHA-256）");
+  if (expected.digest && expected.digest !== digest) throw new Error("发行包 SHA-256 校验失败");
+  console.log(expected.digest ? "  Download verified (size + SHA-256)." : "  Download complete; checking archive contents.");
 }

@@ -2,8 +2,10 @@ import * as fs from "node:fs/promises";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { findOCR, OCR_COMPONENT } from "./ocr.mjs";
 
 const exec = promisify(execFile);
+export const MFW_COMPONENTS = ["bin", path.join("share", "MaaAgentBinary"), ".version"];
 
 export async function extractRuntime(archive, destination) {
   await fs.mkdir(destination, { recursive: true });
@@ -40,8 +42,11 @@ export async function findRuntime(directory, library) {
 // 仅替换发行包的两个组件和版本标记；OCR、配置与其他资源保持原位。
 // 注入文件操作使测试能够模拟第二个组件替换失败，验证真实回滚过程。
 export async function commitRuntime(stagedRoot, targetRoot, io = fs) {
+  return commitComponents(stagedRoot, targetRoot, MFW_COMPONENTS, io);
+}
+
+export async function commitComponents(stagedRoot, targetRoot, components, io = fs) {
   const backup = await io.mkdtemp(path.join(targetRoot, ".mpe-mfw-rollback-"));
-  const components = ["bin", path.join("share", "MaaAgentBinary"), ".version"];
   const moved = [];
   const installed = [];
   try {
@@ -80,7 +85,8 @@ export async function commitRuntime(stagedRoot, targetRoot, io = fs) {
   }
 }
 
-export async function installRuntime(plan, download) {
+export async function installRuntime(plan, download, { downloadOCR, signal } = {}) {
+  signal?.throwIfAborted();
   await fs.mkdir(plan.root, { recursive: true });
   const lock = path.join(plan.root, ".mpe-mfw-update.lock");
   try {
@@ -97,7 +103,24 @@ export async function installRuntime(plan, download) {
     const extracted = path.join(temporary, "extracted");
     await extractRuntime(archive, extracted);
     const staged = await findRuntime(extracted, plan.library);
+    signal?.throwIfAborted();
     await fs.writeFile(path.join(staged, ".version"), `${plan.version}\n`);
+    if (downloadOCR) {
+      const ocrArchive = path.join(temporary, "ocr.zip");
+      await downloadOCR(ocrArchive);
+      const ocrExtracted = path.join(temporary, "ocr-extracted");
+      await extractRuntime(ocrArchive, ocrExtracted);
+      const ocr = await findOCR(ocrExtracted);
+      signal?.throwIfAborted();
+      const combined = path.join(temporary, "combined");
+      await fs.mkdir(path.join(combined, path.dirname(OCR_COMPONENT)), { recursive: true });
+      await fs.rename(staged, path.join(combined, "maafw"));
+      await fs.rename(ocr, path.join(combined, OCR_COMPONENT));
+      // 所有下载和校验完成后统一提交，OCR 失败也会恢复 MFW 与 Agent。
+      return await commitComponents(combined, path.dirname(plan.root), [
+        ...MFW_COMPONENTS.map(component => path.join("maafw", component)), OCR_COMPONENT,
+      ]);
+    }
     return await commitRuntime(staged, plan.root);
   } finally {
     try {
