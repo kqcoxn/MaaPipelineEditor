@@ -4,6 +4,7 @@ import IconFont from "../../../iconfonts";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { useState, useEffect, memo, type ReactNode } from "react";
 import { FieldTypeEnum } from "../../../../core/fields";
+import { normalizeFieldList } from "./fieldValueUtils";
 
 const { TextArea } = Input;
 
@@ -67,16 +68,7 @@ export function ListValueElem(
   step = 0,
   quickToolRender?: (key: string, index: number) => ReactNode,
 ) {
-  if (!Array.isArray(valueList)) {
-    valueList = [valueList];
-  }
-
-  // 内层数组被视为一个整体
-  if (placeholder === FieldTypeEnum.IntListList) {
-    if (valueList.length > 0 && typeof valueList[0] === "number") {
-      valueList = [valueList];
-    }
-  }
+  valueList = normalizeFieldList(valueList, placeholder);
   const ListValue = valueList.map((value, index) => {
     const quickToolElem = quickToolRender?.(key, index);
     // 计算图标数量

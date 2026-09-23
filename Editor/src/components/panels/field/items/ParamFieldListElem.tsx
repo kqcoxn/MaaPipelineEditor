@@ -11,6 +11,7 @@ import { LazyFeature } from "../../../async/LazyFeature";
 import { ListValueElem } from "./ListValueElem";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
+import { getROIValue, normalizeFieldList, parseROIValue } from "./fieldValueUtils";
 import { sortKeysByOrder } from "../../../../core/sorting";
 import { useEmbedMode } from "../../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../../features/embed/components/serviceNotice";
@@ -43,33 +44,6 @@ const loadDeltaModal = () =>
   import("../../../modals/DeltaModal").then((module) => ({
     default: module.DeltaModal,
   }));
-
-/**
- * 将可能为字符串的 ROI 值解析为 [number, number, number, number] 元组
- * 处理手动输入的字符串如 "[1, 6, 8, 2]" 被错误索引的问题
- */
-function parseROIValue(
-  value: any,
-): [number, number, number, number] | undefined {
-  if (value == null) return undefined;
-  if (
-    Array.isArray(value) &&
-    value.length === 4 &&
-    value.every((n) => typeof n === "number")
-  ) {
-    return value as [number, number, number, number];
-  }
-  if (typeof value === "string") {
-    const nums = value
-      .replace(/[\s[\]]/g, "")
-      .split(/[,，]/)
-      .map(Number);
-    if (nums.length === 4 && nums.every((n) => Number.isInteger(n))) {
-      return nums as [number, number, number, number];
-    }
-  }
-  return undefined;
-}
 
 // 快捷工具类型
 type QuickToolType =
@@ -241,11 +215,9 @@ export const ParamFieldListElem = memo(
         if (currentROIKey) {
           // 列表类型只替换指定索引的值
           if (currentListIndex !== null) {
-            let currentValue = paramData[currentROIKey];
-            // 非数组值转为数组
-            if (!Array.isArray(currentValue)) {
-              currentValue = [currentValue];
-            }
+            const currentValue = normalizeFieldList(
+              paramData[currentROIKey], FieldTypeEnum.PositionList,
+            );
             const newList = [...currentValue];
             newList[currentListIndex] = roi;
             onChange(currentROIKey, newList);
@@ -361,10 +333,10 @@ export const ParamFieldListElem = memo(
 
     // 位移差值确认回调
     const handleDeltaConfirm = useCallback(
-      (delta: number, _mode: "dx" | "dy") => {
+      (delta: number, mode: "dx" | "dy") => {
         if (!currentDeltaKey) return;
 
-        onChange(currentDeltaKey, delta);
+        onChange(mode, delta);
 
         setDeltaModalOpen(false);
         setCurrentDeltaKey(null);
@@ -380,11 +352,9 @@ export const ParamFieldListElem = memo(
 
         // 列表类型只替换指定索引的值
         if (currentListIndex !== null) {
-          let currentValue = paramData[currentROIOffsetKey];
-          // 非数组值转为数组
-          if (!Array.isArray(currentValue)) {
-            currentValue = [currentValue];
-          }
+          const currentValue = normalizeFieldList(
+            paramData[currentROIOffsetKey], FieldTypeEnum.XYWHList,
+          );
           const newList = [...currentValue];
           newList[currentListIndex] = offset;
           onChange(currentROIOffsetKey, newList);
@@ -772,11 +742,7 @@ export const ParamFieldListElem = memo(
                 setCurrentListIndex(null);
               },
               onConfirm: handleROIConfirm,
-              initialROI:
-                currentListIndex !== null &&
-                Array.isArray(paramData[currentROIKey])
-                  ? parseROIValue(paramData[currentROIKey][currentListIndex])
-                  : parseROIValue(paramData[currentROIKey]),
+              initialROI: getROIValue(paramData[currentROIKey], currentListIndex),
             }}
           />
         )}
@@ -792,6 +758,7 @@ export const ParamFieldListElem = memo(
                 setCurrentListIndex(null);
               },
               onConfirm: handleOCRConfirm,
+              initialROI: parseROIValue(paramData["roi"]),
             }}
           />
         )}
@@ -807,6 +774,7 @@ export const ParamFieldListElem = memo(
                 setCurrentListIndex(null);
               },
               onConfirm: handleTemplateConfirm,
+              initialROI: parseROIValue(paramData["roi"]),
             }}
           />
         )}
@@ -821,12 +789,12 @@ export const ParamFieldListElem = memo(
                 setCurrentTemplateKey(null);
                 setCurrentListIndex(null);
               },
-              templateValue: paramData[currentTemplateKey] as
-                | string
-                | string[],
+              templateValue: (Array.isArray(paramData[currentTemplateKey])
+                ? paramData[currentTemplateKey][currentListIndex ?? 0]
+                : paramData[currentTemplateKey]) as string,
               initialROI: parseROIValue(paramData["roi"]),
               initialThreshold: Array.isArray(paramData["threshold"])
-                ? (paramData["threshold"] as number[])[0]
+                ? (paramData["threshold"] as number[])[currentListIndex ?? 0]
                 : (paramData["threshold"] as number | undefined),
               initialMethod: paramData["method"] as number | undefined,
               initialGreenMask: paramData["green_mask"] as boolean | undefined,
@@ -894,7 +862,12 @@ export const ParamFieldListElem = memo(
                 setCurrentListIndex(null);
               },
               onConfirm: handleROIOffsetConfirm,
-              initialROI: parseROIValue(paramData["roi"]),
+              initialROI: getROIValue(
+                paramData[currentROIOffsetKey.replace(/_offset$/, "")],
+                currentROIOffsetKey === "end_offset"
+                  ? (currentListIndex ?? 0)
+                  : null,
+              ),
             }}
           />
         )}

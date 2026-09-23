@@ -34,20 +34,12 @@ interface TemplateMatchResult {
 interface TemplateMatchModalProps {
   open: boolean;
   onClose: () => void;
-  // 节点 template 字段当前值（字符串或字符串数组），取首个非空项作为待验证模板
-  templateValue: string | string[];
+  // 当前点击项的模板路径，由调用方按列表索引选取
+  templateValue: string;
   initialROI?: [number, number, number, number];
   initialThreshold?: number;
   initialMethod?: number;
   initialGreenMask?: boolean;
-}
-
-// 取 template 字段首个非空路径
-function firstTemplatePath(value: string | string[]): string {
-  if (Array.isArray(value)) {
-    return value.find((v) => typeof v === "string" && v.trim() !== "") ?? "";
-  }
-  return typeof value === "string" ? value.trim() : "";
 }
 
 // 格式化识别详情 JSON，便于查看；解析失败则原样返回
@@ -87,7 +79,8 @@ export const TemplateMatchModal = memo(
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const viewportPropsRef = useRef<CanvasRenderProps | null>(null);
 
-    const templatePath = firstTemplatePath(templateValue);
+    const templatePath =
+      typeof templateValue === "string" ? templateValue.trim() : "";
     const { images: templateImages } = useResourceImages(
       templatePath ? [templatePath] : [],
       open,
