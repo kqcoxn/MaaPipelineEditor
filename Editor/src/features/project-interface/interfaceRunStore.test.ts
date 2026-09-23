@@ -1,19 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { InterfaceRunEvent } from "@/services/protocols/InterfaceRunProtocol";
-import { initializeInterfaceRun, startInterfaceRun, useInterfaceRunStore } from "./interfaceRunStore";
+import { initializeInterfaceRun, startInterfaceRun, stopInterfaceRun, useInterfaceRunStore } from "./interfaceRunStore";
 import { useProjectInterfaceStore as pi } from "./projectInterfaceStore";
 import { useWSStore } from "@/stores/connection/wsStore";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { emptyPreferences, scopeKey } from "./projectPreferences";
 import type { InterfaceRunState } from "./interfaceRunTypes";
 
-const protocol = vi.hoisted(() => ({ listener: undefined as ((event: InterfaceRunEvent) => void) | undefined, start: vi.fn((_request: unknown) => true), status: vi.fn(() => true), stop: vi.fn(), prepare: vi.fn() }));
+const protocol = vi.hoisted(() => ({ listener: undefined as ((event: InterfaceRunEvent) => void) | undefined, start: vi.fn((_request: unknown) => true), status: vi.fn(() => true), stop: vi.fn((_runId: string, _requestId: string) => true), prepare: vi.fn() }));
 vi.mock("@/services/server", () => ({ interfaceRunProtocol: { ...protocol, subscribe: (listener: (event: InterfaceRunEvent) => void) => { protocol.listener = listener; return () => { protocol.listener = undefined; }; } } }));
 const runtime = (overrides: Partial<InterfaceRunState> = {}): InterfaceRunState => ({ runId: "run", requestId: "request", projectId: "p", revision: "r", controllerId: "device", controllerName: "mac", resourceName: "base", status: "running", items: [], logs: [], sequence: 1, startedAt: "2026-09-19T00:00:00Z", ...overrides });
 let dispose: () => void;
 beforeEach(() => {
-  vi.useFakeTimers(); protocol.start.mockClear(); protocol.status.mockClear();
-  useInterfaceRunStore.setState({ run: undefined, pending: undefined, preparation: undefined, error: undefined });
+  vi.useFakeTimers(); protocol.start.mockReset().mockReturnValue(true); protocol.status.mockClear(); protocol.stop.mockReset().mockReturnValue(true);
+  useInterfaceRunStore.setState({ run: undefined, pending: undefined, recovery: undefined, stopRequested: false, preparation: undefined, error: undefined });
   useWSStore.setState({ connected: true });
   useMFWStore.setState({ controllerId: "device", controllerType: "macos", connectionStatus: "connected" });
   const preferences = { ...emptyPreferences(), controllerName: "mac", resourceName: "base", taskName: "a", taskOrder: ["b", "a"], checkedTaskNames: ["a", "b"] };
@@ -24,6 +24,67 @@ beforeEach(() => {
 });
 afterEach(() => { dispose(); vi.useRealTimers(); });
 describe("independent Interface runtime", () => {
+  it("does not report a timeout after an immediate completion response", () => {
+    protocol.start.mockImplementation(request => {
+      protocol.listener!({ type: "state", data: runtime({ requestId: (request as { requestId: string }).requestId, status: "completed" }) });
+      return true;
+    });
+    startInterfaceRun();
+    expect(useInterfaceRunStore.getState().pending).toBeUndefined();
+    vi.advanceTimersByTime(31000);
+    expect(useInterfaceRunStore.getState().error).toBeUndefined();
+  });
+  it("accepts stopping as an acknowledgement while native cleanup continues", () => {
+    protocol.listener!({ type: "state", data: runtime() });
+    stopInterfaceRun();
+    protocol.listener!({ type: "state", data: runtime({ status: "stopping", sequence: 2 }) });
+    expect(useInterfaceRunStore.getState().pending).toBeUndefined();
+    vi.advanceTimersByTime(31000);
+    expect(useInterfaceRunStore.getState().error).toBeUndefined();
+    expect(useInterfaceRunStore.getState().run?.status).toBe("stopping");
+  });
+  it("queues an early stop until the start response supplies a run id", () => {
+    startInterfaceRun();
+    const id = useInterfaceRunStore.getState().pending!.id;
+    stopInterfaceRun(); stopInterfaceRun();
+    expect(useInterfaceRunStore.getState().stopRequested).toBe(true);
+    expect(protocol.stop).not.toHaveBeenCalled();
+    protocol.listener!({ type: "state", data: runtime({ requestId: id, status: "preparing" }) });
+    expect(protocol.stop).toHaveBeenCalledTimes(1);
+    expect(protocol.stop.mock.calls[0][0]).toBe("run");
+    expect(useInterfaceRunStore.getState().pending?.kind).toBe("stop");
+    protocol.listener!({ type: "state", data: runtime({ requestId: id, status: "stopped", sequence: 2 }) });
+    vi.advanceTimersByTime(31000);
+    expect(useInterfaceRunStore.getState().error).toBeUndefined();
+  });
+  it("does not stop another run if completion wins an early cancellation", () => {
+    startInterfaceRun();
+    const id = useInterfaceRunStore.getState().pending!.id;
+    stopInterfaceRun();
+    protocol.listener!({ type: "state", data: runtime({ requestId: id, status: "completed" }) });
+    expect(protocol.stop).not.toHaveBeenCalled();
+    expect(useInterfaceRunStore.getState().stopRequested).toBe(false);
+    vi.advanceTimersByTime(31000);
+    expect(useInterfaceRunStore.getState().error).toBeUndefined();
+  });
+  it("clears the timeout warning when a status refresh confirms completion", () => {
+    startInterfaceRun();
+    const id = useInterfaceRunStore.getState().pending!.id;
+    vi.advanceTimersByTime(30000);
+    expect(useInterfaceRunStore.getState().error).toContain("超时");
+    protocol.listener!({ type: "state", data: runtime({ requestId: id, status: "completed" }) });
+    expect(useInterfaceRunStore.getState().error).toBeUndefined();
+    expect(useInterfaceRunStore.getState().recovery).toBeUndefined();
+  });
+  it("does not accept an unrelated terminal state as a stop acknowledgement", () => {
+    protocol.listener!({ type: "state", data: runtime() });
+    stopInterfaceRun();
+    const id = useInterfaceRunStore.getState().pending!.id;
+    protocol.listener!({ type: "state", data: runtime({ runId: "other", status: "completed" }) });
+    expect(useInterfaceRunStore.getState().pending?.id).toBe(id);
+    protocol.listener!({ type: "state", data: runtime({ status: "completed", sequence: 2 }) });
+    expect(useInterfaceRunStore.getState().pending).toBeUndefined();
+  });
   it("submits the checked order and scoped values without a canvas or debug context", () => {
     startInterfaceRun(); startInterfaceRun();
     expect(protocol.start).toHaveBeenCalledTimes(1);

@@ -80,7 +80,6 @@ func (s *ProjectSnapshot) RunPretasks(ctx context.Context, plan *RuntimePlan, em
 		if name == "" {
 			name = "预任务"
 		}
-		emit("执行预任务 · " + name)
 		// Never record command arguments: pretask inputs can contain credentials.
 		if err := cmd.Run(); err != nil {
 			output.flush()

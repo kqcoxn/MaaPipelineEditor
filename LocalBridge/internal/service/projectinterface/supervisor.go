@@ -44,10 +44,19 @@ type Supervisor struct {
 	processes   map[string]*supervisedProcess
 	identifiers map[string]string
 	canceled    map[string]bool
+	onOutput    func(string)
 }
 
 func NewSupervisor(eventBus *eventbus.EventBus) *Supervisor {
 	return &Supervisor{eventBus: eventBus, processes: map[string]*supervisedProcess{}, identifiers: map[string]string{}, canceled: map[string]bool{}}
+}
+
+// SetOutputHandler receives each stdout/stderr line without diagnostic prefixes.
+// The handler can be called concurrently by the two streams.
+func (s *Supervisor) SetOutputHandler(handler func(string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.onOutput = handler
 }
 
 func (s *Supervisor) Ensure(plan *RuntimePlan, agent AgentPlan, identifier string, env map[string]string) error {
@@ -277,7 +286,11 @@ func (s *Supervisor) capture(process *supervisedProcess, stream string, reader i
 		if shouldPublish {
 			process.lastOutputPublish = time.Now()
 		}
+		onOutput := s.onOutput
 		s.mu.Unlock()
+		if onOutput != nil {
+			onOutput(scanner.Text())
+		}
 		if shouldPublish {
 			s.publish(process, "output", nil, line)
 		}

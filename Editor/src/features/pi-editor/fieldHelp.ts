@@ -28,7 +28,7 @@ export function getPiFieldHelp(tab: Pick<PiTab, 'kind' | 'content'>, pointer: st
   if (scope === 'option' && field === 'pipeline_override') {
     const optionPointer = pointer.slice(0, pointer.lastIndexOf('/'));
     if (valueAt(tab.content, optionPointer + '/type') === 'hotkey') return {
-      description: '快捷键参数模板：用 {字段名} 引用主键，或在占位符内写 .primary、.modifier1、.modifier2。运行时转换为当前控制器的整数键码，不会自动展开为数组。',
+      description: '快捷键参数模板：最外层键是 Pipeline 节点名，可同时覆盖多个节点。用 {字段名} 引用主键，或在占位符内写 .primary、.modifier1、.modifier2。运行时转换为当前控制器的整数键码，不会自动展开为数组。',
       example: '{\n  "UseTool": { "key": "{UseTool.primary}" }\n}',
     };
   }

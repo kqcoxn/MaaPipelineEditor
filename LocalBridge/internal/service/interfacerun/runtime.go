@@ -6,6 +6,7 @@ import (
 	"time"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/mfw"
 	pi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/projectinterface"
 )
@@ -14,6 +15,9 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 	result := "completed"
 	defer close(done)
 	defer func() {
+		if ctx.Err() != nil {
+			result = "stopped"
+		}
 		release()
 		s.update(func(state *State) {
 			state.Status = result
@@ -30,11 +34,14 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 	fail := func(err error) {
 		if ctx.Err() != nil {
 			result = "stopped"
-			s.log("info", "运行已停止")
 		} else {
 			result = "failed"
-			s.log("error", err.Error())
+			s.update(func(state *State) { state.Error = err.Error() })
 		}
+	}
+	if ctx.Err() != nil {
+		fail(ctx.Err())
+		return
 	}
 	// GUI execution does not collect debug recognition images or force every node's focus.
 	// The shared execution lease keeps these process-wide options exclusive.
@@ -79,7 +86,6 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 	}
 
 	adapter.SetController(controller, info.Type, info.UUID)
-	s.log("info", "正在加载项目资源…")
 	if err := adapter.LoadResources(plans[0].ResourcePaths); err != nil {
 		fail(err)
 		return
@@ -88,7 +94,8 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 		fail(ctx.Err())
 		return
 	}
-	supervisor := pi.NewSupervisor(s.agentBus())
+	supervisor := pi.NewSupervisor(eventbus.New())
+	supervisor.SetOutputHandler(s.log)
 	clients := []*maa.AgentClient{}
 	// Tasker must be destroyed before clients and their resource.
 	defer func() {
@@ -100,6 +107,10 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 		supervisor.StopAll()
 	}()
 	for _, agent := range plans[0].Agents {
+		if ctx.Err() != nil {
+			fail(ctx.Err())
+			return
+		}
 		if !agent.Enabled {
 			continue
 		}
@@ -123,7 +134,6 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 			return
 		}
 		_ = client.SetTimeout(5 * time.Second)
-		s.log("info", "连接 Agent: "+agent.ID)
 		if err = client.Connect(); err != nil {
 			fail(fmt.Errorf("Agent 连接失败: %w", err))
 			return
@@ -132,6 +142,10 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 			fail(ctx.Err())
 			return
 		}
+	}
+	if ctx.Err() != nil {
+		fail(ctx.Err())
+		return
 	}
 	if err = adapter.InitTasker(); err != nil {
 		fail(err)
@@ -146,16 +160,18 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 		}
 		return job, err
 	}, func() {
-		if stop := tasker.PostStop(); stop != nil {
-			stop.Wait()
-		}
+		waitForTaskerStop(func() taskJob {
+			job := tasker.PostStop()
+			if job == nil {
+				return nil
+			}
+			return job
+		}, tasker.Running)
 	})
 	if err != nil {
 		fail(err)
 		return
 	}
-
-	s.log("success", "所有任务已完成")
 }
 func mergeOverrides(values []map[string]any) map[string]any {
 	result := map[string]any{}

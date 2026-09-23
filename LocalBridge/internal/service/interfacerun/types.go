@@ -20,7 +20,6 @@ type Item struct {
 type Log struct {
 	Sequence int    `json:"sequence"`
 	Time     string `json:"time"`
-	Level    string `json:"level"`
 	Message  string `json:"message"`
 }
 type State struct {
@@ -32,6 +31,7 @@ type State struct {
 	Revision       string `json:"revision"`
 	ControllerID   string `json:"controllerId"`
 	Status         string `json:"status"`
+	Error          string `json:"error,omitempty"`
 	Items          []Item `json:"items"`
 	Logs           []Log  `json:"logs"`
 	Sequence       int    `json:"sequence"`

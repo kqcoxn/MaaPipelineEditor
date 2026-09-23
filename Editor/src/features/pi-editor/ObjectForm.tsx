@@ -1,26 +1,18 @@
-import { useId, useState } from 'react';
-import { Button, Form, Select, Space, Typography } from 'antd';
+import { Button, Form, Select, Typography } from 'antd';
 import { usePiEditorStore as store } from './store';
-import { valueAt, escapePointer, readJson } from './json';
+import { valueAt, readJson } from './json';
 import { BoolField, ChoiceField, JsonField, NumberField, ReferenceField, TextField } from './Fields';
 import type { PiTab } from './types';
 import { PiSortableList } from './PiSortableList';
 import { FormSection } from './FormSection';
 import { ImportEditor } from './ImportEditor';
-import { PiFieldLabel, usePiFieldHelp } from './PiFieldHelp';
+import { usePiFieldHelp } from './PiFieldHelp';
 import styles from './PiForm.module.less';
 import { PlusOutlined } from '@ant-design/icons';
 import { useLocalFileStore } from '@/stores/project/localFileStore';
 
 function OverrideField({ tab, pointer }: { tab: PiTab; pointer: string }) {
-  const helpId = useId();
-  const files = useLocalFileStore(s => s.files);
-  const nodes = files.flatMap(f => f.nodes.map(n => n.label));
-  const [node, setNode] = useState<string>();
-  return <section><Form.Item className={styles.field} label={<PiFieldLabel label="覆盖目标节点" descriptionId={helpId} help={{ description: '选择或输入 Pipeline 节点名称，按 Enter 确认后点击“添加”，再编辑下方该节点的覆盖字段。' }} />}><Space.Compact style={{ width: '100%' }}>
-    <Select aria-label="覆盖目标节点" aria-describedby={helpId} showSearch mode="tags" style={{ width: '100%' }} value={node ? [node] : []} options={[...new Set(nodes)].map(value => ({ value, label: value }))} onChange={values => setNode(values.at(-1))} />
-    <Button disabled={!node} onClick={() => { if (node && valueAt(tab.content, pointer + '/' + escapePointer(node)) === undefined) store.getState().patch(tab.path, pointer + '/' + escapePointer(node), {}); }}>添加</Button>
-  </Space.Compact></Form.Item><JsonField key={pointer} tab={tab} pointer={pointer} label="Pipeline 覆盖内容" /></section>;
+  return <JsonField key={pointer} tab={tab} pointer={pointer} label="Pipeline 覆盖内容" />;
 }
 function ChildrenEditor({ tab, pointer, kind }: { tab: PiTab; pointer: string; kind: 'cases' | 'inputs' | 'hotkeys' }) {
   const raw = valueAt(tab.content, pointer);

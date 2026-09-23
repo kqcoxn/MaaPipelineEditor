@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { HolderOutlined } from '@ant-design/icons';
 import { usePiEditorStore as store } from './store';
 import type { PiTab } from './types';
+import { usePiRowIds } from './usePiRowIds';
 import styles from './PiSortableList.module.less';
 
 function SortableRow({ id, label, disabled, className, children }: {
@@ -27,12 +28,8 @@ export function PiSortableList<T>({ tab, pointer, items, itemKey, itemLabel, ren
   const busy = store(s => s.busy);
   const initial = useRef('');
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-  const occurrences = new Map<string, number>();
-  const rows = items.map(item => {
-    const key = itemKey(item); const occurrence = occurrences.get(key) ?? 0;
-    occurrences.set(key, occurrence + 1);
-    return { item, id: JSON.stringify([key, occurrence]) };
-  });
+  const ids = usePiRowIds(JSON.stringify([tab.path, pointer]), items, itemKey);
+  const rows = items.map((item, index) => ({ item, id: ids[index] }));
   const locked = disabled || busy || items.length < 2;
   return <DndContext sensors={sensors} collisionDetection={closestCenter}
     accessibility={{ screenReaderInstructions: { draggable: '按空格开始排序，使用上下方向键移动，再按空格确认，按 Esc 取消。' }, announcements: {

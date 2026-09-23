@@ -43,18 +43,12 @@ func (s *Service) update(change func(*State)) {
 	s.mu.Unlock()
 	s.bus.Publish(EventState, state)
 }
-func (s *Service) log(level, text string) { s.appendLogs(level, []string{text}) }
-func (s *Service) appendLogs(level string, texts []string) {
+func (s *Service) log(text string) {
 	s.update(func(state *State) {
-		for index, text := range texts {
-			if len(text) > 8000 {
-				text = text[:8000] + "…"
-			}
-			state.Logs = append(state.Logs, Log{Sequence: state.Sequence + index + 1, Time: time.Now().Format(time.RFC3339Nano), Level: level, Message: text})
+		if len(text) > 8000 {
+			text = text[:8000] + "…"
 		}
-		if len(texts) > 1 {
-			state.Sequence += len(texts) - 1
-		}
+		state.Logs = append(state.Logs, Log{Sequence: state.Sequence + 1, Time: time.Now().Format(time.RFC3339Nano), Message: text})
 		if len(state.Logs) > 500 {
 			state.Logs = state.Logs[len(state.Logs)-500:]
 		}
@@ -154,14 +148,16 @@ func (s *Service) Stop(runID string) error {
 		s.mu.Unlock()
 		return fmt.Errorf("运行标识已变化")
 	}
-	if !Active(s.state.Status) {
+	if !Active(s.state.Status) || s.state.Status == "stopping" {
 		s.mu.Unlock()
 		return nil
 	}
 	s.cancel()
 	s.state.Status = "stopping"
+	s.state.Sequence++
+	state := s.snapshotLocked()
 	s.mu.Unlock()
-	s.log("info", "正在停止运行…")
+	s.bus.Publish(EventState, state)
 	return nil
 }
 func (s *Service) Close() {

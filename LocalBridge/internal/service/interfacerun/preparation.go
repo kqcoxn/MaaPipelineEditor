@@ -25,7 +25,13 @@ func preparationKey(plan *pi.RuntimePlan) string {
 }
 func (s *Service) Prepare(ctx context.Context, req pi.ContextRequest) (prepared *Preparation, failure error) {
 	// Reserve execution before checking connections; preparing is also a native lifecycle operation.
+	s.mu.Lock()
+	if Active(s.state.Status) {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("Interface 已有运行中的任务")
+	}
 	release, err := s.mfw.AcquireExecution("Interface 项目准备", "")
+	s.mu.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +59,7 @@ func (s *Service) Prepare(ctx context.Context, req pi.ContextRequest) (prepared 
 	s.done = done
 	s.preparation = nil
 	s.state = State{RunID: uuid.NewString(), RequestID: req.RequestID, ProjectID: plan.ProjectID, Revision: plan.Revision, ControllerName: plan.ControllerName, ResourceName: plan.ResourceName, Status: "preparing", Items: []Item{}, Logs: []Log{}, StartedAt: time.Now().Format(time.RFC3339Nano)}
+	state := s.snapshotLocked()
 	s.mu.Unlock()
 	defer func() {
 		release()
@@ -62,16 +69,21 @@ func (s *Service) Prepare(ctx context.Context, req pi.ContextRequest) (prepared 
 		} else if failure != nil {
 			status = "failed"
 		}
-		if failure != nil {
-			s.log("error", failure.Error())
-		}
-		s.update(func(state *State) { state.Status = status })
+		s.update(func(state *State) {
+			state.Status = status
+			if failure != nil && ctx.Err() == nil {
+				state.Error = failure.Error()
+			}
+		})
 		cancel()
 		close(done)
 	}()
-	s.log("info", "正在准备项目…")
-	if err = snapshot.RunPretasks(ctx, plan, func(text string) { s.log("info", text) }); err != nil {
+	s.bus.Publish(EventState, state)
+	if err = snapshot.RunPretasks(ctx, plan, s.log); err != nil {
 		return nil, err
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 	if s.pi.Status().Revision != snapshot.Revision {
 		return nil, fmt.Errorf("准备期间 PI 已更新，请重新准备项目")
@@ -80,7 +92,6 @@ func (s *Service) Prepare(ctx context.Context, req pi.ContextRequest) (prepared 
 	s.mu.Lock()
 	s.preparation = preparation
 	s.mu.Unlock()
-	s.log("success", "项目准备完成，请连接设备后开始运行")
 	return preparation, nil
 }
 func (s *Service) validatePreparation(plan *pi.RuntimePlan, createdAt time.Time, id string) error {

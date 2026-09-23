@@ -33,6 +33,9 @@ func TestQueueExecutesInOrderWithoutSourceNodes(t *testing.T) {
 			t.Fatal(item)
 		}
 	}
+	if len(s.Snapshot().Logs) != 0 {
+		t.Fatal("task progress must not appear in user output")
+	}
 }
 func TestQueueFailureAndInvalidJobDoNotRunNextTask(t *testing.T) {
 	for _, status := range []maa.Status{maa.StatusFailure, maa.StatusInvalid} {
@@ -55,6 +58,20 @@ func TestQueueCancellationWaitsForStopAndSkipsNextTask(t *testing.T) {
 		t.Fatalf("%v count=%d stops=%d", err, count, stops)
 	}
 }
+func TestQueueStopRacingWithCompletedJobDoesNotStartNextTask(t *testing.T) {
+	s, plans := queueFixture()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	posts, stops := 0, 0
+	err := s.executeTasks(ctx, plans, func(*pi.RuntimePlan) (taskJob, error) {
+		posts++
+		cancel()
+		return &fakeJob{maa.StatusSuccess}, nil
+	}, func() { stops++ })
+	if err != context.Canceled || posts != 1 || stops != 1 {
+		t.Fatalf("completion race lost cancellation: %v %d %d", err, posts, stops)
+	}
+}
 func TestOverrideLayersDoNotMutateOrLeakAcrossTasks(t *testing.T) {
 	original := map[string]any{"N": map[string]any{"action": map[string]any{"type": "Click", "param": map[string]any{"x": 1}}, "next": []any{"A"}}}
 	result := mergeOverrides([]map[string]any{{"runtimeName": "N", "pipeline": original["N"]}, {"runtimeName": "N", "pipeline": map[string]any{"action": map[string]any{"param": map[string]any{"x": 2}}, "next": []any{"B"}}}})
@@ -72,7 +89,7 @@ func TestOverrideLayersDoNotMutateOrLeakAcrossTasks(t *testing.T) {
 func TestLogRingAndSnapshotsAreBoundedAndIsolated(t *testing.T) {
 	s, _ := queueFixture()
 	for i := 0; i < 510; i++ {
-		s.log("info", "line")
+		s.log("line")
 	}
 	snapshot := s.Snapshot()
 	if len(snapshot.Logs) != 500 || snapshot.Logs[0].Sequence != 11 {

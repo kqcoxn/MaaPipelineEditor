@@ -9,8 +9,9 @@ export interface InterfaceRunState {
   controllerName: string;
   resourceName: string;
   status: InterfaceRunStatus;
+  error?: string;
   items: Array<{ name: string; label: string; entry: string; status: string }>;
-  logs: Array<{ sequence: number; time: string; level: string; message: string }>;
+  logs: Array<{ sequence: number; time: string; message: string }>;
   sequence: number;
   startedAt: string;
 }

@@ -2,8 +2,10 @@ package projectinterface
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -11,6 +13,7 @@ import (
 func TestPretaskHelperProcess(t *testing.T) {
 	for i, arg := range os.Args {
 		if arg == "--pi-helper" {
+			fmt.Fprintln(os.Stdout, "预任务原始输出")
 			if err := os.WriteFile(os.Args[i+1], []byte(os.Args[len(os.Args)-1]), 0600); err != nil {
 				os.Exit(2)
 			}
@@ -36,8 +39,12 @@ func TestPretaskArgumentsWorkingDirectoryAndNoOverrides(t *testing.T) {
 	if len(plan.PipelineOverrides) != 0 {
 		t.Fatal("pretask option leaked into pipeline")
 	}
-	if err = snapshot.RunPretasks(context.Background(), plan, func(string) {}); err != nil {
+	var output []string
+	if err = snapshot.RunPretasks(context.Background(), plan, func(line string) { output = append(output, strings.TrimSuffix(line, "\r")) }); err != nil {
 		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(output, []string{"预任务原始输出"}) {
+		t.Fatalf("pretask output includes generated messages: %#v", output)
 	}
 	data, err := os.ReadFile(filepath.Join(root, "args.json"))
 	if err != nil {

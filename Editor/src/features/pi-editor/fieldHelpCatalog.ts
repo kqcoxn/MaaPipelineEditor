@@ -17,7 +17,7 @@ export const commonHelp: Record<string, PiFieldHelp> = {
   icon: hint('可选。相对于项目根目录的图标文件路径，也支持 $翻译键。', 'images/icon.png'),
   controller: hint(`可选。适用的控制器列表。${scopeFilter}`, '["Android"]'),
   resource: hint(`可选。适用的资源包列表。${scopeFilter}`, '["Official"]'),
-  pipeline_override: hint('可选。按 Pipeline JSON 结构填写，最外层键必须是节点名；运行时覆盖已加载的节点字段。', '{\n  "Start": { "enabled": true }\n}'),
+  pipeline_override: hint('可选。按 Pipeline JSON 结构填写，最外层键必须是节点名，可同时覆盖多个节点；运行时覆盖已加载的节点字段。', '{\n  "Start": { "next": "Finish" },\n  "Finish": { "enabled": true }\n}'),
 };
 
 export const rootHelp: Record<string, PiFieldHelp> = {
@@ -54,12 +54,12 @@ export const objectHelp: Record<string, Record<string, PiFieldHelp>> = {
     default_case: hint('可选。填写 cases 中的 name，而非显示名称；select / switch 为单个名称，checkbox 为名称数组。'),
     min_count: hint('仅 checkbox 使用。非负整数，默认 0（允许不选）；不能超过分支数量或 max_count。'),
     max_count: hint('仅 checkbox 使用。非负整数；省略时可选全部分支，0 表示不能选择。不能超过分支数量或小于 min_count。'),
-    pipeline_override: hint('input / hotkey 类型的参数模板。最外层键是 Pipeline 节点名；用 {字段名} 引用输入值，input 按 pipeline_type 转换类型。', '{\n  "Start": { "post_delay": "{等待时间}" }\n}'),
+    pipeline_override: hint('input / hotkey 类型的参数模板。最外层键是 Pipeline 节点名，可同时覆盖多个节点；用 {字段名} 引用输入值，input 按 pipeline_type 转换类型。', '{\n  "Start": { "post_delay": "{等待时间}" },\n  "Finish": { "post_delay": "{等待时间}" }\n}'),
   },
   cases: {
     name: hint('当前配置项内的分支标识，default_case 引用此名称。switch 的两个分支建议使用 Yes 和 No。', 'Yes'),
     option: hint('可选。填写顶层 option 的键名。仅当前分支被选中时显示这些子选项，避免循环引用。', '["高级设置"]'),
-    pipeline_override: hint('仅当前分支激活时覆盖节点参数；多选时按 cases 定义顺序合并，与用户勾选顺序无关。', '{\n  "Start": { "enabled": true }\n}'),
+    pipeline_override: hint('最外层键是 Pipeline 节点名，可同时覆盖多个节点。仅当前分支激活时覆盖节点参数；多选时按 cases 定义顺序合并，与用户勾选顺序无关。', '{\n  "Start": { "next": "Finish" },\n  "Finish": { "enabled": true }\n}'),
   },
   inputs: {
     name: hint('当前配置项内的输入字段标识；参数模板用 {字段名} 引用此值。', '次数'),

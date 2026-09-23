@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 vi.mock('@/services/server', () => ({ interfaceProtocol: { requestEditor: vi.fn() }, localServer: { getAddress: () => 'test' } }));
 vi.mock('@/components/json/MfwJsonEditor', () => ({ MfwJsonEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => <textarea aria-label="PI 源码" value={value} onChange={e => onChange(e.target.value)} /> }));
 import { PiEditor } from './PiEditor';
@@ -30,12 +30,92 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe('PI structured editor', () => {
+  it('keeps the selected object form mounted when its sidebar position changes', async () => {
+    mockListGeometry();
+    const content = JSON.stringify({ task: [{ name: 'A', label: 'Task A' }, { name: 'B', label: 'Task B' }] });
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], content, base: content }] }));
+    render(<PiEditor />);
+    const input = screen.getByLabelText('显示名称');
+    const disclosure = screen.getByText('当前对象源码 · 其他字段').closest('details')!;
+    disclosure.open = true;
+    await dragDown('A');
+    expect(store.getState().tabs[0].selected).toBe('/task/1');
+    expect(screen.getByLabelText('显示名称')).toBe(input);
+    expect(disclosure).toBeInTheDocument();
+    expect(disclosure).toHaveAttribute('open');
+    fireEvent.change(input, { target: { value: 'Updated A' } });
+    expect(JSON.parse(store.getState().tabs[0].content).task.map((task: { label: string }) => task.label)).toEqual(['Task B', 'Updated A']);
+  });
+  it.each([['select', 'cases'], ['input', 'inputs'], ['hotkey', 'hotkeys']])('keeps %s fields expanded and focused while editing their identifier', (type, field) => {
+    const content = JSON.stringify({ option: { X: { type, [field]: [{ name: 'first' }, { name: 'second' }] } } });
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], selected: '/option/X', content, base: content }] }));
+    render(<PiEditor />);
+    const input = screen.getAllByRole('textbox', { name: '标识', hidden: true })[0];
+    const disclosure = input.closest('details')!;
+    disclosure.open = true;
+    act(() => input.focus());
+    for (const value of ['f', '', 'second', 'renamed']) {
+      fireEvent.change(input, { target: { value } });
+      expect(disclosure).toHaveAttribute('open');
+      expect(input).toBeInTheDocument();
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue(value);
+      expect(JSON.parse(store.getState().tabs[0].content).option.X[field][0].name ?? '').toBe(value);
+    }
+    const remaining = screen.getAllByRole('textbox', { name: '标识', hidden: true })[1];
+    const remainingDisclosure = remaining.closest('details')!;
+    remainingDisclosure.open = true;
+    fireEvent.click(within(disclosure).getByRole('button', { name: /删\s*除/, hidden: true }));
+    expect(remaining).toBeInTheDocument();
+    expect(remainingDisclosure).toHaveAttribute('open');
+    fireEvent.change(remaining, { target: { value: 'remaining' } });
+    expect(JSON.parse(store.getState().tabs[0].content).option.X[field]).toEqual([{ name: 'remaining' }]);
+  });
+  it.each(['task', 'controller', 'resource', 'group', 'preset', 'setting', 'pretask'])('keeps %s text fields mounted during edits', kind => {
+    const content = JSON.stringify({ [kind]: [{ name: 'A', label: 'Label' }] });
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], selected: `/${kind}/0`, content, base: content }] }));
+    render(<PiEditor />);
+    const disclosure = screen.getByText('当前对象源码 · 其他字段').closest('details')!;
+    disclosure.open = true;
+    const input = screen.getByLabelText('显示名称');
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Edited' } });
+    expect(screen.getByLabelText('显示名称')).toBe(input);
+    expect(input).toHaveFocus();
+    expect(disclosure).toHaveAttribute('open');
+  });
+  it('keeps entry disclosures open while editing project fields', () => {
+    const content = '{"name":"demo","interface_version":2}';
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], kind: 'entry', selected: '', content, base: content }] }));
+    render(<PiEditor />);
+    const disclosures = ['高级配置', '编辑导入路径列表'].map(label => screen.getByText(label).closest('details')!);
+    disclosures.forEach(disclosure => { disclosure.open = true; });
+    const input = screen.getByLabelText('项目标识');
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'changed' } });
+    expect(screen.getByLabelText('项目标识')).toBe(input);
+    expect(input).toHaveFocus();
+    disclosures.forEach(disclosure => expect(disclosure).toHaveAttribute('open'));
+  });
+  it('keeps translation input focused while editing and clears it when selecting another key', () => {
+    const content = '{"first":"First","second":"Second"}';
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], kind: 'language', selected: '/first', content, base: content }] }));
+    render(<PiEditor />);
+    const input = screen.getByLabelText('翻译内容');
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Updated' } });
+    expect(screen.getByLabelText('翻译内容')).toBe(input);
+    expect(input).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'second', exact: true }));
+    expect(screen.getByLabelText('翻译内容')).toHaveValue('Second');
+    expect(screen.getByLabelText('翻译内容')).not.toBe(input);
+  });
   it('shows field help on label hover or focus without expanding the form or changing the draft', async () => {
     const before = store.getState().tabs[0].content;
     render(<PiEditor />);
     expect(screen.getByRole('combobox', { name: 'Pipeline 入口' })).toHaveAccessibleDescription(/起点节点的名称，不是文件名/);
     expect(screen.getByRole('switch', { name: '默认勾选' })).toHaveAccessibleDescription(/默认 false/);
-    expect(screen.getByRole('combobox', { name: '覆盖目标节点' })).toHaveAccessibleDescription(/按 Enter/);
+    expect(screen.getByLabelText('Pipeline 覆盖内容')).toHaveAccessibleDescription(/可同时覆盖多个节点/);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
     expect(screen.queryByText('Start', { selector: 'pre' })).not.toBeInTheDocument();
     const label = screen.getByText('Pipeline 入口', { selector: 'strong' });
@@ -76,7 +156,11 @@ describe('PI structured editor', () => {
     const content = JSON.stringify({ option: { X: { type, [field]: [{ name: 'first', description: 'keep first' }, { name: 'second', description: 'keep second' }] } } });
     store.setState(state => ({ tabs: [{ ...state.tabs[0], selected: '/option/X', content, base: content }] }));
     render(<PiEditor />);
+    const disclosure = screen.getByRole('button', { name: '拖动排序 first' }).closest('details')!;
+    disclosure.open = true;
     await dragDown('first');
+    expect(screen.getByRole('button', { name: '拖动排序 first' }).closest('details')).toBe(disclosure);
+    expect(disclosure).toHaveAttribute('open');
     const items = JSON.parse(store.getState().tabs[0].content).option.X[field];
     expect(items.map((item: { name: string }) => item.name)).toEqual(['second', 'first']);
     expect(items[1].description).toBe('keep first');

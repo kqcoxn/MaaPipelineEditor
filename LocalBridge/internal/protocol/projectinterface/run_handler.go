@@ -65,6 +65,9 @@ func (h *RunHandler) Handle(msg models.Message, conn *server.Connection) *models
 	case "/etl/interface-run/stop":
 		if err := h.service.Stop(req.RunID); err != nil {
 			sendError(err)
+		} else {
+			// Acknowledge even when completion won the race with this request.
+			_ = conn.Send(models.Message{Path: "/lte/interface-run/state", Data: h.service.Snapshot()})
 		}
 	case "/etl/interface-run/prepare":
 		var request pi.ContextRequest

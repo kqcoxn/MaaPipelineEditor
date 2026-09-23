@@ -10,10 +10,12 @@ import { taskUnavailableReason } from "./projectInterfaceState";
 import styles from "./InterfaceRunControls.module.less";
 
 export function InterfaceRunControls() {
-  const { run, pending, error, preparation } = useInterfaceRunStore();
+  const { run, pending, error, preparation, stopRequested } = useInterfaceRunStore();
   const { snapshot, preferences } = useProjectInterfaceStore(useShallow(s => ({ snapshot: s.snapshot, preferences: s.preferences })));
   const connected = useWSStore(s => s.connected);
   const active = isInterfaceRunning(run?.status);
+  const starting = pending?.kind === "start" || pending?.kind === "prepare";
+  const stopping = Boolean(stopRequested || pending?.kind === "stop" || run?.status === "stopping");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!active) return;
@@ -33,10 +35,11 @@ export function InterfaceRunControls() {
   const items = run && run.projectId === snapshot?.projectId && run.items.length ? run.items : queued;
   return <div className={styles.runControls}>
     {error && <Alert type="error" title={error} showIcon closable={{ onClose: () => useInterfaceRunStore.setState({ error: undefined }) }} />}
+    {run?.error && run.error !== error && <Alert type="error" title={run.error} showIcon />}
     <footer className={styles.runFooter}>
       <div className={styles.runSummary} aria-live="polite">
-        <Typography.Text strong>{active ? current ? `正在执行 · ${current.label}` : runStatusLabels[run!.status] : run?.runId ? runStatusLabels[run.status] : "准备就绪"}</Typography.Text>
-        <Typography.Text type="secondary">{active ? "修改配置将在下次运行生效" : `已勾选 ${preferences.checkedTaskNames?.length ?? 0} 个任务`}</Typography.Text>
+        <Typography.Text strong>{stopping ? "正在停止" : active ? current ? `正在执行 · ${current.label}` : runStatusLabels[run!.status] : starting ? "正在启动" : run?.runId ? runStatusLabels[run.status] : "准备就绪"}</Typography.Text>
+        <Typography.Text type="secondary">{stopping ? "等待当前操作退出并释放资源" : active || starting ? "修改配置将在下次运行生效" : `已勾选 ${preferences.checkedTaskNames?.length ?? 0} 个任务`}</Typography.Text>
       </div>
       <div className={styles.runProgress}>
         {run && run.projectId === snapshot?.projectId && run.items.length > 0 && <div className={styles.progressLine}>
@@ -57,7 +60,7 @@ export function InterfaceRunControls() {
       </div>
       <Space wrap>
         {hasPretasks && <Button icon={<ToolOutlined />} loading={pending?.kind === "prepare"} disabled={!connected || active || Boolean(pending)} onClick={prepareInterfaceProject}>{prepared ? "重新准备项目" : "准备项目（连接设备前）"}</Button>}
-        {active ? <Button danger icon={<StopOutlined />} loading={pending?.kind === "stop" || run?.status === "stopping"} disabled={!connected} onClick={stopInterfaceRun}>停止运行</Button>
+        {active || starting || stopRequested ? <Button danger icon={<StopOutlined aria-hidden />} loading={stopping} aria-label={stopping ? "正在停止" : "停止运行"} disabled={!connected || stopping} onClick={stopInterfaceRun}>{stopping ? "正在停止" : "停止运行"}</Button>
           : <Button type="primary" icon={<PlayCircleOutlined />} loading={pending?.kind === "start"} disabled={!connected || !snapshot || Boolean(pending) || !preferences.checkedTaskNames?.length || (hasPretasks && !prepared)} onClick={startInterfaceRun}>开始运行</Button>}
       </Space>
     </footer>

@@ -18,8 +18,15 @@ func (s *Service) executeTasks(ctx context.Context, plans []*pi.RuntimePlan, pos
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		s.update(func(state *State) { state.Status = "running"; state.Items[index].Status = "running" })
-		s.log("info", fmt.Sprintf("开始任务 %d/%d · %s", index+1, len(plans), s.Snapshot().Items[index].Label))
+		s.update(func(state *State) {
+			if ctx.Err() == nil {
+				state.Status = "running"
+				state.Items[index].Status = "running"
+			}
+		})
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		job, err := post(plan)
 		if err != nil {
 			return err
@@ -29,16 +36,21 @@ func (s *Service) executeTasks(ctx context.Context, plans []*pi.RuntimePlan, pos
 		}
 		ticker := time.NewTicker(80 * time.Millisecond)
 		cancel := ctx.Done()
+		stopped := false
 		for status := job.Status(); !status.Done() && !status.Invalid(); status = job.Status() {
 			select {
 			case <-cancel:
 				stop()
+				stopped = true
 				cancel = nil
 			case <-ticker.C:
 			}
 		}
 		ticker.Stop()
 		if ctx.Err() != nil {
+			if !stopped {
+				stop()
+			}
 			return ctx.Err()
 		}
 		if !job.Success() {
@@ -46,7 +58,6 @@ func (s *Service) executeTasks(ctx context.Context, plans []*pi.RuntimePlan, pos
 			return fmt.Errorf("任务执行失败: %s", plan.TaskName)
 		}
 		s.update(func(state *State) { state.Items[index].Status = "completed" })
-		s.log("success", "任务完成 · "+s.Snapshot().Items[index].Label)
 	}
 	return nil
 }

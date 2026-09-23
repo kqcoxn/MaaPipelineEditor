@@ -1,4 +1,3 @@
-import { openPiAssistant } from "@/features/ai-harness/capabilities/project-interface/context";
 import { editDefinition } from "@/features/pi-editor/operations";
 import { reportPiError } from "@/features/pi-editor/dialogs";
 import { XMarkdown } from "@ant-design/x-markdown";
@@ -65,7 +64,10 @@ export function ProjectHome() {
           {selected && <>
             <header className={styles.taskHeader}>
               <div><Title level={4} style={{ margin: 0 }}>{selected.label ?? selected.name}</Title><Text type="secondary">任务配置</Text></div>
-              <Button type="text" size="small" icon={<ReloadOutlined />} onClick={() => useProjectInterfaceStore.getState().resetTask()}>恢复默认</Button>
+              <span className={styles.taskHeaderActions}>
+                <Button type="text" size="small" icon={<ReloadOutlined />} onClick={() => useProjectInterfaceStore.getState().resetTask()}>恢复默认</Button>
+                <Button type="text" size="small" onClick={() => { void editDefinition("task", selected.name).catch(reportPiError); }}>编辑定义</Button>
+              </span>
             </header>
             {selected.description && <details key={`${snapshot.projectId}:${selected.name}`} className={styles.descriptionSection}>
               <summary>任务说明</summary>
@@ -82,8 +84,6 @@ export function ProjectHome() {
         </div>
         <footer className={styles.actions}>
           <Text type="secondary">{selected?.entry ? `入口：${selected.entry}` : "请选择任务"}</Text>
-          <Button type="text" size="small" onClick={openPiAssistant}>AI 辅助</Button>
-          <Button type="text" size="small" disabled={!selected} onClick={() => { if (selected) void editDefinition("task", selected.name).catch(reportPiError); }}>编辑定义</Button>
           <Button type="text" size="small" icon={<AimOutlined />} disabled={!selected || Boolean(unavailable)} onClick={() => void locate()}>在画布中查看</Button>
         </footer>
       </article>
