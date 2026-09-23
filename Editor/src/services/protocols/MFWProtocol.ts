@@ -841,6 +841,8 @@ export class MFWProtocol extends BaseProtocol {
   public requestOCR(params: {
     base_image: string;
     resource_id?: string;
+    request_id?: string;
+    params?: Record<string, unknown>;
     roi: [number, number, number, number];
   }): boolean {
     if (!this.wsClient) {

@@ -28,6 +28,10 @@ const loadOCRModal = () =>
   import("../../../modals/OCRModal").then((module) => ({
     default: module.OCRModal,
   }));
+const loadOCRVerifyModal = () =>
+  import("../../../modals/OCRVerifyModal").then((module) => ({
+    default: module.OCRVerifyModal,
+  }));
 const loadTemplateModal = () =>
   import("../../../modals/TemplateModal").then((module) => ({
     default: module.TemplateModal,
@@ -117,6 +121,8 @@ export const ParamFieldListElem = memo(
     const { isEmbed } = useEmbedMode();
     const [roiModalOpen, setRoiModalOpen] = useState(false);
     const [ocrModalOpen, setOcrModalOpen] = useState(false);
+    const [ocrVerifyModalOpen, setOcrVerifyModalOpen] = useState(false);
+    const [ocrVerifyListIndex, setOcrVerifyListIndex] = useState(0);
     const [templateModalOpen, setTemplateModalOpen] = useState(false);
     const [templateMatchModalOpen, setTemplateMatchModalOpen] = useState(false);
     const [colorModalOpen, setColorModalOpen] = useState(false);
@@ -453,6 +459,25 @@ export const ParamFieldListElem = memo(
                 />
               </div>
             )}
+            {config.type === "ocr" && (
+              <button
+                type="button"
+                className={style.operation}
+                title="文字识别验证"
+                aria-label="文字识别验证"
+                style={{ border: 0, padding: 0, background: "transparent", cursor: "pointer" }}
+                onClick={() => {
+                  if (isEmbed) {
+                    showEmbedServiceNotice("文字识别验证");
+                    return;
+                  }
+                  setOcrVerifyListIndex(listIndex ?? 0);
+                  setOcrVerifyModalOpen(true);
+                }}
+              >
+                <IconFont name="icon-Imagetuxiangshibie" size={18} />
+              </button>
+            )}
           </>
         );
       },
@@ -730,6 +755,18 @@ export const ParamFieldListElem = memo(
     return (
       <>
         {paramFields}
+        {ocrVerifyModalOpen && (
+          <LazyFeature
+            loader={loadOCRVerifyModal}
+            loadingLabel="正在加载文字识别验证工具包"
+            componentProps={{
+              open: ocrVerifyModalOpen,
+              onClose: () => setOcrVerifyModalOpen(false),
+              initialParams: paramData,
+              initialExpectedIndex: ocrVerifyListIndex,
+            }}
+          />
+        )}
         {currentROIKey && (
           <LazyFeature
             loader={loadROIModal}

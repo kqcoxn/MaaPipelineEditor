@@ -19,6 +19,7 @@ import {
 } from "@/stores/app/configStore";
 import { mfwProtocol } from "../../services/server";
 import { useCanvasViewport } from "../../hooks/useCanvasViewport";
+import styles from "@/styles/modals/ScreenshotModalBase.module.less";
 
 // 视口控制 Props
 export interface ViewportProps {
@@ -57,6 +58,8 @@ interface ScreenshotModalBaseProps {
   onClose: () => void;
   title: string;
   width?: number;
+  boundedLayout?: boolean;
+  previewFooter?: ReactNode;
 
   // 确认按钮
   confirmText?: string;
@@ -90,6 +93,8 @@ export const ScreenshotModalBase = memo(
     open,
     onClose,
     title,
+    boundedLayout = false,
+    previewFooter,
     confirmText = "确定",
     confirmDisabled = false,
     onConfirm,
@@ -303,9 +308,11 @@ export const ScreenshotModalBase = memo(
       >
         <Spin spinning={isLoading} description="截图中...">
           {/* 左右分栏布局 */}
-          <div style={{ display: "flex", gap: 16, minHeight: 500 }}>
+          <div className={boundedLayout ? styles.boundedLayout : undefined}
+            style={boundedLayout ? undefined : { display: "flex", gap: 16, minHeight: 500 }}>
             {/* 截图显示区（左侧） */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div className={boundedLayout ? styles.previewPane : undefined}
+              style={boundedLayout ? undefined : { flex: 1, display: "flex", flexDirection: "column" }}>
               {/* 截图预览标题 */}
               <div
                 style={{
@@ -313,6 +320,9 @@ export const ScreenshotModalBase = memo(
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  flexShrink: 0,
                 }}
               >
                 <Space size={8} align="center">
@@ -378,7 +388,7 @@ export const ScreenshotModalBase = memo(
                 ref={containerRef}
                 style={{
                   width: "100%",
-                  paddingBottom: "56.25%",
+                  ...(boundedLayout ? { flex: 1, minHeight: 0 } : { paddingBottom: "56.25%" }),
                   backgroundColor: "#fafafa",
                   borderRadius: 8,
                   overflow: "hidden",
@@ -417,11 +427,13 @@ export const ScreenshotModalBase = memo(
                   </span>
                 </div>
               )}
+              {previewFooter && <div className={styles.previewFooter}>{previewFooter}</div>}
             </div>
 
             {/* 参数配置区（右侧） */}
             <div
-              style={{
+              className={boundedLayout ? styles.parameterPane : undefined}
+              style={boundedLayout ? undefined : {
                 width: 340,
                 display: "flex",
                 flexDirection: "column",
@@ -447,7 +459,7 @@ export const ScreenshotModalBase = memo(
               )}
 
               {/* 参数配置区域 */}
-              <div style={{ flex: 1, overflowY: "auto" }}>{children}</div>
+              <div style={{ flex: 1, minHeight: 0, overflowY: "auto", ...(boundedLayout ? { paddingRight: 4, scrollbarGutter: "stable" } : {}) }}>{children}</div>
 
               {/* 分割线 */}
               <div
@@ -466,6 +478,7 @@ export const ScreenshotModalBase = memo(
                   alignItems: "center",
                   flexWrap: "wrap",
                   gap: 8,
+                  flexShrink: 0,
                 }}
               >
                 <Space size="small">
@@ -474,27 +487,27 @@ export const ScreenshotModalBase = memo(
                       icon={<ReloadOutlined />}
                       onClick={requestScreenshot}
                       disabled={isLoading || !isConnected}
-                      size="small"
+                      size={boundedLayout ? undefined : "small"}
                     >
                       重新截图
                     </Button>
                   </Tooltip>
-                  <Button
+                  {!boundedLayout && <Button
                     icon={<CloseOutlined />}
                     onClick={handleClose}
                     size="small"
                   >
                     取消
-                  </Button>
+                  </Button>}
                 </Space>
                 <Space size="small">
                   {extraButtons}
                   <Button
-                    type="primary"
-                    icon={<CheckOutlined />}
+                    type={boundedLayout ? "default" : "primary"}
+                    icon={boundedLayout ? <CloseOutlined /> : <CheckOutlined />}
                     onClick={onConfirm}
                     disabled={confirmDisabled}
-                    size="small"
+                    size={boundedLayout ? undefined : "small"}
                   >
                     {confirmText}
                   </Button>

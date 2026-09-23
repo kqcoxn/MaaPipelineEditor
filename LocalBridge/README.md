@@ -39,11 +39,23 @@ Local Bridge (lb) 是连接本地文件系统与 MaaPipelineEditor 前端的桥�
 
 ## 快速开始
 
+### 安装开发运行依赖
+
+在仓库根目录运行：
+
+```bash
+yarn lb:deps
+```
+
+一键下载并安装 MaaFramework、MaaAgentBinary 和 OCR（ppocr_v6-small）到 `LocalBridge/build/runtime`，无需预先编译 LB 或获取 MPE 发布清单。需要 Node.js 20+；macOS/Linux 还需 `unzip`。更新前停止使用这些依赖的 LB 和 Agent。
+
+使用 `yarn lb:deps --dry-run` 预览版本和安装路径；其他构建位置使用 `--binary-dir` 指定可执行文件目录。Go 与 Air 需单独准备。详见[开发依赖说明](../dev/docs/本地MaaFramework依赖更新.md)。
+
 ### 编译
 
 ```bash
 cd LocalBridge
-go build -o mpelb.exe ./cmd/lb
+go build -o ./build/mpelb.exe ./cmd/lb
 ```
 
 ### 运行

@@ -5,6 +5,7 @@ import { emitAchievementEvent } from "@/features/achievements/bus";
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent,
 } from "react";
@@ -69,6 +70,7 @@ export interface DebugImageViewerProps {
   metadata?: DebugImageViewerMetadata;
   overlays?: DebugImageOverlay[];
   overlayGroups?: DebugImageOverlayGroup[];
+  renderTrigger?: (openPreview: () => void) => ReactNode;
 }
 
 export interface DebugImageOverlayGroup {
@@ -83,6 +85,7 @@ export function DebugImageViewer({
   overlayGroups = [],
   overlays = [],
   src,
+  renderTrigger,
 }: DebugImageViewerProps) {
   const reportedImage = useRef<string | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
@@ -109,7 +112,7 @@ export function DebugImageViewer({
 
   return (
     <>
-      <button
+      {renderTrigger ? renderTrigger(() => setModalOpen(true)) : <button
         type="button"
         aria-label="打开图片预览"
         style={thumbnailButtonStyle}
@@ -143,7 +146,7 @@ export function DebugImageViewer({
           )}
           {overlays.length > 0 && <Tag>ROI {overlays.length}</Tag>}
         </span>
-      </button>
+      </button>}
       <Modal
         destroyOnHidden
         footer={null}

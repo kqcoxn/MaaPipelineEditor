@@ -1,0 +1,117 @@
+.roiHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.roiFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.roiField {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.parameterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.parameterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.switchControl {
+  display: flex;
+  align-items: center;
+  height: 32px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+
+  > span {
+    flex: 1;
+    font-size: 12px;
+  }
+}
+
+.resultsSummary {
+  margin: 6px 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  max-height: 40px;
+  overflow: auto;
+  flex-shrink: 0;
+}
+
+.resultsScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+
+  thead {
+    position: sticky;
+    top: 0;
+  }
+
+  th, td {
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  td:nth-child(2) {
+    overflow-wrap: anywhere;
+    min-width: 80px;
+  }
+
+  td:not(:nth-child(2)), th {
+    white-space: nowrap;
+  }
+}
+
+.resultJson {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}

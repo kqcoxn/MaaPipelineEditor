@@ -122,12 +122,13 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.0",
-    date: "2026-9",
+    date: "2026-9-24",
     type: "major",
     updates: {
       features: [
         "🤯 MPE Desktop 重构归来，震撼美味！",
         "📱 现已全面支持 PI，内置 Interface Editor 与 MPE MfwTaskRunner ，编辑后丝滑切换任务执行",
+        "📸 新增文字识别验证小工具，可在字段面板一键仿真",
       ],
       perfs: ["优化 MPE Harness 对 PI 的支持"],
       fixes: [

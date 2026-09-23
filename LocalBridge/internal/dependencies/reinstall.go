@@ -17,7 +17,7 @@ func Reinstall(ctx context.Context, version, target, exeDir string, output, erro
 		return fmt.Errorf("安装目录必须是绝对路径")
 	}
 	if version == "dev" {
-		return fmt.Errorf("开发版没有发布清单；请使用仓库的 yarn update:mfw 更新开发运行时")
+		return fmt.Errorf("开发版没有发布清单；请使用仓库的 yarn lb:deps 安装 MaaFramework、MaaAgentBinary 和 OCR 开发依赖")
 	}
 	manifest, err := install.FetchManifest(ctx, version)
 	if err != nil {

@@ -41,6 +41,7 @@ interface OCRModalProps {
 }
 
 interface OCRResult {
+  request_id?: string;
   success: boolean;
   text?: string;
   boxes?: Array<{ x: number; y: number; w: number; h: number; text: string }>;
@@ -310,6 +311,8 @@ export const OCRModal = memo(
       if (!open) return;
 
       const handleOCRResult = (data: OCRResult) => {
+        // 带请求 ID 的响应属于参数验证，不能覆盖文字提取工具。
+        if (data.request_id) return;
         setIsOCRing(false);
         if (data.success) {
           setOcrText(data.text ?? "");

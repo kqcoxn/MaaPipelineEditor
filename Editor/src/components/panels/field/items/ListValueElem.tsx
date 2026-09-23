@@ -73,7 +73,7 @@ export function ListValueElem(
     const quickToolElem = quickToolRender?.(key, index);
     // 计算图标数量
     const iconCount =
-      (quickToolElem ? 1 : 0) +
+      (quickToolElem ? (key === "expected" ? 2 : 1) : 0) +
       (valueList.length > 1 ? 1 : 0) +
       (index === valueList.length - 1 ? 1 : 0);
 

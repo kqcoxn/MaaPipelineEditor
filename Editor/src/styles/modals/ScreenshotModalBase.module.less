@@ -1,0 +1,37 @@
+.boundedLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  height: min(760px, calc(100dvh - 180px));
+  min-height: 0;
+}
+
+.previewPane,
+.parameterPane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.previewFooter {
+  height: min(240px, 30dvh);
+  min-height: 0;
+  flex-shrink: 0;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .boundedLayout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .previewPane {
+    height: min(640px, 80dvh);
+  }
+
+  .parameterPane {
+    max-height: 70dvh;
+  }
+}

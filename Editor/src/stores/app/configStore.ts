@@ -64,7 +64,7 @@ export function normalizeAIContextCompactionThreshold(value: number): number {
 export const globalConfig = {
   dev: true,
   version: `2.0.0`,
-  betaIteration: 1,
+  betaIteration: 2,
   mfwVersion: "5.13.0",
   protocolVersion: "1.6.0",
 };
