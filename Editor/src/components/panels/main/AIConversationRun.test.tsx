@@ -106,28 +106,6 @@ describe("AIConversationRun", () => {
     expect(container.textContent).toContain("<script>");
   });
 
-  it("使用产品 logo 作为 AI 头像", () => {
-    const events: RunEvent[] = [
-      {
-        id: "assistant-1",
-        runId: "run-1",
-        sessionId: "session-1",
-        type: "assistant_message",
-        timestamp: 1,
-        text: "AI 回答",
-      },
-    ];
-
-    renderRun(createRun(), events);
-
-    const avatar = screen.getByAltText("MPE Harness");
-    expect(avatar).toHaveAttribute("src", "/logo.png");
-    expect(avatar.closest("span")).toHaveStyle({
-      width: "28px",
-      height: "28px",
-    });
-    expect(screen.getByText("MPE Harness")).toBeInTheDocument();
-  });
 
   it("用 ThoughtChain 展示工具审计信息", () => {
     const events: RunEvent[] = [

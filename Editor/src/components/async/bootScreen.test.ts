@@ -30,32 +30,30 @@ describe("dismissBootScreenWhenReady", () => {
     document.body.innerHTML = "";
   });
 
-  it("hands off after a two-second virtual first screen", async () => {
+  it("hands off when the exit animation completes", async () => {
     dismissBootScreenWhenReady({ isDevelopment: false });
     dismissBootScreenWhenReady({ isDevelopment: false });
 
-    await vi.advanceTimersByTimeAsync(1_519);
     const screen = document.getElementById("mpe-boot-screen");
     expect(screen).not.toHaveClass("mpe-boot-screen--leaving");
 
-    await vi.advanceTimersByTimeAsync(1);
+    await vi.advanceTimersToNextTimerAsync();
     expect(screen).toHaveClass("mpe-boot-screen--leaving");
 
     screen?.dispatchEvent(new Event("animationend"));
     expect(document.getElementById("mpe-boot-screen")).toBeNull();
   });
 
-  it("keeps the full minimum duration when motion is reduced", async () => {
+  it("dismisses without waiting for an animation event when motion is reduced", async () => {
     vi.stubGlobal(
       "matchMedia",
       vi.fn(() => ({ matches: true })),
     );
     dismissBootScreenWhenReady({ isDevelopment: false });
 
-    await vi.advanceTimersByTimeAsync(1_999);
     expect(document.getElementById("mpe-boot-screen")).not.toBeNull();
 
-    await vi.advanceTimersByTimeAsync(1);
+    await vi.runAllTimersAsync();
     expect(document.getElementById("mpe-boot-screen")).toBeNull();
   });
 

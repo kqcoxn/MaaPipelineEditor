@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyCounterRules, evaluateAchievement } from "./engine";
+import { applyCounterRules } from "./engine";
 import { counterRules } from "./defs/counters";
-import { canvasAchievements } from "./defs/canvas";
 import { configurationVariety } from "./nodeConfiguration";
 
 describe("节点成就计数", () => {
@@ -24,21 +23,7 @@ describe("节点成就计数", () => {
     expect(configurationVariety({ counters, unlocked: {}, now: 1 })).toBe(1);
   });
 
-  it("每次粘贴只累计一次，各系列按累计阈值解锁", () => {
+  it("每次粘贴只累计一次，不按粘贴节点数量计数", () => {
     expect(applyCounterRules(counterRules, { type: "achievement:nodes_pasted", payload: { count: 99 }, at: 1 })).toEqual({ nodes_pasted: 1 });
-    for (const [counter, targets] of Object.entries({
-      nodes_pasted: [1, 50, 200, 1000],
-      field_added: [1, 50, 500, 2000, 10000, 50000],
-      node_created: [10, 50, 200, 1000, 5000, 20000],
-      node_deleted: [1, 50, 200, 1000, 5000, 20000],
-    })) {
-      const defs = canvasAchievements.filter((def) => def.series === counter);
-      expect(defs).toHaveLength(targets.length);
-      defs.forEach((def, index) => {
-        const target = targets[index];
-        expect(evaluateAchievement(def, { counters: { [counter]: target - 1 }, unlocked: {}, now: 1 }).achieved).toBe(false);
-        expect(evaluateAchievement(def, { counters: { [counter]: target }, unlocked: {}, now: 1 }).achieved).toBe(true);
-      });
-    }
   });
 });

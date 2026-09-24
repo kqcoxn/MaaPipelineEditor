@@ -22,7 +22,7 @@ class LayoutObserver {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("成就图真实渲染与布局链路", () => {
-  it("尺寸回报后离开初始横排，并生成九个分区", async () => {
+  it("尺寸回报后完成布局并离开初始横排", async () => {
     vi.stubGlobal("ResizeObserver", LayoutObserver);
     vi.spyOn(HTMLElement.prototype, "offsetWidth", "get").mockImplementation(function (this: HTMLElement) {
       return this.classList.contains("react-flow__node") ? 280 : 1100;
@@ -30,12 +30,15 @@ describe("成就图真实渲染与布局链路", () => {
     vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
       return this.classList.contains("react-flow__node") ? 180 : 600;
     });
-    const { container } = render(<AchievementGraph items={buildAchievementItems(achievementDefs, {})} />);
+    const items = buildAchievementItems(achievementDefs, {});
+    const { container } = render(<AchievementGraph items={items} />);
     await waitFor(() => {
-      expect(container.querySelectorAll(".react-flow__node-region")).toHaveLength(9);
+      expect(container.querySelectorAll(".react-flow__node-region")).toHaveLength(
+        new Set(items.map((item) => item.def.category)).size,
+      );
     }, { timeout: 4000 });
     const nodes = [...container.querySelectorAll<HTMLElement>(".react-flow__node-achievement")];
-    expect(nodes).toHaveLength(buildAchievementItems(achievementDefs, {}).length);
+    expect(nodes).toHaveLength(items.length);
     const rows = new Set(nodes.map((node) => node.style.transform.match(/translate\([^,]+,\s*([^)]+)\)/)?.[1]));
     expect(rows.size).toBeGreaterThan(1);
   });

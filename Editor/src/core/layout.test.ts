@@ -55,31 +55,20 @@ vi.mock("elkjs/lib/elk.bundled.js", () => ({
 
 import { LayoutHelper } from "./layout";
 
-describe("LayoutHelper process feedback", () => {
+describe("LayoutHelper partial layout", () => {
   beforeEach(() => {
     mocks.replace.mockClear();
     mocks.runWithProcess.mockClear();
   });
 
-  it("wraps a full layout in the shared process indicator", async () => {
-    await LayoutHelper.auto();
-
-    expect(mocks.runWithProcess).toHaveBeenCalledWith(
-      "正在重排节点",
-      expect.any(Function),
-    );
-    expect(mocks.replace).toHaveBeenCalledOnce();
-  });
-
-  it("wraps a manual partial layout in the shared process indicator", async () => {
+  it("preserves edges and the viewport when applying a partial layout", async () => {
     await LayoutHelper.autoPartial(mocks.state.nodes as never[]);
 
-    expect(mocks.runWithProcess).toHaveBeenCalledWith(
-      "正在重排节点",
-      expect.any(Function),
-    );
     expect(mocks.replace).toHaveBeenCalledWith(
-      expect.any(Array),
+      [
+        expect.objectContaining({ id: "node-1", position: { x: 0, y: 0 } }),
+        expect.objectContaining({ id: "node-2", position: { x: 240, y: 120 } }),
+      ],
       mocks.state.edges,
       { isFitView: false },
     );

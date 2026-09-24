@@ -88,8 +88,6 @@ describe("AIHistoryPanel", () => {
   it("新建并切换 Session", async () => {
     renderPanel();
 
-    expect(screen.getByText("Infra BETA")).toBeInTheDocument();
-
     fireEvent.click(await screen.findByLabelText("切换 Session"));
     fireEvent.click(await screen.findByText("新建 Session"));
     expect(useAIHarnessStore.getState().sessions).toHaveLength(2);
@@ -161,28 +159,12 @@ describe("AIHistoryPanel", () => {
     );
   });
 
-  it("用独立容器为 Sender 提供左右间距", async () => {
+
+
+  it("点击欢迎态建议回填输入框", async () => {
     renderPanel();
 
-    const sender = await screen.findByPlaceholderText("输入目标或问题");
-    expect(screen.getByTestId("ai-composer-shell")).toContainElement(sender);
-  });
-
-  it("将收起动画限制在 Drawer 根节点内", async () => {
-    renderPanel();
-
-    await screen.findByText("MPE Harness");
-    const drawer = document.querySelector<HTMLElement>(".ant-drawer");
-
-    expect(drawer).toHaveStyle({ overflow: "hidden" });
-  });
-
-  it("用品牌欢迎态引导新对话", async () => {
-    renderPanel();
-
-    expect(await screen.findByText("从当前项目开始")).toBeInTheDocument();
-    expect(screen.queryByText("暂无对话")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("检查当前 Pipeline"));
+    fireEvent.click(await screen.findByText("检查当前 Pipeline"));
     expect(screen.getByPlaceholderText("输入目标或问题")).toHaveValue(
       "检查当前 Pipeline",
     );

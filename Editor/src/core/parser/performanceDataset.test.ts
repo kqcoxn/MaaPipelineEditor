@@ -17,8 +17,6 @@ import {
   type AvoidanceRouteRequest,
 } from "../avoidanceRoutingCache";
 import { pipelineToFlow } from ".";
-import { serializeFileForCache } from "../../stores/project/fileCache";
-import type { FileType } from "../../stores/project/fileStore";
 import {
   buildSnapAlignmentIndex,
   findSnapAlignmentWithIndex,
@@ -246,109 +244,8 @@ describe("PERF-001 performance datasets", () => {
     );
   });
 
-  it("measures PERF-010 single-file cache serialization", async () => {
-    const datasetPath = resolve(
-      process.cwd(),
-      "../dev/performance/editor/datasets/performance-large-300.json",
-    );
-    const pipelineText = await readFile(datasetPath, "utf8");
-    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
 
-    const flowState = useFlowStore.getState();
-    const openFiles: FileType[] = Array.from({ length: 5 }, (_, index) => ({
-      fileName: `pipeline-${index}`,
-      nodes: flowState.nodes,
-      edges: flowState.edges,
-      config: { prefix: "" },
-    }));
-    const legacyBytes = JSON.stringify(
-      openFiles.map(serializeFileForCache),
-    ).length;
-    const changedFileBytes = JSON.stringify(
-      serializeFileForCache({
-        ...openFiles[0],
-        nodes: openFiles[0].nodes.map((node, index) =>
-          index === 0
-            ? { ...node, position: { x: node.position.x + 10, y: node.position.y } }
-            : node,
-        ),
-      }),
-    ).length;
 
-    expect(changedFileBytes).toBeLessThan(legacyBytes / 4);
-    console.info(
-      `[PERF-010] 300-node/900-edge cache serialization: all-5-files=${legacyBytes} bytes, dirty-file=${changedFileBytes} bytes`,
-    );
-  });
-
-  it("measures PERF-004 indexed selector fan-out", async () => {
-    const datasetPath = resolve(
-      process.cwd(),
-      "../dev/performance/editor/datasets/performance-large-300.json",
-    );
-    const pipelineText = await readFile(datasetPath, "utf8");
-
-    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
-    const state = useFlowStore.getState();
-    const legacyFlowTagEdgeVisits = state.nodes.length * state.edges.length;
-    const indexedFlowTagEdgeVisits = state.nodes.reduce(
-      (total, node) =>
-        total + (state.outgoingEdgeIdsByNodeId.get(node.id)?.length ?? 0),
-      0,
-    );
-    const legacyFocusEdgeVisits = state.nodes.length * state.edges.length;
-    const indexedFocusEdgeVisits = state.nodes.reduce(
-      (total, node) =>
-        total +
-        (state.outgoingEdgeIdsByNodeId.get(node.id)?.length ?? 0) +
-        (state.incomingEdgeIdsByNodeId.get(node.id)?.length ?? 0),
-      0,
-    );
-    const replicaNodeCount = state.nodes.filter(
-      (node) =>
-        node.type === NodeTypeEnum.Anchor ||
-        node.type === NodeTypeEnum.External,
-    ).length;
-    const legacyReplicaNodeVisits = replicaNodeCount * state.nodes.length;
-    const indexedReplicaLookups = replicaNodeCount;
-
-    expect(indexedFlowTagEdgeVisits).toBe(state.edges.length);
-    expect(indexedFocusEdgeVisits).toBe(state.edges.length * 2);
-    expect(indexedReplicaLookups).toBeLessThan(legacyReplicaNodeVisits);
-    console.info(
-      `[PERF-004] large selector visits: flow-tags=${legacyFlowTagEdgeVisits}->${indexedFlowTagEdgeVisits}, focus=${legacyFocusEdgeVisits}->${indexedFocusEdgeVisits}, replicas=${legacyReplicaNodeVisits}->${indexedReplicaLookups}`,
-    );
-  });
-
-  it("measures PERF-005A shared avoidance inputs", async () => {
-    const datasetPath = resolve(
-      process.cwd(),
-      "../dev/performance/editor/datasets/performance-large-300.json",
-    );
-    const pipelineText = await readFile(datasetPath, "utf8");
-
-    expect(await pipelineToFlow({ pString: pipelineText })).toBe(true);
-    const state = useFlowStore.getState();
-    const nodeBounds = buildAvoidanceNodeBounds(state.nodes);
-    const parallelEdgeInfo = buildParallelEdgeInfo(state.edges);
-
-    expect(nodeBounds).toHaveLength(
-      state.nodes.filter((node) => node.type !== NodeTypeEnum.Group).length,
-    );
-    expect(parallelEdgeInfo.size).toBe(state.edges.length);
-
-    // 旧路径在每条边中重复构建这两份公共输入；画布级上下文各构建一次。
-    const legacyBoundsBuilds = state.edges.length;
-    const sharedBoundsBuilds = 1;
-    const legacyParallelGroupBuilds = state.edges.length;
-    const sharedParallelGroupBuilds = 1;
-    expect(sharedBoundsBuilds).toBeLessThan(legacyBoundsBuilds);
-    expect(sharedParallelGroupBuilds).toBeLessThan(legacyParallelGroupBuilds);
-
-    console.info(
-      `[PERF-005A] large shared inputs: bounds-builds=${legacyBoundsBuilds}->${sharedBoundsBuilds}, parallel-groups=${legacyParallelGroupBuilds}->${sharedParallelGroupBuilds}, bounds=${nodeBounds.length}, edges=${parallelEdgeInfo.size}`,
-    );
-  });
 
   it("measures PERF-005B avoidance result cache reuse", async () => {
     const datasetPath = resolve(

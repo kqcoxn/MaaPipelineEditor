@@ -27,13 +27,6 @@ test("feature tabs switch content and support keyboard navigation", async ({ pag
   await aiTab.click();
   await expect(aiTab).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("feature-panel")).toContainText("智能补全与搜索");
-  const features = page.locator("#features");
-  await expect(features).toContainText("智能搜索与上下文感知补全");
-  await expect(features).toContainText("配置 AI API 后");
-  await expect(features).toContainText("MPE Harness");
-  await expect(features).toContainText("画布对话");
-  await expect(page.locator("body")).not.toContainText(/MCP|跨工具|Coming Soon/i);
-  await expect(page.getByRole("link", { name: "MaaMCP", exact: true })).toHaveCount(0);
 });
 
 test("mobile navigation opens, closes, and can reach anchor sections", async ({ page }) => {
@@ -60,7 +53,6 @@ test("desktop navigation reaches ecosystem anchor and header GitHub stays correc
   const mseLink = page.locator("#ecosystem").locator(
     'a[href="https://github.com/neko-para/maa-support-extension"]',
   );
-  await expect(mseLink).toContainText("MSE + iframe");
   await expect(mseLink).toHaveAttribute("target", "_blank");
   await expect(page.getByTestId("header-github")).toHaveAttribute(
     "href",

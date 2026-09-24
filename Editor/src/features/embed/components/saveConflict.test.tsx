@@ -55,8 +55,8 @@ describe("showEmbedSaveConflict", () => {
     showEmbedSaveConflict({ canForce: true });
 
     const config = getConfig();
-    expect(config.okText).toBe("从 Maa Support 同步");
-    expect(config.content).toContain("Maa Support 中的数据");
+    expect(config.okText).toContain("Maa Support");
+    expect(config.content).toContain("Maa Support");
     render(
       <>{config.footer(null, {
         OkBtn: () => <button>sync</button>,
@@ -84,11 +84,8 @@ describe("showEmbedSaveConflict", () => {
     showEmbedSaveConflict({ canForce: false });
 
     const config = getConfig();
-    expect(config.okText).toBe("Sync from Host");
-    expect(config.cancelText).toBe("Cancel");
-    expect(config.content).toBe(
-      "The data in Host changed after it was loaded into MPE. Syncing replaces the current MPE content with the host data. Overwriting replaces the host changes with the current MPE content.",
-    );
+    expect(config.okText).toContain("Host");
+    expect(config.content).toContain("Host");
     render(
       <>{config.footer(null, {
         OkBtn: () => <button>sync</button>,

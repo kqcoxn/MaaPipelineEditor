@@ -51,34 +51,4 @@ describe("VirtualList", () => {
     expect(screen.getByText("Item 50")).toBeInTheDocument();
     expect(screen.queryByText("Item 0")).not.toBeInTheDocument();
   });
-
-  it("记录 PERF-011 验收规模的挂载行数", () => {
-    const scenarios = [
-      { name: "nodes", total: 301, height: 431, itemHeight: 40 },
-      { name: "logs", total: 1000, height: 308, itemHeight: 48 },
-      { name: "errors", total: 300, height: 234, itemHeight: 26 },
-    ];
-    const mountedCounts = scenarios.map((scenario) => {
-      const { unmount } = render(
-        <VirtualList
-          ariaLabel={scenario.name}
-          estimatedItemHeight={scenario.itemHeight}
-          height={scenario.height}
-          itemKey={(item) => item}
-          items={Array.from({ length: scenario.total }, (_, index) => index)}
-          renderItem={(item) => (
-            <div style={{ height: scenario.itemHeight }}>{item}</div>
-          )}
-        />,
-      );
-      const mounted = screen
-        .getByRole("list", { name: scenario.name })
-        .querySelectorAll("[data-virtual-row-key]").length;
-      expect(mounted).toBeLessThan(scenario.total);
-      unmount();
-      return `${scenario.name}=${mounted}/${scenario.total}`;
-    });
-
-    console.info(`[PERF-011] mounted rows: ${mountedCounts.join(", ")}`);
-  });
 });

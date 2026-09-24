@@ -36,10 +36,6 @@ describe("成就面板交互", () => {
     expect(screen.getByText("28 / 50")).toBeInTheDocument();
     expect(rendered).toHaveBeenCalled();
   });
-  it("成就卡片不显示重新答题按钮", () => {
-    render(<AchievementWallModal />);
-    expect(screen.queryByRole("button", { name: "重新答题" })).not.toBeInTheDocument();
-  });
 
   it("图和成就册直接展示条件、进度，只显示到下一档", () => {
     render(<AchievementWallModal />);

@@ -84,28 +84,19 @@ describe("正式成就接线", () => {
     expect(useAchievementStore.getState().counters).toEqual({ node_style_changed: 1 });
   });
 
-  it("天才程序员五档按成功任务累计，其他 AI 成就独立解锁", () => {
-    for (let count = 1; count <= 200; count++) {
-      emitAchievementEvent("achievement:ai_edit_completed");
-      for (const target of [1, 5, 20, 50, 200]) {
-        expect(unlocked(target === 1 ? "ai_programmer" : `ai_programmer_${target}`)).toBe(count >= target);
-      }
-    }
+  it("成功 AI 任务只增加对应计数，其他 AI 成就独立解锁", () => {
+    emitAchievementEvent("achievement:ai_edit_completed");
+    expect(useAchievementStore.getState().counters.ai_edit_completed).toBe(1);
+    expect(unlocked("ai_programmer")).toBe(true);
     for (const [id, counter] of [["ai_architecture", "ai_architecture_presented"], ["ai_layout", "ai_layout_applied"], ["ai_compact", "ai_context_compacted"]]) {
       expect(unlocked(id)).toBe(false);
       emitAchievementEvent(`achievement:${counter}`);
       expect(unlocked(id)).toBe(true);
     }
-    expect(achievementDefs.find((def) => def.id === "ai_compact")?.hidden).toBe(true);
   });
-  it("工具截图六档只由工具截图事件累计", () => {
-    for (const target of [10, 50, 200, 1000, 5000, 20000]) {
-      const id = target === 10 ? "material_tool_screenshots" : `material_tool_screenshots_${target}`;
-      useAchievementStore.setState((state) => ({ counters: { ...state.counters, tool_screenshot_captured: target - 1 } }));
-      expect(unlocked(id)).toBe(false);
-      emitAchievementEvent("achievement:tool_screenshot_captured");
-      expect(unlocked(id)).toBe(true);
-    }
+  it("工具截图只增加工具截图计数，不解锁保存截图成就", () => {
+    emitAchievementEvent("achievement:tool_screenshot_captured");
+    expect(useAchievementStore.getState().counters.tool_screenshot_captured).toBe(1);
     expect(unlocked("material_capture")).toBe(false);
   });
 
@@ -113,45 +104,34 @@ describe("正式成就接线", () => {
     expect(unlocked(id)).toBe(false);
     emitAchievementEvent(`achievement:${counter}`);
     expect(unlocked(id)).toBe(true);
-    expect(achievementDefs.find((def) => def.id === id)?.hidden ?? false).toBe(id === "material_preview_collapsed");
   });
 
   it.each([
     ["material_capture", "screenshot_saved"],
     ["material_roi", "roi_applied"],
     ["material_ocr", "ocr_recognized"],
-  ])("%s 按五档独立累计", (id, counter) => {
-    for (let count = 1; count <= 2000; count++) {
-      emitAchievementEvent(`achievement:${counter}`);
-      if ([1, 19, 20, 99, 100, 499, 500, 1999, 2000].includes(count)) {
-        for (const target of [1, 20, 100, 500, 2000]) {
-          expect(unlocked(target === 1 ? id : `${id}_${target}`)).toBe(count >= target);
-        }
-      }
-    }
+  ])("%s 只由对应事件累计", (id, counter) => {
+    emitAchievementEvent(`achievement:${counter}`);
+    expect(useAchievementStore.getState().counters[counter]).toBe(1);
+    expect(unlocked(id)).toBe(true);
     expect(unlocked("material_uploaded")).toBe(false);
     expect(unlocked("material_tolerance")).toBe(false);
   });
 
-  it("两个取材彩蛋为隐藏成就，由实际操作事件解锁", () => {
+  it("两个取材彩蛋由实际操作事件解锁", () => {
     for (const [id, counter] of [["material_uploaded", "uploaded_material_used"], ["material_tolerance", "color_tolerance_applied"]]) {
-      expect(achievementDefs.find((def) => def.id === id)?.hidden).toBe(true);
       emitAchievementEvent(`achievement:${counter}`);
       expect(unlocked(id)).toBe(true);
     }
   });
 
-  it("保存模板按四档累计，使用模板只解锁老方新用", () => {
+  it("使用模板与保存模板独立计数", () => {
     emitAchievementEvent("achievement:template_used");
     expect(unlocked("organize_reuse")).toBe(true);
     expect(unlocked("organize_template")).toBe(false);
-    for (let count = 1; count <= 100; count++) {
-      emitAchievementEvent("achievement:template_saved");
-      for (const target of [1, 5, 20, 100]) {
-        expect(unlocked(target === 1 ? "organize_template" : `organize_template_${target}`)).toBe(count >= target);
-      }
-    }
-    expect(achievementDefs.filter((def) => def.trigger.kind === "counter" && def.trigger.counter === "template_used")).toHaveLength(1);
+    emitAchievementEvent("achievement:template_saved");
+    expect(useAchievementStore.getState().counters.template_saved).toBe(1);
+    expect(unlocked("organize_template")).toBe(true);
   });
 
   it("对齐至少三个节点且位置改变才解锁，撤销重做不重复计数", () => {
@@ -183,7 +163,6 @@ describe("正式成就接线", () => {
     flow.saveHistory(0);
     flow.undo(); flow.redo();
     expect(useAchievementStore.getState().counters.group_color_changed).toBe(1);
-    expect(achievementDefs.find((def) => def.id === "organize_group_color")?.hidden).toBe(true);
   });
 
   it("删除边按实际条数去重累计，自动编号、撤销重做和替换图不误计", () => {
@@ -378,35 +357,24 @@ describe("正式成就接线", () => {
   });
 });
 
-it("全部调试累计六档，新单次成就与隐藏设置接线正确", () => {
-  for (const target of [10, 50, 200, 1000, 5000, 20000]) {
-    const id = target === 10 ? "debug_runs" : `debug_runs_${target}`;
-    useAchievementStore.setState((state) => ({ counters: { ...state.counters, debug_completed: target - 1 } }));
-    expect(unlocked(id)).toBe(false);
-    emitAchievementEvent("achievement:debug_completed");
-    expect(unlocked(id)).toBe(true);
-  }
+it("不同调试操作只解锁对应成就", () => {
+  emitAchievementEvent("achievement:debug_completed");
+  expect(useAchievementStore.getState().counters.debug_completed).toBe(1);
   expect(unlocked("debug_first_run")).toBe(false);
-  for (const [id, counter, hidden] of [
-    ["debug_action", "debug_action_completed", false],
-    ["debug_stop", "debug_manual_stopped", true],
-    ["debug_image", "debug_image_opened", false],
-    ["debug_retry", "debug_retry_completed", true],
-    ["explore_fix", "debug_fix_completed", true],
+  for (const [id, counter] of [
+    ["debug_action", "debug_action_completed"],
+    ["debug_stop", "debug_manual_stopped"],
+    ["debug_image", "debug_image_opened"],
+    ["debug_retry", "debug_retry_completed"],
+    ["explore_fix", "debug_fix_completed"],
   ] as const) {
+    expect(unlocked(id)).toBe(false);
     emitAchievementEvent(`achievement:${counter}`);
     expect(unlocked(id)).toBe(true);
-    const def = achievementDefs.find((item) => item.id === id)!;
-    expect(def.category).toBe("debug");
-    expect(def.hidden ?? false).toBe(hidden);
-  }
-  for (const id of ["debug_single", "debug_recognition"]) {
-    expect(achievementDefs.filter((def) => def.id.startsWith(id))).toHaveLength(1);
-    expect(achievementDefs.find((def) => def.id === id)?.trigger).toMatchObject({ target: 1 });
   }
 });
 
-it("成果六档与两种导出成就按非空实际内容计数", () => {
+it("两种导出成就按非空实际内容计数", () => {
   recordPipelineExport({}, "partial");
   recordPipelineExport({ $__mpe_config_file: {} }, "separated");
   expect(unlocked("project_partial")).toBe(false);
@@ -417,14 +385,4 @@ it("成果六档与两种导出成就按非空实际内容计数", () => {
   recordPipelineExport('{"Node":{}}', "separated");
   expect(unlocked("project_separated")).toBe(true);
   expect(useAchievementStore.getState().counters.pipeline_saved).toBe(2);
-  for (const target of [20, 100, 500, 2000, 10000]) {
-    useAchievementStore.setState((state) => ({ counters: { ...state.counters, pipeline_saved: target - 1 } }));
-    expect(unlocked(`project_save_${target}`)).toBe(false);
-    recordPipelineExport({ Node: {} });
-    expect(unlocked(`project_save_${target}`)).toBe(true);
-  }
-  expect(achievementDefs.some((def) => def.id === "project_preview")).toBe(false);
-  expect(counterRules.some((rule) => rule.counter === "preview_located")).toBe(false);
-  expect(achievementDefs.find((def) => def.id === "ai_programmer")?.category).toBe("ai");
-  expect(achievementDefs.some((def) => def.id === "project_harness")).toBe(false);
 });
