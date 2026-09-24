@@ -146,18 +146,30 @@ func localizeFields(value any, translations map[string]any, diagnostics *[]Diagn
 		for key, item := range typed {
 			childPointer := pointer + "/" + escapePointer(key)
 			if i18nFields[key] {
-				if text, ok := item.(string); ok && strings.HasPrefix(text, "$") {
-					translationKey := strings.TrimPrefix(text, "$")
-					if translated, ok := translations[translationKey].(string); ok {
-						typed[key] = translated
-					} else {
-						*diagnostics = append(*diagnostics, Diagnostic{Severity: "warning", Category: "reference", Code: "pi.i18n.missing", Message: "缺少国际化文本: " + text, File: file, Pointer: childPointer})
+				typed[key] = localizeText(item, translations, diagnostics, file, childPointer)
+				if key == "welcome" {
+					if notices, ok := item.([]any); ok {
+						for index, notice := range notices {
+							notices[index] = localizeText(notice, translations, diagnostics, file, fmt.Sprintf("%s/%d", childPointer, index))
+						}
 					}
 				}
 			}
 			localizeFields(typed[key], translations, diagnostics, file, childPointer)
 		}
 	}
+}
+
+func localizeText(value any, translations map[string]any, diagnostics *[]Diagnostic, file, pointer string) any {
+	text, ok := value.(string)
+	if !ok || !strings.HasPrefix(text, "$") {
+		return value
+	}
+	if translated, ok := translations[strings.TrimPrefix(text, "$")].(string); ok {
+		return translated
+	}
+	*diagnostics = append(*diagnostics, Diagnostic{Severity: "warning", Category: "reference", Code: "pi.i18n.missing", Message: "缺少国际化文本: " + text, File: file, Pointer: pointer})
+	return value
 }
 
 func compatibleResources(resources []map[string]any, controller string) []map[string]any {

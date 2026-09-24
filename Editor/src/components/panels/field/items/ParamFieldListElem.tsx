@@ -671,7 +671,7 @@ export const ParamFieldListElem = memo(
             InputElem = (
               <TextArea
                 className={style.value}
-                value={JsonHelper.objToString(value) ?? value}
+                value={key === "focus" && typeof value !== "string" ? JSON.stringify(value) : JsonHelper.objToString(value) ?? value}
                 placeholder={String(paramType)}
                 autoSize={{ minRows: 1, maxRows: 4 }}
                 onChange={(e) => {

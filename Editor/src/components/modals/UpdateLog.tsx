@@ -52,6 +52,7 @@ const categoryConfig: Array<{
   { key: "features", label: "新功能" },
   { key: "perfs", label: "体验优化" },
   { key: "fixes", label: "问题修复" },
+  { key: "maafw", label: "MaaFramework 更新适配" },
 ];
 
 const getUpdateItemCount = (updates: UpdateCategory) =>
@@ -185,6 +186,9 @@ const UpdateLogDetails = ({ log }: UpdateLogDetailsProps) => {
             v{log.version}
           </Title>
           <VersionTypeTag type={log.type} />
+          {log.maafwVersion && (
+            <Tag color="cyan">MFW {log.maafwVersion}</Tag>
+          )}
         </div>
         <Text type="secondary" className={style.statText}>
           {log.date} / 共 {updateCount} 项更新

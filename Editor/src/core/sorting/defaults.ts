@@ -90,6 +90,7 @@ const ACTION_PARAM_FIELD_ORDER = [
   "dx",
   "dy",
   "key",
+  "auto_up",
   "input_text",
   "package",
   "exec",

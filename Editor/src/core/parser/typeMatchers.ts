@@ -311,8 +311,9 @@ export function matchParamType(
   paramKeys.forEach((key) => {
     // 检查参数是否预定义
     const type = types.find((t) => t.key === key);
-    if (!type) {
-      // 未定义的参数直接保留
+    if (!type || key === "focus") {
+      // focus 是框架原样透传的 JSON；不能把标量转成字符串或再次解析字符串内容。
+      // 未定义的参数同样直接保留。
       matchedDatas[key] = params[key];
       return;
     }

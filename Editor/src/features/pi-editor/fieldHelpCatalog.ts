@@ -30,7 +30,7 @@ export const rootHelp: Record<string, PiFieldHelp> = {
   github: hint('项目 GitHub 仓库地址，用于更新检查和问题反馈。', 'https://github.com/owner/project'),
   contact: hint(`在“关于”页面显示联系方式。${richText}`),
   license: hint(`在“关于”页面显示许可证信息。${richText}`, 'LICENSE.md'),
-  welcome: hint(`首次使用时展示的欢迎说明或公告。${richText} 多条公告可在整份文件的源码视图中填写字符串数组。`),
+  welcome: hint(`首次使用时展示的欢迎说明或公告。${richText} 多条公告使用非空字符串数组，按数组顺序展示，每条可独立引用翻译键。可在整份文件的源码视图中创建数组，之后通过字段源码编辑。`),
   global_option: hint('可选。填写顶层 option 的键名，参与所有任务的参数合并；仍受选项自身的控制器和资源限制。覆盖优先级：全局 < 资源 < 控制器 < 任务。', '["运行设置"]'),
   import: hint('可选。填写相对于主 interface.json 的 PI 文件路径。依次合并 task、option、preset、group、pretask、global_option、setting；同名 option 以后导入的为准。', '["tasks/daily.json", "options/common.json"]'),
   languages: hint('可选。JSON 对象：键为语言代码，值为相对于 interface.json 的翻译文件路径。', '{\n  "zh_cn": "interface_zh.json",\n  "en_us": "interface_en.json"\n}'),

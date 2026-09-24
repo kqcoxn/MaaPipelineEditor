@@ -30,6 +30,17 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 describe('PI structured editor', () => {
+  it('shows ordered welcome announcements without replacing them during other form edits', () => {
+    const welcome = ['$notice', 'announcements/update.md', '# 最新公告'];
+    const content = JSON.stringify({ interface_version: 2, name: 'demo', welcome });
+    store.setState(state => ({ tabs: [{ ...state.tabs[0], kind: 'entry', selected: '', content, base: content }] }));
+    render(<PiEditor />);
+    const preview = screen.getByLabelText('欢迎说明');
+    expect(JSON.parse(preview.textContent ?? '')).toEqual(welcome);
+    expect(screen.queryByRole('textbox', { name: '欢迎说明' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('项目标识'), { target: { value: 'updated' } });
+    expect(JSON.parse(store.getState().tabs[0].content).welcome).toEqual(welcome);
+  });
   it('keeps the selected object form mounted when its sidebar position changes', async () => {
     mockListGeometry();
     const content = JSON.stringify({ task: [{ name: 'A', label: 'Task A' }, { name: 'B', label: 'Task B' }] });

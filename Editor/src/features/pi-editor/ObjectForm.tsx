@@ -56,7 +56,8 @@ export function ObjectForm({ tab }: { tab: PiTab }) {
       </FormSection>
       <FormSection title="项目说明" description="仓库、联系方式及展示给使用者的说明。">
         <div className={styles.fieldGrid}>{text('github', '仓库地址')}{text('contact', '联系方式')}</div>
-        {text('license', '许可证')}{text('welcome', '欢迎说明', true)}
+        {text('license', '许可证')}
+        {Array.isArray(value.welcome) ? <JsonField tab={tab} pointer="/welcome" label="欢迎说明" /> : text('welcome', '欢迎说明', true)}
       </FormSection>
       <FormSection title="全局选项">{reference('global_option', '关联选项', 'option')}</FormSection>
       <ImportEditor tab={tab} />

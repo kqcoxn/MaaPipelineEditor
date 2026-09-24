@@ -181,7 +181,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
     key: "focus",
     type: FieldTypeEnum.Any,
     default: {},
-    desc: "关注节点，会额外产生部分回调消息。可选，默认空对象，不产生回调消息。focus 是一个字典，键为消息类型，值为模板字符串或模板对象。模板字符串支持文件路径、URL 或直接文本，内容支持 Markdown 格式，支持国际化（以$开头）。模板中可使用 {字段名} 格式的占位符，UI 会自动替换为实际值。模板对象支持可选 content、display 和 trace；trace 为布尔值，控制支持遥测的客户端是否上传该节点结果，可以仅填写 {trace: true}。MPE 保留这些字段，不执行遥测上传。display 字段指定展示渠道：log（运行日志，默认）、toast（轻提示）、notification（系统通知）、dialog（非阻塞对话框）、modal（阻塞式弹窗）。",
+    desc: "关注节点，会额外产生部分回调消息。可选，默认 null。focus 接受任意 JSON，框架通过回调原样透传。使用 PI 消息模板时填写字典，键为消息类型，值为模板字符串或模板对象。模板字符串支持文件路径、URL 或直接文本，内容支持 Markdown 格式，支持国际化（以$开头）。模板中可使用 {字段名} 格式的占位符，UI 会自动替换为实际值。模板对象支持可选 content、display 和 trace；trace 为布尔值，控制支持遥测的客户端是否上传该节点结果，可以仅填写 {trace: true}。MPE 保留这些字段，不执行遥测上传。display 字段指定展示渠道：log（运行日志，默认）、toast（轻提示）、notification（系统通知）、dialog（非阻塞对话框）、modal（阻塞式弹窗）。",
     params: [
       // 识别相关消息
       ...["Starting", "Succeeded", "Failed"].map((phase) => ({

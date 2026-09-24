@@ -25,6 +25,7 @@ export interface UpdateCategory {
   features?: string[]; // 新功能
   fixes?: string[]; // Bug修复
   perfs?: string[]; // 性能优化/体验优化
+  maafw?: string[]; // MaaFramework 依赖与协议适配
 }
 
 /**
@@ -38,6 +39,7 @@ export interface UpdateLogItem {
   version: string;
   date: string;
   type: "major" | "feature" | "fix" | "perf";
+  maafwVersion?: string; // 此版本对应的 MaaFramework 版本，展示在更新类型标签右侧
   updates: UpdateCategory;
 }
 
@@ -124,16 +126,24 @@ export const updateLogs: UpdateLogItem[] = [
     version: "2.0.0",
     date: "2026-9-24",
     type: "major",
+    maafwVersion: "5.14.0",
     updates: {
       features: [
         "🤯 MPE Desktop 重构归来，震撼美味！",
         "📱 现已全面支持 PI，内置 Interface Editor 与 MPE MfwTaskRunner ，编辑后丝滑切换任务执行",
         "📸 新增文字识别验证小工具，可在字段面板一键仿真",
       ],
-      perfs: ["优化 MPE Harness 对 PI 的支持"],
+      perfs: ["优化 MPE Harness 对 PI 与新字段的支持"],
       fixes: [
         "修复设备自动重连时的输入输出参数问题",
         "修复识图小工具索引错误的问题",
+      ],
+      maafw: [
+        "TouchDown / KeyDown 支持 auto_up，可在任务停止或结束时自动释放仍按住的触点与按键",
+        "修复新连接设备后，DirectHit 固定坐标动作首次执行失败的问题",
+        "focus 支持任意 JSON，导入导出保留原始类型和空值",
+        "PI welcome 支持多公告数组编辑与逐项国际化",
+        "补齐 PI Win32 键盘 Interception 配置校验",
       ],
     },
   },

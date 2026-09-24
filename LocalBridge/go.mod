@@ -2,7 +2,7 @@ module github.com/kqcoxn/MaaPipelineEditor/LocalBridge
 
 go 1.26.1
 
-// Upstream v4.0.0-beta.18 (33c558e4); local additions for MaaFramework 5.13.
+// Upstream v4.0.0-beta.18 (33c558e4); local additions for MaaFramework 5.14.
 replace github.com/MaaXYZ/maa-framework-go/v4 => ./third_party/maa-framework-go
 
 require (

@@ -5,6 +5,12 @@ import type { FieldType } from "../types";
  * 动作字段 Schema 定义
  */
 export const actionFieldSchema: Record<string, FieldType> = {
+  autoUp: {
+    key: "auto_up",
+    type: FieldTypeEnum.Bool,
+    default: false,
+    desc: "任务停止、正常结束或控制器销毁时，自动抬起仍按住的触点或按键。可选，默认 false；仅用于 TouchDown / KeyDown。已执行对应 TouchUp / KeyUp 的输入不会重复抬起。",
+  },
   // 点击相关
   clickTarget: {
     key: "target",

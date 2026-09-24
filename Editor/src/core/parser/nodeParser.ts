@@ -78,16 +78,8 @@ export function parsePipelineNodeForExport(
   const focus = others.focus;
   delete others.focus;
 
-  // 过滤空的 focus 字段
-  const hasValidFocus =
-    focus !== "" &&
-    focus !== null &&
-    focus !== undefined &&
-    !(
-      typeof focus === "object" &&
-      focus !== null &&
-      Object.keys(focus).length === 0
-    );
+  // focus 接受任意 JSON，包括 null、空字符串、空对象和空数组。
+  const hasValidFocus = focus !== undefined;
 
   // 额外字段
   const extras = JsonHelper.isObj(fNodeData.extras)

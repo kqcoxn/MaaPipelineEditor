@@ -74,6 +74,7 @@ export const actionFields: Record<string, FieldsType> = {
       actionFieldSchema.touchTarget,
       actionFieldSchema.targetOffset,
       actionFieldSchema.pressure,
+      actionFieldSchema.autoUp,
     ],
     desc: "按下触控点。",
   },
@@ -98,7 +99,7 @@ export const actionFields: Record<string, FieldsType> = {
     desc: "长按按键。",
   },
   KeyDown: {
-    params: [actionFieldSchema.longPressKey],
+    params: [actionFieldSchema.longPressKey, actionFieldSchema.autoUp],
     desc: "按下按键但不立即松开。可与 KeyUp 配合实现自定义按键时序。",
   },
   KeyUp: {

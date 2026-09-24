@@ -419,6 +419,12 @@ func (a *MaaFWAdapter) InitTasker() error {
 		return fmt.Errorf("资源未加载")
 	}
 
+	// DirectHit 流程不会主动截图，但坐标动作仍依赖控制器缓存图像的边界。
+	// 每次准备执行环境时取得当前分辨率的一帧，避免依赖用户先打开截图预览。
+	if _, err := a.screenshotter.Capture(); err != nil {
+		return fmt.Errorf("初始化任务截图失败: %w", err)
+	}
+
 	// 创建 Tasker
 	logger.Debug("MaaFW", "创建 Tasker...")
 	tasker, err := maa.NewTasker()
