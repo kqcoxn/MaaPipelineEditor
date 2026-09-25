@@ -26,22 +26,21 @@ func TestRuntimeLookupExcludesMacDebugSymbols(t *testing.T) {
 	}
 }
 
-func TestPackageEditorValidatesVersionAndCreatesIndependentArchive(t *testing.T) {
+func TestPackageEditorValidatesVersionAndReusesWebArchive(t *testing.T) {
 	dir := t.TempDir()
-	source := filepath.Join(dir, "source.zip")
+	source := filepath.Join(dir, "MaaPipelineEditor-v2.0.0-stable.zip")
 	if err := os.WriteFile(source, editorFixture(t, "2.0.0"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := packageEditor(source, filepath.Join(dir, "stage"), dir, "2.0.0")
+	artifact, err := packageEditor(source, filepath.Join(dir, "stage"), "2.0.0")
 	if err != nil {
 		t.Fatal(err)
 	}
-	archive := filepath.Join(dir, "mpe-editor.zip")
-	hash, err := fileHash(archive)
-	if err != nil || artifact.SHA256 != hash || artifact.URL != Repository+"/download/v2.0.0/mpe-editor.zip" {
+	hash, err := fileHash(source)
+	if err != nil || artifact.SHA256 != hash || artifact.URL != Repository+"/download/v2.0.0/MaaPipelineEditor-v2.0.0-stable.zip" {
 		t.Fatalf("invalid artifact: %+v %v", artifact, err)
 	}
-	r, err := zip.OpenReader(archive)
+	r, err := zip.OpenReader(source)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,8 +53,11 @@ func TestPackageEditorValidatesVersionAndCreatesIndependentArchive(t *testing.T)
 			t.Fatalf("unexpected entry: %s", file.Name)
 		}
 	}
-	if _, err := packageEditor(source, filepath.Join(dir, "bad-stage"), dir, "2.0.1"); err == nil {
+	if _, err := packageEditor(source, filepath.Join(dir, "bad-stage"), "2.0.1"); err == nil {
 		t.Fatal("packaged mismatched Editor")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "mpe-editor.zip")); !os.IsNotExist(err) {
+		t.Fatal("created redundant Editor archive")
 	}
 }
 

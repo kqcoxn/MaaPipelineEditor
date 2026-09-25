@@ -306,7 +306,10 @@ jobs:
             MaaPipelineEditor-${{ github.ref_name }}-landing.zip
             localbridge-artifacts/*
             environment-artifacts/*
-            desktop-artifacts/*
+            desktop-artifacts/*.exe
+            desktop-artifacts/*.dmg
+            desktop-artifacts/*.app.tar.gz
+            desktop-artifacts/mpe-desktop-updater.json
           body_path: CHANGELOG.md
           generate_release_notes: false
           draft: false

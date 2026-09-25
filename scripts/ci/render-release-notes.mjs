@@ -89,6 +89,9 @@ function normalizeVersion(version) {
 }
 
 function renderReleaseNotes({ currentTag, previousTag, log }) {
+  const downloadUrl = (name) =>
+    `${repoUrl}/releases/download/${currentTag}/${name}`;
+  const version = normalizeVersion(currentTag);
   const fullChangelogUrl = previousTag
     ? `${repoUrl}/compare/${previousTag}...${currentTag}`
     : `${repoUrl}/commits/${currentTag}`;
@@ -121,9 +124,15 @@ function renderReleaseNotes({ currentTag, previousTag, log }) {
   lines.push(
     "## 📦 发布说明",
     "",
+    "### 直接下载",
+    "",
+    `- **Windows 桌面端**：[下载安装程序](${downloadUrl(`MPE.Desktop_${version}_x64-setup.exe`)})`,
+    `- **macOS Apple Silicon 桌面端**：[下载 DMG](${downloadUrl(`MPE.Desktop_${version}_aarch64.dmg`)})`,
+    `- **Web 编辑器**：[下载静态资源包](${downloadUrl(`MaaPipelineEditor-${currentTag}-stable.zip`)})`,
+    "",
     "- **Docs**（`MaaPipelineEditor-*-docs.zip`）：文档站静态资源包",
     "- **Landing**（`MaaPipelineEditor-*-landing.zip`）：展示页（主页）静态资源包",
-    "- **Stable**（`MaaPipelineEditor-*-stable.zip`）：前端静态资源包，用于自部署在线编辑器",
+    "- **Stable**（`MaaPipelineEditor-*-stable.zip`）：前端静态资源包，也用于桌面端安装编辑器",
     "- **LocalBridge**（`mpelb-*`）：后端服务二进制（推荐使用[命令行工具](https://mpe.codax.site/docs/guide/server/deploy.html#%E6%96%B9%E5%BC%8F%E4%B8%80-%E4%B8%80%E9%94%AE%E5%AE%89%E8%A3%85-%E6%8E%A8%E8%8D%90)安装）",
     "- **Source code**：版本源代码",
     "",

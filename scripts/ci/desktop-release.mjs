@@ -76,13 +76,17 @@ if (action === "configure") {
 } else if (action === "collect") {
   const [source, destination] = args;
   await mkdir(destination, { recursive: true });
+  const collected = new Set();
   const visit = async (dir) => {
     for (const item of await readdir(dir, { withFileTypes: true })) {
       const full = path.join(dir, item.name);
       if (item.isDirectory()) {
         if (!item.name.endsWith(".app")) await visit(full);
       } else if (/\.(exe|dmg|sig)$|\.app\.tar\.gz$/.test(item.name)) {
-        await copyFile(full, path.join(destination, item.name));
+        const name = item.name.replaceAll(" ", ".");
+        if (collected.has(name)) throw new Error(`桌面产物重名: ${name}`);
+        collected.add(name);
+        await copyFile(full, path.join(destination, name));
       }
     }
   };

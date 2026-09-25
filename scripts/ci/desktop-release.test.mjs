@@ -68,7 +68,7 @@ test("collect rejects a macOS installer without its signed updater archive", asy
   await writeFile(path.join(source, "MPE Desktop.app.tar.gz.sig"), "signature");
   run();
   assert.equal(
-    await readFile(path.join(destination, "MPE Desktop.app.tar.gz.sig"), "utf8"),
+    await readFile(path.join(destination, "MPE.Desktop.app.tar.gz.sig"), "utf8"),
     "signature",
   );
 });
@@ -87,7 +87,7 @@ test("release manifest pairs the shared revision with signed artifacts for both 
       ],
       { stdio: "pipe" },
     );
-  for (const name of ["MPE Desktop.exe", "MPE Desktop.app.tar.gz"]) {
+  for (const name of ["MPE.Desktop.exe", "MPE.Desktop.app.tar.gz"]) {
     await writeFile(path.join(dir, name), "fixture");
     await writeFile(path.join(dir, `${name}.sig`), `signature for ${name}\n`);
   }
@@ -102,12 +102,12 @@ test("release manifest pairs the shared revision with signed artifacts for both 
   assert.equal(result.version, "1.20.0");
   assert.equal(
     result.platforms["windows-x86_64"].signature,
-    "signature for MPE Desktop.exe",
+    "signature for MPE.Desktop.exe",
   );
   assert.match(
     result.platforms["darwin-aarch64"].url,
-    /download\/v1\.20\.0\/MPE%20Desktop.app.tar.gz$/,
+    /download\/v1\.20\.0\/MPE.Desktop.app.tar.gz$/,
   );
-  await rm(path.join(dir, "MPE Desktop.exe.sig"));
+  await rm(path.join(dir, "MPE.Desktop.exe.sig"));
   assert.throws(run, /更新产物或签名/);
 });

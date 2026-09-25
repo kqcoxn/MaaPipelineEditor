@@ -68,7 +68,7 @@ Landing 的 `public/mpe-desktop.json` 随展示站点发布。MPE Desktop 请求
 
 Release 流水线生成 Windows x64 NSIS、macOS arm64 DMG、对应 MPE Desktop 更新资源，以及三平台 mpelb 配套环境。Go 打包器统一整理 MaaFramework、MaaAgentBinary 和 OCR，生成 SHA256 校验与 `mpe-manifest.json`。Editor 构建内的 `mpe-build.json` 必须与发布版本一致。
 
-每个平台的 `mpe-environment-<平台>.zip` 仅包含 mpelb 和 runtime，独立的 `mpe-editor.zip` 由所有平台共享。清单的 `platforms.<平台>.bundle` 描述基础包，顶层 `editor` 描述 Editor 下载地址及校验值；发布索引校验两类产物完整后才收录版本。桌面安装在同一事务中校验、替换两类资源，任何一步失败均恢复之前的环境。
+每个平台的 `mpe-environment-<平台>.zip` 仅包含 mpelb 和 runtime，`MaaPipelineEditor-*-stable.zip` 由 Web 自部署与所有平台的桌面安装共享。清单的 `platforms.<平台>.bundle` 描述基础包，顶层 `editor` 描述 Editor 下载地址及校验值；发布索引校验两类产物完整后才收录版本。桌面安装在同一事务中校验、替换两类资源，任何一步失败均恢复之前的环境。
 
 运行 `yarn migrate` 同步 Editor、MPE Desktop 配置、Cargo 与仓库发布版本；该命令不修改桌面修订号。
 

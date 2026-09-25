@@ -89,7 +89,7 @@ func BuildRelease(ctx context.Context, version, mfwVersion, binaries, editorArch
 		return err
 	}
 	m := Manifest{Version: version, ManagementProtocol: Protocol, MinimumDesktopRevision: minimumDesktopRevision, MFWVersion: strings.TrimPrefix(mfwVersion, "v"), Platforms: map[string]Platform{}}
-	m.Editor, err = packageEditor(editorArchive, filepath.Join(temp, "editor"), output, version)
+	m.Editor, err = packageEditor(editorArchive, filepath.Join(temp, "editor"), version)
 	if err != nil {
 		return err
 	}
@@ -155,28 +155,24 @@ func BuildRelease(ctx context.Context, version, mfwVersion, binaries, editorArch
 			return err
 		}
 		base := Repository + "/download/v" + version + "/"
-		if err = os.WriteFile(filepath.Join(output, binaryAsset+".sha256"), []byte(binaryChecksum+"  "+binaryAsset+"\n"), 0644); err != nil {
-			return err
-		}
 		m.Platforms[target.Key] = Platform{Bundle: Artifact{base + filename, checksum}, Binary: Artifact{base + binaryAsset, binaryChecksum}}
 	}
 	return writeJSON(filepath.Join(output, "mpe-manifest.json"), m)
 }
 
-// Editor is platform independent and is downloaded only for desktop installs.
-func packageEditor(source, stage, output, version string) (Artifact, error) {
+// The validated Web archive is also the platform-independent desktop Editor.
+func packageEditor(source, stage, version string) (Artifact, error) {
+	name := "MaaPipelineEditor-v" + version + "-stable.zip"
+	if filepath.Base(source) != name {
+		return Artifact{}, fmt.Errorf("Editor 构建产物名称应为 %s", name)
+	}
 	if err := extract(source, stage); err != nil {
 		return Artifact{}, err
 	}
 	if err := validateEditor(stage, version); err != nil {
 		return Artifact{}, err
 	}
-	const name = "mpe-editor.zip"
-	destination := filepath.Join(output, name)
-	if err := zipTree(stage, destination); err != nil {
-		return Artifact{}, err
-	}
-	hash, err := fileHash(destination)
+	hash, err := fileHash(source)
 	return Artifact{URL: Repository + "/download/v" + version + "/" + name, SHA256: hash}, err
 }
 func findFile(root, name string) (string, error) {
