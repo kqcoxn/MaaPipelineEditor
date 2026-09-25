@@ -335,6 +335,9 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	if managedMode {
 		cfg.Server.Host = "127.0.0.1"
+		// Desktop reads the bound address from service discovery; let the OS
+		// allocate a free port instead of competing with the standalone port.
+		cfg.Server.Port = 0
 		cfg.Server.AllowedOrigins = append(cfg.Server.AllowedOrigins, "http://mpe.localhost", "mpe://localhost")
 	}
 	// 创建 WebSocket 服务器

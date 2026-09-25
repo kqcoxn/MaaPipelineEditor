@@ -4,11 +4,46 @@ import (
 	"net"
 	"net/http/httptest"
 	"testing"
+	"time"
+
+	"github.com/gorilla/websocket"
 
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/eventbus"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 )
+
+func TestDynamicPortReportsConnectableAddress(t *testing.T) {
+	if err := logger.Init("error", "", false); err != nil {
+		t.Fatal(err)
+	}
+	s := NewWebSocketServer("127.0.0.1", 0, eventbus.New(), nil)
+	defer s.Stop()
+	ready := make(chan string, 1)
+	done := make(chan error, 1)
+	go func() { done <- s.StartWithReady(func(address string) { ready <- address }) }()
+	select {
+	case address := <-ready:
+		connection, _, err := websocket.DefaultDialer.Dial(address, nil)
+		if err != nil {
+			t.Fatalf("reported address is not connectable: %s: %v", address, err)
+		}
+		connection.Close()
+	case err := <-done:
+		t.Fatalf("server exited before ready: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("server did not report ready")
+	}
+	s.Stop()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("server did not stop")
+	}
+}
 
 func TestBindFailureNeverReportsReady(t *testing.T) {
 	if err := logger.Init("error", "", false); err != nil {
