@@ -20,15 +20,6 @@ if (action === "configure") {
       "MPE Desktop 版本与 release tag 不一致，请运行 yarn migrate",
     );
   const required = ["MPE_UPDATER_PUBLIC_KEY", "TAURI_SIGNING_PRIVATE_KEY"];
-  if (process.platform === "darwin")
-    required.push(
-      "APPLE_CERTIFICATE",
-      "APPLE_CERTIFICATE_PASSWORD",
-      "APPLE_SIGNING_IDENTITY",
-      "APPLE_ID",
-      "APPLE_PASSWORD",
-      "APPLE_TEAM_ID",
-    );
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length && process.env.MPE_OFFICIAL_RELEASE === "true")
     throw new Error(`正式 MPE Desktop 发布缺少配置: ${missing.join(", ")}`);
@@ -37,7 +28,7 @@ if (action === "configure") {
     JSON.stringify({
       bundle: {
         createUpdaterArtifacts: missing.length === 0,
-        ...(process.platform === "darwin" && !process.env.APPLE_SIGNING_IDENTITY
+        ...(process.platform === "darwin"
           ? { macOS: { signingIdentity: "-" } }
           : {}),
       },

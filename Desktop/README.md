@@ -87,7 +87,8 @@ Release 流水线生成 Windows x64 NSIS、macOS arm64 DMG、对应 MPE Desktop 
 
 - Repository variable：`MPE_UPDATER_PUBLIC_KEY`。
 - Secrets：`TAURI_SIGNING_PRIVATE_KEY`、可选的 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。
-- macOS secrets：`APPLE_CERTIFICATE`、`APPLE_CERTIFICATE_PASSWORD`、`APPLE_SIGNING_IDENTITY`、`APPLE_ID`、`APPLE_PASSWORD`、`APPLE_TEAM_ID`。
+
+macOS 安装包在流水线中使用临时签名，不需要仓库提供 Apple 证书或公证凭据。开发者如需正式签名与公证，可下载构建产物后自行处理；临时签名的安装包可能需要用户在系统隐私与安全性设置中手动允许打开。Tauri 更新产物仍使用上述独立密钥签名。
 
 签名私钥由维护者保存，不提交仓库。缺少正式发布配置时流水线失败，不发布不完整的更新清单。手动工作流允许构建未配置更新签名的验收产物；这些产物不能用来验证正式自动更新。
 
