@@ -26,6 +26,11 @@ if (action === "configure") {
   await writeFile(
     "Desktop/src-tauri/release.conf.json",
     JSON.stringify({
+      plugins: {
+        updater: {
+          pubkey: process.env.MPE_UPDATER_PUBLIC_KEY || "",
+        },
+      },
       bundle: {
         createUpdaterArtifacts: missing.length === 0,
         ...(process.platform === "darwin"
