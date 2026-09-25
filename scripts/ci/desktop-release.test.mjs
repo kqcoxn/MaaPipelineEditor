@@ -39,6 +39,40 @@ test("official desktop config embeds the updater key and uses ad-hoc macOS signi
   assert.equal(mac.bundle.macOS.signingIdentity, "-");
 });
 
+test("collect rejects a macOS installer without its signed updater archive", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mpe-desktop-collect-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const source = path.join(dir, "bundle");
+  const destination = path.join(dir, "artifacts");
+  await mkdir(source);
+  await writeFile(path.join(source, "MPE Desktop.dmg"), "installer");
+  const script = new URL("./desktop-release.mjs", import.meta.url);
+  const run = () =>
+    execFileSync(
+      process.execPath,
+      [
+        "-e",
+        `Object.defineProperty(process, "platform", { value: "darwin" }); process.argv = ["node", "script", "collect", ${JSON.stringify(source)}, ${JSON.stringify(destination)}]; import(${JSON.stringify(script.href)})`,
+      ],
+      {
+        env: {
+          ...process.env,
+          MPE_UPDATER_PUBLIC_KEY: "fixture-public-key",
+          TAURI_SIGNING_PRIVATE_KEY: "fixture-private-key",
+        },
+        stdio: "pipe",
+      },
+    );
+  assert.throws(run, /缺少 darwin 更新产物或签名/);
+  await writeFile(path.join(source, "MPE Desktop.app.tar.gz"), "updater");
+  await writeFile(path.join(source, "MPE Desktop.app.tar.gz.sig"), "signature");
+  run();
+  assert.equal(
+    await readFile(path.join(destination, "MPE Desktop.app.tar.gz.sig"), "utf8"),
+    "signature",
+  );
+});
+
 test("release manifest pairs the shared revision with signed artifacts for both platforms", async (t) => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mpe-desktop-release-"));
   t.after(() => rm(dir, { recursive: true, force: true }));

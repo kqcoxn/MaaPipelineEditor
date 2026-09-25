@@ -87,6 +87,13 @@ if (action === "configure") {
     }
   };
   await visit(source);
+  if (process.env.MPE_UPDATER_PUBLIC_KEY && process.env.TAURI_SIGNING_PRIVATE_KEY) {
+    const files = await readdir(destination);
+    const suffix = process.platform === "darwin" ? ".app.tar.gz" : ".exe";
+    const updatePackage = files.find((name) => name.endsWith(suffix));
+    if (!updatePackage || !files.includes(`${updatePackage}.sig`))
+      throw new Error(`缺少 ${process.platform} 更新产物或签名`);
+  }
 } else {
   throw new Error(
     "Usage: desktop-release.mjs configure | collect <bundle> <output> | manifest <output> <version>",
