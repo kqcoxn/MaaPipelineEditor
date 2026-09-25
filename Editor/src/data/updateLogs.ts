@@ -67,7 +67,7 @@ export const pinnedNotice: PinnedNotice = {
   type: "info",
   content: [
     "**第一次使用？请务必完整预览** [快速上手](https://mpe.codax.site/docs/guide/start/quick-start.html) **以确保您了解如何使用。**",
-    "**MPE LocalBridge 已上线**！已全面支持**本地文档管理**、**OCR/截图/ROI快捷填充**与**流程化调试**等功能，我们十分推荐您尝试，详情可查阅 [本地服务文档](https://mpe.codax.site/docs/guide/server/deploy.html)",
+    "**MPE Desktop 已上线**！性能更强，管理更方便。可在桌面端管理项目、安装配套环境并启动编辑器。详情请参阅 [MPE Desktop 桌面应用](https://mpe.codax.site/docs/guide/start/desktop.html)",
     "MPE 已深度集成至 **VSCode 插件**，详见 [VSCode 嵌入文档](https://mpe.codax.site/docs/guide/mse/overview.html)",
   ],
 };
@@ -77,6 +77,13 @@ export const pinnedNotice: PinnedNotice = {
  * 数组顺序即展示顺序，留空时不显示精选内容区域
  */
 export const featuredNews: FeaturedNewsItem[] = [
+  {
+    title: "MPE 2.0：行至此刻",
+    summary: "从 YAMaaPE 到 MPE 2.0，回望一路走来的探索、转变与初心",
+    category: "开发文档",
+    date: "2026-09-25",
+    url: "https://mpe.codax.site/docs/resources/reports/mpe-2.html",
+  },
   {
     title: "回到手感：1.9.3 性能更新",
     summary:
@@ -110,12 +117,12 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v2.0.0",
+  title: "Next Version 至 v2.1.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
       theme: "PI",
-      title: "interface 功能开发",
+      title: "interface 功能优化",
       description: "深度集成 interface",
     },
   ],
@@ -124,7 +131,7 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.0",
-    date: "2026-9-24",
+    date: "2026-9-25",
     type: "major",
     maafwVersion: "5.14.0",
     updates: {

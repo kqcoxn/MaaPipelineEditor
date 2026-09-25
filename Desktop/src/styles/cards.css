@@ -47,11 +47,20 @@
   margin: 0;
   color: #edf4ff;
 }
+.carousel-story-slot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
 .hero-story {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 100%;
+  height: 100%;
+  max-width: none;
   padding: 0;
   gap: 0;
   overflow: hidden;
@@ -61,11 +70,12 @@
   color: var(--text);
   text-shadow: none;
   margin-top: 0;
-  transform-origin: left bottom;
+  /* Resize the image's layout box so WebView redraws it at the enlarged size. */
   transition:
     border-color var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-normal) var(--ease-out),
-    transform 420ms var(--ease-out);
+    width 420ms var(--ease-out),
+    height 420ms var(--ease-out);
 }
 .hero-story:focus-visible {
   border-color: #ffffff60;
@@ -75,7 +85,7 @@
   position: relative;
   isolation: isolate;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   border-radius: inherit;
   overflow: hidden;
 }
@@ -165,7 +175,6 @@
   .hero-story:hover {
     border-color: #ffffff60;
     box-shadow: 0 4px 14px #06162d30;
-    transform: scale(1.35);
   }
   .hero-story:hover .carousel-link-icon {
     background: #17263ed9;
@@ -173,6 +182,12 @@
   }
   .hero-story:hover .carousel-link-icon svg {
     transform: translate(1px, -1px);
+  }
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero-story:hover {
+    width: 135%;
+    height: 135%;
   }
 }
 @media (max-height: 720px) {

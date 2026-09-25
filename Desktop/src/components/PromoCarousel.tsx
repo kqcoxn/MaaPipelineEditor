@@ -39,7 +39,9 @@ export function PromoCarousel({ slides }: { slides: LinkItem[] }) {
           setFocused(false);
       }}
     >
-      <CarouselStory slides={slides} requested={current} reduced={reduced} />
+      <div className="carousel-story-slot">
+        <CarouselStory slides={slides} requested={current} reduced={reduced} />
+      </div>
       {slides.length > 1 && (
         <div className="slide-controls" aria-label="宣传内容切换">
           {slides.map((item, i) => (

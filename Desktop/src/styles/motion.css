@@ -164,7 +164,6 @@
     scroll-behavior: auto !important;
   }
   .button:hover:not(:disabled),
-  .hero-story:hover,
   .button:active:not(:disabled),
   .sidebar button:active:not(:disabled),
   .project-select:active:not(:disabled),

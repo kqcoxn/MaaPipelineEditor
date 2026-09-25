@@ -1,7 +1,8 @@
 {
  "schemaVersion":1,
- "revision":1,
+ "revision":2,
  "slides":[
+  {"title":"MPE 2.0：行至此刻","description":"从 YAMaaPE 到 MPE 2.0，回望一路走来的探索、转变与初心。","image":"https://mpe.codax.site/landing/reports/mpe-2-journey-v2.png","url":"https://mpe.codax.site/docs/resources/reports/mpe-2"},
   {"title":"回到手感：MPE 性能工程白皮书","description":"了解 MPE 1.9.3 如何减少大图编辑中的额外计算与响应延迟。","image":"https://mpe.codax.site/landing/reports/mpe-performance-193.png","url":"https://mpe.codax.site/docs/resources/reports/perf193"}
  ],
  "news":[{"title":"MPE 使用指南","description":"从第一个节点开始，了解编辑、配置与本地调试。","url":"https://mpe.codax.site/docs/"},{"title":"更新日志","description":"查看新功能、优化和修复。","url":"https://github.com/kqcoxn/MaaPipelineEditor/releases"}],
