@@ -349,6 +349,13 @@ pub async fn github_token_status(window: WebviewWindow) -> Result<bool, String> 
         .map_err(|e| e.to_string())?
 }
 #[tauri::command]
+pub async fn release_notes(window: WebviewWindow, version: String) -> Result<String, String> {
+    authorize(&window, "launcher")?;
+    tauri::async_runtime::spawn_blocking(move || crate::releases::notes(&version))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command]
 pub async fn save_github_token(
     window: WebviewWindow,
     app: tauri::AppHandle,

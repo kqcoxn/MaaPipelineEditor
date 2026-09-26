@@ -10,6 +10,10 @@ use std::{path::Path, sync::Mutex};
 const TTL: u64 = 3600;
 static LOCK: Mutex<()> = Mutex::new(());
 
+pub fn notes(version: &str) -> Result<String, String> {
+    transport::notes(version)
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Index {

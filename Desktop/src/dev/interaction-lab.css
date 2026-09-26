@@ -1,0 +1,24 @@
+.interaction-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.interaction-lab .page-heading {
+  margin-bottom: 0;
+}
+.lab-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.lab-preview {
+  padding: 16px;
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.lab-preview p {
+  margin: 0 0 10px;
+  overflow-wrap: anywhere;
+}

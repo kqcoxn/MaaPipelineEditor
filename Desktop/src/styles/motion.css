@@ -118,9 +118,6 @@
     border-color var(--motion-fast) var(--ease-out),
     box-shadow var(--motion-fast) var(--ease-out);
 }
-.banner {
-  animation: content-arrive 220ms var(--ease-out) both;
-}
 .modal-backdrop {
   animation: fade-arrive 180ms ease-out both;
 }

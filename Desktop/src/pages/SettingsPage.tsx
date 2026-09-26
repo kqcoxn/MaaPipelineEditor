@@ -24,19 +24,21 @@ export function SettingsPage({ model: m }: { model: Model }) {
     description: string,
     disabled = false,
   ) => (
-    <label className="setting-row">
+    <div className="setting-row">
       <span>
-        <strong>{label}</strong>
-        <small>{description}</small>
+        <strong id={`setting-${key}-label`}>{label}</strong>
+        <small id={`setting-${key}-description`}>{description}</small>
       </span>
       <input
         type="checkbox"
         role="switch"
+        aria-labelledby={`setting-${key}-label`}
+        aria-describedby={`setting-${key}-description`}
         disabled={m.busy || disabled}
         checked={s[key]}
         onChange={(e) => void m.save({ [key]: e.target.checked })}
       />
-    </label>
+    </div>
   );
   return (
     <div className="settings-page">

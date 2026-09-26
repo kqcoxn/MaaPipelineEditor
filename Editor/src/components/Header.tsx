@@ -1,3 +1,4 @@
+import { useUpdateLog } from "@/hooks/useUpdateLog";
 import { desktopContext } from "@/features/desktop/host";
 import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Header.module.less";
@@ -251,9 +252,10 @@ const DeviceConnectionButton: React.FC<{ onOpenPanel: () => void }> = ({
 function Header() {
   const { isDark, toggleTheme } = useTheme();
   const { isEmbed } = useEmbedMode();
-  const [updateLogOpen, setUpdateLogOpen] = useState(false);
-  const [lastOpenedVersion, setLastOpenedVersion] = useState<string | null>(
-    null,
+  const { updateLogOpen, setUpdateLogOpen, lastOpenedVersion } = useUpdateLog(
+    globalConfig.version,
+    isEmbed,
+    Boolean(desktopContext),
   );
   const {
     isActive: connectionPanelOpen,
@@ -274,39 +276,6 @@ function Header() {
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
   }, []);
-
-  // 检测版本更新
-  useEffect(() => {
-    if (desktopContext) return;
-    if (localStorage.getItem("mpe_newcomer_passed") !== "true") return;
-
-    const lastVersion = localStorage.getItem("mpe_last_version");
-    const currentVersion = globalConfig.version;
-    if (lastVersion === currentVersion) return;
-
-    setLastOpenedVersion(lastVersion);
-    let openTimer: number | null = null;
-    if (!isEmbed) {
-      openTimer = window.setTimeout(() => {
-        setUpdateLogOpen(true);
-      }, 500);
-    }
-    localStorage.setItem("mpe_last_version", currentVersion);
-
-    return () => {
-      if (openTimer !== null) {
-        window.clearTimeout(openTimer);
-      }
-    };
-  }, [isEmbed]);
-
-  // 答题通过后弹出更新日志
-  useEffect(() => {
-    if (isEmbed || desktopContext) return;
-    const handler = () => setUpdateLogOpen(true);
-    window.addEventListener("mpe:newcomer-passed", handler);
-    return () => window.removeEventListener("mpe:newcomer-passed", handler);
-  }, [isEmbed]);
 
   // 检查新版本
   useEffect(() => {

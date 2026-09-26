@@ -6,6 +6,71 @@ use std::{io::Read, path::Path, time::Duration};
 
 const SITE: &str = "https://mpe.codax.site/landing/mpe-versions.json";
 const API: &str = "https://api.github.com/repos/kqcoxn/MaaPipelineEditor/releases";
+pub(super) fn notes(version: &str) -> Result<String, String> {
+    let parsed = semver::Version::parse(version).map_err(|_| "版本号无效")?;
+    if !parsed.pre.is_empty() || !parsed.build.is_empty() {
+        return Err("请选择正式发布版本".into());
+    }
+    let client = Client::builder()
+        .user_agent("MPE-Desktop")
+        .redirect(reqwest::redirect::Policy::none())
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|_| "无法创建更新日志客户端")?;
+    let mut request = client
+        .get(format!("{API}/tags/v{parsed}"))
+        .header("Accept", "application/vnd.github+json");
+    if let Ok(Some(token)) = crate::credentials::read() {
+        request = request.bearer_auth(token);
+    }
+    let response = request
+        .send()
+        .map_err(|_| "无法获取更新日志，请检查网络或代理")?;
+    match response.status().as_u16() {
+        200 => {}
+        404 => return Err("此版本尚未发布更新日志".into()),
+        401 => return Err("GitHub Token 无效，请在设置中更新或清除".into()),
+        403 | 429 => return Err("GitHub 请求受限，请稍后重试".into()),
+        _ => return Err("获取更新日志失败，请稍后重试".into()),
+    }
+    let value = json_response(response)?;
+    notes_body(value, &parsed.to_string())
+}
+fn notes_body(value: Value, version: &str) -> Result<String, String> {
+    if value["tag_name"] != format!("v{version}") || value["draft"] != false {
+        return Err("更新日志版本不匹配".into());
+    }
+    Ok(value["body"]
+        .as_str()
+        .filter(|body| !body.trim().is_empty())
+        .ok_or("此版本未提供更新说明")?
+        .to_owned())
+}
+#[cfg(test)]
+mod notes_tests {
+    use super::*;
+
+    #[test]
+    fn notes_reject_wrong_versions_drafts_and_empty_content() {
+        let value = json!({"tag_name":"v2.0.1", "draft":false, "body":"## Fixes\n- fixed"});
+        assert_eq!(
+            notes_body(value.clone(), "2.0.1").unwrap(),
+            "## Fixes\n- fixed"
+        );
+        assert!(notes_body(value, "2.0.0").is_err());
+        assert!(notes_body(
+            json!({"tag_name":"v2.0.1", "draft":true, "body":"hidden"}),
+            "2.0.1"
+        )
+        .is_err());
+        assert!(notes_body(
+            json!({"tag_name":"v2.0.1", "draft":false, "body":"  "}),
+            "2.0.1"
+        )
+        .is_err());
+        assert!(notes("../../releases").is_err());
+    }
+}
 fn json_response(response: Response) -> Result<Value, String> {
     let mut bytes = Vec::new();
     response

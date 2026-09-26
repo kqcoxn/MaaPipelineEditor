@@ -4,7 +4,12 @@ import { listen } from "@tauri-apps/api/event";
 import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
 import { runAutomaticUpdates, updateEnvironment } from "./lib/automaticUpdate";
-import type { FeedbackScope, NoticeKind } from "./lib/feedback";
+import {
+  clearFeedback,
+  setError,
+  setNotice,
+  type FeedbackScope,
+} from "./lib/feedback";
 export { newer } from "./lib/automaticUpdate";
 import {
   parseInstallProgress,
@@ -15,15 +20,6 @@ export const openLink = (url: string) => invoke("open_link", { url });
 export function useLauncher() {
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [busy, setBusy] = useState(false);
-  const [error, saveError] = useState("");
-  const [notice, saveNotice] = useState("");
-  const setError = useCallback((message: string, _scope?: FeedbackScope) => saveError(message), []);
-  const setNotice = useCallback((message: string, kind?: NoticeKind, _scope?: FeedbackScope) => {
-    if (kind === "error") saveError(message);
-    else saveNotice(message);
-  }, []);
-  const clearFeedback = useCallback((_scope?: FeedbackScope) => saveError(""), []);
-
   const [installationProgress, setInstallationProgress] =
     useState<InstallProgress>({ text: "" });
   const { text: progress, download: downloadProgress } = installationProgress;
@@ -185,8 +181,6 @@ export function useLauncher() {
   return {
     snapshot,
     busy,
-    error,
-    notice,
     progress,
     downloadProgress,
     content,

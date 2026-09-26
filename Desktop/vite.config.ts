@@ -5,6 +5,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   clearScreen: false,
   base: "./",
-  server: { host: "127.0.0.1", port: 1420, strictPort: true },
+  server: {
+    host: "127.0.0.1",
+    port: 1420,
+    strictPort: true,
+    fs: { allow: [".", "../Editor/src/data"] },
+  },
   envPrefix: ["VITE_", "TAURI_ENV_"],
 });

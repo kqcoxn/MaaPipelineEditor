@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DownloadProgressBar } from "../components/DownloadProgressBar";
+import { ReleaseNotes } from "../components/ReleaseNotes";
 import { RefreshCw, Download, ExternalLink } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../components/ui/button";
@@ -23,28 +24,42 @@ export function Engine({ model: m }: { model: Model }) {
   const [stopFailed, setStopFailed] = useState(false);
   const install = () =>
     m.run(async () => {
-      await invoke("install_environment", { version: choice });
+      m.setNotice("正在下载并安装 MPE", "pending", "environment");
+      const installed = await invoke<{ version: string }>(
+        "install_environment",
+        { version: choice },
+      );
       await invoke("save_settings", {
         settings: {
           ...s!.settings,
           fixedVersion: choice === "latest" ? null : choice,
         },
       });
-      m.setNotice("环境已切换，版本已立即生效");
-    });
+      m.setNotice(
+        `Editor 与 LB 已更新至 ${installed.version}`,
+        "success",
+        "environment",
+      );
+    }, "environment");
   const conflict = s && s.service.state !== "stopped";
   return (
     <div className="environment-page">
       <div className="page-heading">
         <h1>环境管理</h1>
-        <Button
-          variant="secondary"
-          disabled={m.busy}
-          onClick={() => void m.run(() => invoke("check_environment"))}
-        >
-          <RefreshCw size={16} />
-          检查环境
-        </Button>
+        <div className="actions">
+          <ReleaseNotes
+            available={m.versions}
+            installed={s?.environment.version}
+          />
+          <Button
+            variant="secondary"
+            disabled={m.busy}
+            onClick={() => void m.run(() => invoke("check_environment"))}
+          >
+            <RefreshCw size={16} />
+            检查环境
+          </Button>
+        </div>
       </div>
       <section className="panel environment-install">
         <div className="environment-summary">
@@ -119,32 +134,30 @@ export function Engine({ model: m }: { model: Model }) {
             </Button>
           </div>
           <div className="environment-notes">
-            <p className="hint">
-              Editor 与 mpelb 始终成组安装。版本切换也会改变终端使用的全局
-              mpelb。
-            </p>
             {m.progress && (
               <p className="hint" role="status">
                 {m.progress}
               </p>
             )}
             <DownloadProgressBar progress={m.downloadProgress} />
-            {m.versionInfo && (
-              <p className="hint">
-                版本来源：
-                {m.versionInfo.source === "github"
-                  ? "GitHub（Token）"
-                  : "静态索引"}
-                {m.versionInfo.cached ? " · 本地缓存" : ""}
-                {m.versionInfo.checkedAt > 0
-                  ? ` · ${new Date(m.versionInfo.checkedAt * 1000).toLocaleString()}`
-                  : ""}
-              </p>
-            )}
-            {m.updateStatus && (
-              <p className="hint problem" role="status">
+            {!m.progress && m.updateStatus && (
+              <p className="hint" role="status">
                 {m.updateStatus}
               </p>
+            )}
+            {m.versionInfo && (
+              <details className="hint">
+                <summary>检查详情</summary>
+                <p>
+                  来源：
+                  {m.versionInfo.source === "github" ? "GitHub" : "发布索引"}
+                  {m.versionInfo.cached ? " · 缓存" : ""}
+                  {m.versionInfo.checkedAt > 0
+                    ? ` · ${new Date(m.versionInfo.checkedAt * 1000).toLocaleString()}`
+                    : ""}
+                </p>
+                {m.versionInfo.warning && <p>{m.versionInfo.warning}</p>}
+              </details>
             )}
             {s?.running && (
               <p className="hint">

@@ -84,6 +84,7 @@ fn main() {
             commands::choose_background,
             commands::homepage,
             commands::release_versions,
+            commands::release_notes,
             commands::github_token_status,
             commands::save_github_token,
             commands::update_desktop,

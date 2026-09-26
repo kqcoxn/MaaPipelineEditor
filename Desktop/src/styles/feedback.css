@@ -1,64 +1,73 @@
-/* Independent overlay: a failed update must not push the homepage down. */
-.launcher-feedback {
-  position: absolute;
-  z-index: 5;
-  top: 28px;
-  right: var(--workspace-inset);
-  width: min(400px, calc(100% - var(--workspace-inset) * 2));
-  max-height: min(360px, 55%);
-  overflow: auto;
-  scrollbar-width: thin;
-  pointer-events: none;
+/* Sonner owns focus, dismissal, hover pausing and reduced-motion behavior. */
+.app .launcher-feedback[data-sonner-toaster] {
+  --normal-bg: var(--bg);
+  --normal-border: var(--line);
+  --normal-text: var(--text);
+  font-family: var(--font-sans);
 }
-.launcher-feedback:empty {
-  display: none;
-}
-.launcher-feedback .banner {
-  pointer-events: auto;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 0 8px;
+.launcher-feedback [data-sonner-toast][data-styled="true"] {
+  padding: 14px 48px 14px 16px;
+  gap: 12px;
   border-radius: 12px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
-}
-.launcher-feedback .banner:last-child {
-  margin-bottom: 0;
-}
-.launcher-feedback .banner button {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-}
-.launcher-feedback .banner button:hover {
-  background: var(--panel-hover);
-}
-.launcher-feedback .banner button:focus-visible {
-  outline-offset: -2px;
-}
-.feedback-copy {
-  min-width: 0;
-  flex: 1;
-}
-.feedback-copy strong {
-  font-weight: 600;
-}
-.feedback-copy p {
-  margin: 6px 0 0;
-}
-.feedback-copy details {
-  margin-top: 6px;
-  color: var(--muted);
   font-size: var(--font-caption);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
-.feedback-copy summary {
+.launcher-feedback [data-sonner-toast] [data-content] {
+  min-width: 0;
+}
+/* The single visible notification can grow when native error details open. */
+.launcher-feedback [data-sonner-toast][data-mounted="true"][data-expanded="true"] {
+  height: auto;
+}
+.launcher-feedback [data-sonner-toast][data-styled="true"] [data-description] {
+  color: var(--muted);
+}
+.launcher-feedback [data-type="success"] [data-icon] {
+  color: var(--success);
+}
+.launcher-feedback [data-type="info"] [data-icon] {
+  color: var(--accent);
+}
+.launcher-feedback [data-type="error"] [data-icon] {
+  color: var(--danger);
+}
+.launcher-feedback [data-type="warning"] [data-icon] {
+  color: var(--warning);
+}
+.launcher-feedback [data-sonner-toast][data-styled="true"] [data-close-button] {
+  top: 9px;
+  right: 8px;
+  left: auto;
+  transform: none;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+}
+.launcher-feedback
+  [data-sonner-toast][data-styled="true"]
+  [data-close-button]:hover {
+  background: var(--panel-hover);
+  color: var(--text);
+}
+.feedback-details {
+  margin-top: 6px;
+}
+.feedback-details summary {
   cursor: pointer;
   width: fit-content;
 }
-.feedback-copy details p {
+.feedback-details pre {
+  max-height: min(240px, 40vh);
+  overflow: auto;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 8px 0 0;
+  font: inherit;
 }
 .download-progress {
   display: block;

@@ -55,6 +55,10 @@
   display: grid;
   gap: 6px;
 }
+.environment-notes summary {
+  cursor: pointer;
+  width: fit-content;
+}
 .environment-page .conflict {
   display: grid;
   gap: 12px;

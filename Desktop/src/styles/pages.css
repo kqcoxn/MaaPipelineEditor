@@ -206,29 +206,6 @@
 .setting-row input:checked:after {
   transform: translateX(16px);
 }
-.banner {
-  display: flex;
-  gap: 15px;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 7px;
-  margin-bottom: 15px;
-  font-size: var(--font-body);
-  line-height: 1.6;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  overflow-wrap: anywhere;
-}
-.banner.error {
-  background: var(--panel);
-  border-color: var(--danger);
-  color: var(--danger);
-}
-.banner button {
-  background: none;
-  border: 0;
-  flex: none;
-}
 .modal-backdrop {
   position: fixed;
   inset: 0;

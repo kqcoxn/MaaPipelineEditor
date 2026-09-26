@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   House,
@@ -11,6 +11,7 @@ import {
   LogOut,
   ScrollText,
   ArrowRight,
+  FlaskConical,
 } from "lucide-react";
 import { LauncherFeedback } from "./components/LauncherFeedback";
 import { SkyWorkflow } from "./components/SkyWorkflow";
@@ -24,6 +25,9 @@ import { useLauncher, openLink } from "./model";
 import { prepareLauncherImages, revealWhenReady } from "./lib/startup";
 import { builtinBackgrounds, useBackground } from "./lib/useBackground";
 import "./style.css";
+const InteractionLab = import.meta.env.DEV
+  ? lazy(() => import("./dev/InteractionLab"))
+  : null;
 // Apply to the entire launcher document, including menus/dialogs rendered in portals.
 document.addEventListener("contextmenu", (event) => event.preventDefault(), true);
 
@@ -49,6 +53,7 @@ function App() {
     { id: "engine", label: "环境管理", icon: Box },
     { id: "logs", label: "日志", icon: ScrollText },
     { id: "settings", label: "设置", icon: Settings },
+    ...(import.meta.env.DEV ? [{ id: "lab", label: "交互测试", icon: FlaskConical }] : []),
   ];
   const onboarding = async (check: boolean) => {
     await m.run(async () => {
@@ -168,6 +173,10 @@ function App() {
             <Engine model={m} />
           ) : page === "logs" ? (
             <Logs />
+          ) : page === "lab" && InteractionLab ? (
+            <Suspense fallback={<p className="hint">正在加载测试面板…</p>}>
+              <InteractionLab />
+            </Suspense>
           ) : (
             <SettingsPage model={m} />
           )}

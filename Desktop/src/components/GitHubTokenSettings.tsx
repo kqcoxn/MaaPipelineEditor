@@ -31,11 +31,11 @@ export function GitHubTokenSettings({
       setToken("");
       setError("");
       m.setNotice(
-        value.trim()
-          ? "GitHub Token 已保存，下次查询优先使用认证 API"
-          : "GitHub Token 已清除，使用静态版本索引",
+        value.trim() ? "GitHub Token 已保存" : "GitHub Token 已清除",
+        "success",
+        "token",
       );
-    });
+    }, "token");
   return (
     <section className="panel token-settings">
       <div className="token-description">
