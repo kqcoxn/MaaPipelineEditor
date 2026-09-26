@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updatehttp"
 )
 
 // BuildRelease normalizes upstream runtime archives once at release time.
@@ -40,7 +42,9 @@ func BuildRelease(ctx context.Context, version, mfwVersion, binaries, editorArch
 				req.Header.Set("Authorization", "Bearer "+token)
 			}
 		}
-		resp, err := (&http.Client{Timeout: 30 * time.Minute}).Do(req)
+		client := updatehttp.NewClient(30 * time.Minute)
+		defer client.CloseIdleConnections()
+		resp, err := client.Do(req)
 		if err != nil {
 			return err
 		}

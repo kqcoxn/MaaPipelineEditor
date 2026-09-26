@@ -11,6 +11,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updatehttp"
 )
 
 const Repository = "https://github.com/kqcoxn/MaaPipelineEditor/releases"
@@ -70,7 +72,8 @@ func FetchManifest(ctx context.Context, version string) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := updatehttp.NewClient(30 * time.Second)
+	defer client.CloseIdleConnections()
 	resp, err := client.Do(req)
 	if err != nil {
 		return Manifest{}, err

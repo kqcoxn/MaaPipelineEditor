@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updatehttp"
 )
 
 func downloadWithProgress(ctx context.Context, a Artifact, destination string, report func(DownloadProgress)) error {
@@ -24,7 +26,8 @@ func downloadWithProgress(ctx context.Context, a Artifact, destination string, r
 	if err != nil {
 		return err
 	}
-	client := &http.Client{Timeout: 30 * time.Minute}
+	client := updatehttp.NewClient(30 * time.Minute)
+	defer client.CloseIdleConnections()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err

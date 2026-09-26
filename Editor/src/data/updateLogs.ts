@@ -135,7 +135,10 @@ export const updateLogs: UpdateLogItem[] = [
     type: "fix",
     maafwVersion: "5.14.0",
     updates: {
-      perfs: ["优化依赖下载时的进度提示"],
+      perfs: [
+        "优化依赖下载时的进度提示",
+        "桌面端与 LB 下载时支持自动读取系统代理",
+      ],
       fixes: ["修复调试时导致 lb 崩溃的问题"],
     },
   },

@@ -35,6 +35,7 @@ import (
 	interfaceRunService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/interfacerun"
 	projectInterfaceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/projectinterface"
 	resourceService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/resource"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/updatehttp"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/pkg/models"
 	"github.com/spf13/cobra"
@@ -712,9 +713,8 @@ func printProtocolMismatchUpdateNotice(clientVersion string) {
 
 // 获取最新版本信息
 func getLatestVersion() (string, string, error) {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := updatehttp.NewClient(5 * time.Second)
+	defer client.CloseIdleConnections()
 
 	resp, err := client.Get("https://api.github.com/repos/kqcoxn/MaaPipelineEditor/releases/latest")
 	if err != nil {
