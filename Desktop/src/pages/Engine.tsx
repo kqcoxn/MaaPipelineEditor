@@ -108,7 +108,7 @@ export function Engine({ model: m }: { model: Model }) {
               disabled={m.busy}
               onClick={() => void m.checkVersions()}
             >
-              获取版本列表
+              {m.versionsLoading ? "正在获取版本列表…" : "刷新版本列表"}
             </Button>
             <Button
               disabled={m.busy || s?.running || conflict}

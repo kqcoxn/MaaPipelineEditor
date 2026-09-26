@@ -3,33 +3,36 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
-import { versionListStatus } from "./lib/versions";
+import { runAutomaticUpdates, updateEnvironment } from "./lib/automaticUpdate";
+import type { FeedbackScope, NoticeKind } from "./lib/feedback";
+export { newer } from "./lib/automaticUpdate";
 import {
   parseInstallProgress,
   type InstallProgress,
 } from "./lib/installProgress";
 
 export const openLink = (url: string) => invoke("open_link", { url });
-export function newer(a: string, b: string): boolean {
-  const x = a.split(".").map(Number),
-    y = b.split(".").map(Number);
-  return x.some(
-    (n, i) =>
-      n > (y[i] ?? 0) && x.slice(0, i).every((v, j) => v === (y[j] ?? 0)),
-  );
-}
 export function useLauncher() {
   const [snapshot, setSnapshot] = useState<Snapshot>();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [error, saveError] = useState("");
+  const [notice, saveNotice] = useState("");
+  const setError = useCallback((message: string, _scope?: FeedbackScope) => saveError(message), []);
+  const setNotice = useCallback((message: string, kind?: NoticeKind, _scope?: FeedbackScope) => {
+    if (kind === "error") saveError(message);
+    else saveNotice(message);
+  }, []);
+  const clearFeedback = useCallback((_scope?: FeedbackScope) => saveError(""), []);
+
   const [installationProgress, setInstallationProgress] =
     useState<InstallProgress>({ text: "" });
   const { text: progress, download: downloadProgress } = installationProgress;
   const [content, setContent] = useState<Homepage>(bundledHomepage);
   const [versions, setVersions] = useState<string[]>([]);
   const [versionInfo, setVersionInfo] = useState<VersionList>();
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState("");
+  const [desktopUpdateStatus, setDesktopUpdateStatus] = useState("");
   const gate = useRef(false);
   const refresh = useCallback(async () => {
     const next = await invoke<Snapshot>("snapshot");
@@ -37,17 +40,19 @@ export function useLauncher() {
     return next;
   }, []);
   const run = useCallback(
-    async (action: () => Promise<unknown>) => {
+    async (
+      action: () => Promise<unknown>,
+      scope: FeedbackScope = "operation",
+    ) => {
       if (gate.current) return false;
       gate.current = true;
       setBusy(true);
-      setError("");
       try {
         await action();
         await refresh();
         return true;
       } catch (e) {
-        setError(String(e));
+        setError(String(e), scope);
         await refresh().catch(() => {});
         return false;
       } finally {
@@ -58,66 +63,63 @@ export function useLauncher() {
     },
     [refresh],
   );
-  const automatic = useCallback(
-    async (s: Snapshot) => {
-      if (
-        !s.settings.autoUpdate ||
-        !s.settings.onboardingDone ||
-        s.running ||
-        s.service.state !== "stopped"
-      )
-        return;
-      await run(async () => {
-        if (s.environment.ready && !s.settings.fixedVersion) {
-          let result: VersionList | undefined;
-          try {
-            result = await invoke<VersionList>("release_versions", {
-              force: false,
-            });
+  const loadEnvironmentVersions = useCallback(
+    async (s: Snapshot, allowInstall: boolean) => {
+      setVersionsLoading(true);
+      try {
+        return await updateEnvironment(
+          s,
+          (result) => {
             setVersions(result.versions);
             setVersionInfo(result);
-            setUpdateStatus(versionListStatus(result));
-          } catch (error) {
-            setUpdateStatus(`版本检查未完成：${String(error)}`);
-          }
-          if (
-            result &&
-            !result.stale &&
-            result.versions[0] &&
-            newer(result.versions[0], s.environment.version)
-          ) {
-            await invoke("install_environment", {
-              version: result.versions[0],
-            });
-            setNotice(`MPE 已更新至 ${result.versions[0]}`);
-          }
-        }
-        try {
-          await invoke("update_desktop");
-        } catch (error) {
-          setUpdateStatus((previous) =>
-            [previous, `桌面端更新检查未完成：${String(error)}`]
-              .filter(Boolean)
-              .join("；"),
-          );
-        }
-      });
+            setVersionsLoading(false);
+          },
+          setUpdateStatus,
+          (message, kind) => setNotice(message, kind, "environment"),
+          allowInstall,
+        );
+      } finally {
+        setVersionsLoading(false);
+      }
     },
-    [run],
+    [],
+  );
+  const checkDesktopUpdate = useCallback(async () => {
+    setDesktopUpdateStatus("正在检查桌面端更新");
+    try {
+      setDesktopUpdateStatus(await invoke<string>("update_desktop"));
+      clearFeedback("desktop");
+    } catch (error) {
+      setDesktopUpdateStatus(`桌面端更新检查失败：${String(error)}`);
+      setError(`桌面端更新检查失败：${String(error)}`, "desktop");
+    }
+  }, []);
+  const automatic = useCallback(
+    async (s: Snapshot, target: "all" | "mpe" | "desktop" = "all") => {
+      await run(
+        () =>
+          runAutomaticUpdates(
+            s,
+            async () => setUpdateStatus(await loadEnvironmentVersions(s, true)),
+            checkDesktopUpdate,
+            target,
+          ),
+        "environment",
+      );
+    },
+    [run, loadEnvironmentVersions, checkDesktopUpdate],
   );
   useEffect(() => {
     let disposed = false;
     const disposers: Array<() => void> = [];
+    const subscriptions: Promise<unknown>[] = [];
     const subscribe = <T>(name: string, cb: (value: T) => void) => {
-      void listen<T>(name, (e) => cb(e.payload)).then((off) =>
-        disposed ? off() : disposers.push(off),
+      subscriptions.push(
+        listen<T>(name, (e) => cb(e.payload)).then((off) =>
+          disposed ? off() : disposers.push(off),
+        ),
       );
     };
-    void refresh()
-      .then((s) => {
-        if (!disposed) void automatic(s);
-      })
-      .catch((e) => setError(String(e)));
     void invoke<Homepage>("homepage")
       .then((value) => setContent(preferCurrentHomepage(value)))
       .catch(() => {});
@@ -133,6 +135,13 @@ export function useLauncher() {
       setError(value);
       void refresh();
     });
+    // Subscribe before installation can start, so early progress is not lost.
+    void Promise.all(subscriptions)
+      .then(() => (disposed ? undefined : refresh()))
+      .then((s) => {
+        if (s && !disposed) return automatic(s);
+      })
+      .catch((e) => setError(String(e)));
     return () => {
       disposed = true;
       disposers.forEach((off) => off());
@@ -141,30 +150,38 @@ export function useLauncher() {
   const save = async (patch: Partial<Settings>) => {
     if (!snapshot) return;
     const settings = { ...snapshot.settings, ...patch };
-    await run(async () => {
+    const saved = await run(async () => {
       await invoke("save_settings", { settings });
       // Apply saved appearance preferences without waiting for environment checks.
       setSnapshot((current) => (current ? { ...current, settings } : current));
     });
+    if (!saved) return;
+    const mpeEnabled =
+      (patch.autoCheckMpe === true && !snapshot.settings.autoCheckMpe) ||
+      (patch.autoInstallMpe === true && !snapshot.settings.autoInstallMpe);
+    const desktopEnabled =
+      patch.autoUpdateDesktop === true && !snapshot.settings.autoUpdateDesktop;
+    if (mpeEnabled || desktopEnabled) {
+      await refresh()
+        .then((current) =>
+          automatic(
+            current,
+            mpeEnabled && desktopEnabled
+              ? "all"
+              : mpeEnabled
+                ? "mpe"
+                : "desktop",
+          ),
+        )
+        .catch((e) => setError(String(e)));
+    }
   };
   const checkVersions = () =>
     run(async () => {
-      try {
-        const result = await invoke<VersionList>("release_versions", {
-          force: true,
-        });
-        setVersions(result.versions);
-        setVersionInfo(result);
-        const status = versionListStatus(result);
-        setUpdateStatus(status);
-        setNotice(
-          status || `版本列表已刷新，共 ${result.versions.length} 个可安装版本`,
-        );
-      } catch (error) {
-        setUpdateStatus(String(error));
-        throw error;
-      }
-    });
+      const current = await refresh();
+      const status = await loadEnvironmentVersions(current, false);
+      setUpdateStatus(status);
+    }, "environment");
   return {
     snapshot,
     busy,
@@ -175,7 +192,10 @@ export function useLauncher() {
     content,
     versions,
     versionInfo,
+    versionsLoading,
     updateStatus,
+    desktopUpdateStatus,
+    checkDesktopUpdate,
     run,
     save,
     refresh,

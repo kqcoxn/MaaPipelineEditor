@@ -19,9 +19,10 @@ export function SettingsPage({ model: m }: { model: Model }) {
   if (!s) return null;
   const toggle = (
     key:
-      "hideLauncher" | "exitAfterEditor" | "autoUpdate" | "ambientAnimations",
+      "hideLauncher" | "exitAfterEditor" | "autoCheckMpe" | "autoInstallMpe" | "autoUpdateDesktop" | "ambientAnimations",
     label: string,
     description: string,
+    disabled = false,
   ) => (
     <label className="setting-row">
       <span>
@@ -31,7 +32,7 @@ export function SettingsPage({ model: m }: { model: Model }) {
       <input
         type="checkbox"
         role="switch"
-        disabled={m.busy}
+        disabled={m.busy || disabled}
         checked={s[key]}
         onChange={(e) => void m.save({ [key]: e.target.checked })}
       />
@@ -58,9 +59,20 @@ export function SettingsPage({ model: m }: { model: Model }) {
       <section className="panel">
         <h2>更新偏好</h2>
         {toggle(
-          "autoUpdate",
-          "自动检查并更新",
-          "仅在没有编辑会话时执行；固定 MPE 版本不会被覆盖。",
+          "autoCheckMpe",
+          "自动检查 MPE 更新",
+          "启动、开启此项及结束编辑后检查 Editor 与 LB 新版；关闭后仍可在环境管理中手动检查。",
+        )}
+        {toggle(
+          "autoInstallMpe",
+          "自动安装 MPE 更新",
+          "需开启自动检查，在环境就绪且编辑器与服务停止时安装；固定版本不会被覆盖。",
+          !s.autoCheckMpe,
+        )}
+        {toggle(
+          "autoUpdateDesktop",
+          "自动检查并更新 Desktop",
+          "完成首次配置后，在启动、开启此项及结束编辑时检查并更新启动器；需编辑器与服务停止，与 MPE 更新设置独立。",
         )}
         <div className="setting-row">
           <span>
@@ -70,15 +82,16 @@ export function SettingsPage({ model: m }: { model: Model }) {
           <Button
             variant="secondary"
             disabled={m.busy || m.snapshot?.running}
-            onClick={() =>
-              void m.run(async () =>
-                m.setNotice(await invoke<string>("update_desktop")),
-              )
-            }
+            onClick={() => void m.run(m.checkDesktopUpdate)}
           >
             检查桌面端更新
           </Button>
         </div>
+        {m.desktopUpdateStatus && (
+          <p className="hint" role="status">
+            {m.desktopUpdateStatus}
+          </p>
+        )}
       </section>
       <GitHubTokenSettings model={m} />
       <section className="panel">

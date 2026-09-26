@@ -48,6 +48,7 @@ export function LaunchDock({
           : "需要准备环境";
   const detail =
     m.progress ||
+    (!s?.running && m.updateStatus) ||
     (s?.running
       ? "返回编辑器继续创作"
       : ready

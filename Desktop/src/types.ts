@@ -4,7 +4,9 @@ export type Settings = {
   selectedProject: string;
   hideLauncher: boolean;
   exitAfterEditor: boolean;
-  autoUpdate: boolean;
+  autoCheckMpe: boolean;
+  autoInstallMpe: boolean;
+  autoUpdateDesktop: boolean;
   fixedVersion: string | null;
   onboardingDone: boolean;
   theme: string;
