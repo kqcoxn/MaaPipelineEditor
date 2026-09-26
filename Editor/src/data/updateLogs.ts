@@ -130,6 +130,15 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.1",
+    date: "2026-9-26",
+    type: "major",
+    maafwVersion: "5.14.0",
+    updates: {
+      fixes: ["修复调试时导致 lb 崩溃的问题"],
+    },
+  },
+  {
     version: "2.0.0",
     date: "2026-9-25",
     type: "major",

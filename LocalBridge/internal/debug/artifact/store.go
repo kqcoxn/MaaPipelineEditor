@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"reflect"
 	"sync"
 	"time"
 
@@ -57,6 +58,10 @@ func (s *Store) AddPNG(sessionID string, artifactType string, img image.Image) (
 		return protocol.ArtifactRef{}, fmt.Errorf("artifact missing sessionId")
 	}
 	if img == nil {
+		return protocol.ArtifactRef{}, fmt.Errorf("artifact image is nil")
+	}
+	// An image interface can contain a nil pointer while comparing unequal to nil.
+	if value := reflect.ValueOf(img); value.Kind() == reflect.Ptr && value.IsNil() {
 		return protocol.ArtifactRef{}, fmt.Errorf("artifact image is nil")
 	}
 
