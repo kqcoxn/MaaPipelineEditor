@@ -8,6 +8,7 @@ import {
   CircleAlert,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { DownloadProgressBar } from "./DownloadProgressBar";
 import { displayPath } from "../lib/path";
 import {
   Select,
@@ -138,6 +139,7 @@ export function LaunchDock({
         <span>
           <strong title={status}>{status}</strong>
           <small title={detail}>{detail}</small>
+          <DownloadProgressBar progress={m.downloadProgress} />
         </span>
       </div>
       <div className="launch-action">

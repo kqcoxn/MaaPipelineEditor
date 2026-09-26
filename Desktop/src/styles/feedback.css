@@ -60,3 +60,10 @@
 .feedback-copy details p {
   white-space: pre-wrap;
 }
+.download-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin-top: 4px;
+  accent-color: var(--accent);
+}

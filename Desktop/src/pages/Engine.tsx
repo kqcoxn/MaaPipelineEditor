@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DownloadProgressBar } from "../components/DownloadProgressBar";
 import { RefreshCw, Download, ExternalLink } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../components/ui/button";
@@ -127,6 +128,7 @@ export function Engine({ model: m }: { model: Model }) {
                 {m.progress}
               </p>
             )}
+            <DownloadProgressBar progress={m.downloadProgress} />
             {m.versionInfo && (
               <p className="hint">
                 版本来源：

@@ -52,7 +52,10 @@ func installationCommand(cmd *cobra.Command, dir, version string, recoverOnly, w
 		if recoverOnly {
 			action = "recover"
 		}
-		args := []string{"env", action, "--directory", dir, "--json"}
+		args := []string{"env", action, "--directory", dir}
+		if jsonOutput, _ := cmd.Flags().GetBool("json"); jsonOutput {
+			args = append(args, "--json")
+		}
 		if !recoverOnly {
 			args = append(args, "--version", version)
 			if withEditor {
@@ -66,7 +69,7 @@ func installationCommand(cmd *cobra.Command, dir, version string, recoverOnly, w
 		worker.Stdout = cmd.OutOrStdout()
 		worker.Stderr = cmd.ErrOrStderr()
 		if runtime.GOOS == "windows" {
-			fmt.Fprintln(cmd.ErrOrStderr(), "安装已交给独立进程，请等待 complete 事件后使用。")
+			fmt.Fprintln(cmd.ErrOrStderr(), "安装已交给独立进程，请等待环境准备完成后使用。")
 			return worker.Start()
 		}
 		return worker.Run()
@@ -78,7 +81,13 @@ func installationCommand(cmd *cobra.Command, dir, version string, recoverOnly, w
 	if err != nil {
 		return err
 	}
-	if err := install.Install(cmd.Context(), dir, m, withEditor, cmd.OutOrStdout()); err != nil {
+	output := cmd.OutOrStdout()
+	if jsonOutput, _ := cmd.Flags().GetBool("json"); !jsonOutput {
+		progress := newEnvironmentProgressWriter(cmd.ErrOrStderr())
+		defer progress.finish()
+		output = progress
+	}
+	if err := install.Install(cmd.Context(), dir, m, withEditor, output); err != nil {
 		return err
 	}
 	if err := install.RegisterPath(dir); err != nil {

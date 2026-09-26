@@ -11,7 +11,7 @@ $worker = Join-Path $workerRoot "mpelb.exe"
 try {
     Invoke-WebRequest -Uri $artifact.url -OutFile $worker -UseBasicParsing
     if ((Get-FileHash -LiteralPath $worker -Algorithm SHA256).Hash -ne $artifact.sha256) { throw "Installer checksum mismatch" }
-    & $worker env install --version $manifest.version --json
+    & $worker env install --version $manifest.version
     if ($LASTEXITCODE -ne 0) { throw "Installation failed. See errors above." }
     $installDir = Join-Path $env:LOCALAPPDATA "mpelb"
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")

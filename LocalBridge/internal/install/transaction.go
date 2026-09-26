@@ -114,7 +114,7 @@ func Repair(ctx context.Context, dir string, m Manifest, target string, output i
 	return installParts(ctx, dir, m, output, parts)
 }
 func installParts(ctx context.Context, dir string, m Manifest, output io.Writer, parts []string) error {
-	return installPartsWith(ctx, dir, m, output, parts, download)
+	return installPartsWith(ctx, dir, m, output, parts, progressDownloader(output, m.Version))
 }
 func installPartsWith(ctx context.Context, dir string, m Manifest, output io.Writer, parts []string, fetch func(context.Context, Artifact, string) error) (err error) {
 	if !filepath.IsAbs(dir) {
@@ -170,6 +170,7 @@ func installPartsWith(ctx context.Context, dir string, m Manifest, output io.Wri
 		if err = fetch(ctx, m.Editor, editorArchive); err != nil {
 			return err
 		}
+		emit("verifying")
 		if err = extract(editorArchive, filepath.Join(stage, "editor")); err != nil {
 			return err
 		}

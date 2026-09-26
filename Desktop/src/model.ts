@@ -4,6 +4,10 @@ import { listen } from "@tauri-apps/api/event";
 import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
 import { versionListStatus } from "./lib/versions";
+import {
+  parseInstallProgress,
+  type InstallProgress,
+} from "./lib/installProgress";
 
 export const openLink = (url: string) => invoke("open_link", { url });
 export function newer(a: string, b: string): boolean {
@@ -19,7 +23,9 @@ export function useLauncher() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [progress, setProgress] = useState("");
+  const [installationProgress, setInstallationProgress] =
+    useState<InstallProgress>({ text: "" });
+  const { text: progress, download: downloadProgress } = installationProgress;
   const [content, setContent] = useState<Homepage>(bundledHomepage);
   const [versions, setVersions] = useState<string[]>([]);
   const [versionInfo, setVersionInfo] = useState<VersionList>();
@@ -47,7 +53,7 @@ export function useLauncher() {
       } finally {
         setBusy(false);
         gate.current = false;
-        setProgress("");
+        setInstallationProgress({ text: "" });
       }
     },
     [refresh],
@@ -116,22 +122,7 @@ export function useLauncher() {
       .then((value) => setContent(preferCurrentHomepage(value)))
       .catch(() => {});
     subscribe<string>("engine-progress", (value) => {
-      try {
-        const phase = JSON.parse(value).phase;
-        setProgress(
-          (
-            {
-              downloading: "正在下载配套资源",
-              verifying: "正在校验与解压",
-              installing: "正在切换版本",
-              validating: "正在验证已安装环境",
-              complete: "环境已准备完成",
-            } as Record<string, string>
-          )[phase] ?? value,
-        );
-      } catch {
-        setProgress(value);
-      }
+      setInstallationProgress(parseInstallProgress(value));
     });
     subscribe<boolean>("session-changed", (running) => {
       void refresh().then((s) => {
@@ -180,6 +171,7 @@ export function useLauncher() {
     error,
     notice,
     progress,
+    downloadProgress,
     content,
     versions,
     versionInfo,

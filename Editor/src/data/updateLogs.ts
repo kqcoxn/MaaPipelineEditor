@@ -132,9 +132,10 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.1",
     date: "2026-9-26",
-    type: "major",
+    type: "fix",
     maafwVersion: "5.14.0",
     updates: {
+      perfs: ["优化依赖下载时的进度提示"],
       fixes: ["修复调试时导致 lb 崩溃的问题"],
     },
   },

@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/managed"
 	"io"
 	"net/http"
@@ -96,8 +97,28 @@ func TestInstallPairAndRejectCorruptDownload(t *testing.T) {
 	hash := sha256.Sum256(body)
 	editorHash := sha256.Sum256(editorBody)
 	m := Manifest{Version: "1.2.3", MFWVersion: "5.13.0", ManagementProtocol: 1, Editor: Artifact{server.URL + "/editor", hex.EncodeToString(editorHash[:])}, Platforms: map[string]Platform{PlatformKey(): {Bundle: Artifact{server.URL, hex.EncodeToString(hash[:])}, Binary: Artifact{SHA256: binaryHash}}}}
-	if err := Install(context.Background(), dir, m, true, io.Discard); err != nil {
+	var progress bytes.Buffer
+	if err := Install(context.Background(), dir, m, true, &progress); err != nil {
 		t.Fatal(err)
+	}
+	decoder := json.NewDecoder(&progress)
+	completedDownloads := map[string]int64{}
+	lastPhase := ""
+	for decoder.More() {
+		var event ProgressEvent
+		if err := decoder.Decode(&event); err != nil {
+			t.Fatal(err)
+		}
+		if event.DownloadProgress != nil {
+			if event.Phase != "downloading" {
+				t.Fatalf("wrong download phase: %+v", event)
+			}
+			completedDownloads[event.Artifact] = event.Downloaded
+		}
+		lastPhase = event.Phase
+	}
+	if completedDownloads["bundle"] != int64(len(body)) || completedDownloads["editor"] != int64(len(editorBody)) || lastPhase != "complete" {
+		t.Fatalf("incomplete installation progress: %v, last phase %s", completedDownloads, lastPhase)
 	}
 	if env := Inspect(dir, true); !env.Ready || env.Version != "1.2.3" {
 		t.Fatalf("invalid installed pair: %+v", env)

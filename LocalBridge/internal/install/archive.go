@@ -14,7 +14,9 @@ import (
 	"time"
 )
 
-func download(ctx context.Context, a Artifact, destination string) error {
+func downloadWithProgress(ctx context.Context, a Artifact, destination string, report func(DownloadProgress)) error {
+	progress := newDownloadProgress(report)
+	defer progress.close()
 	if !strings.HasPrefix(a.URL, "https://") || len(a.SHA256) != 64 {
 		return fmt.Errorf("资源必须提供 HTTPS 地址与 SHA256")
 	}
@@ -31,12 +33,13 @@ func download(ctx context.Context, a Artifact, destination string) error {
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("下载失败: HTTP %d", resp.StatusCode)
 	}
+	progress.total.Store(max(resp.ContentLength, 0))
 	f, err := os.OpenFile(destination, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
 	hash := sha256.New()
-	_, err = io.Copy(io.MultiWriter(f, hash), io.LimitReader(resp.Body, 4<<30))
+	_, err = io.Copy(io.MultiWriter(f, hash, progress), io.LimitReader(resp.Body, 4<<30))
 	closeErr := f.Close()
 	if err != nil {
 		return err

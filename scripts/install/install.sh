@@ -36,7 +36,7 @@ if [ "$actual" != "$expected" ]; then echo "Installer checksum mismatch" >&2; ex
 chmod +x "$worker_dir/mpelb"
 release_version="${binary_url%/$asset}"
 release_version="${release_version##*/}"
-"$worker_dir/mpelb" env install --version "$release_version" --json
+"$worker_dir/mpelb" env install --version "$release_version"
 case ":$PATH:" in
   *":$HOME/.local/bin:"*) ;;
   *) printf 'Add to your shell configuration: export PATH="$PATH:$HOME/.local/bin"\n' ;;
