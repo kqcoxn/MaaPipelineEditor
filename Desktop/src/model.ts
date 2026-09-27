@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
 import { runAutomaticUpdates, updateEnvironment } from "./lib/automaticUpdate";
+import { updateDesktop } from "./lib/desktopUpdate";
 import {
   clearFeedback,
   setError,
@@ -29,6 +30,8 @@ export function useLauncher() {
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState("");
   const [desktopUpdateStatus, setDesktopUpdateStatus] = useState("");
+  const [desktopUpdateProgress, setDesktopUpdateProgress] =
+    useState<InstallProgress>();
   const gate = useRef(false);
   const refresh = useCallback(async () => {
     const next = await invoke<Snapshot>("snapshot");
@@ -81,13 +84,22 @@ export function useLauncher() {
     [],
   );
   const checkDesktopUpdate = useCallback(async () => {
+    clearFeedback("desktop");
     setDesktopUpdateStatus("正在检查桌面端更新");
+    setDesktopUpdateProgress({ text: "正在检查桌面端更新" });
     try {
-      setDesktopUpdateStatus(await invoke<string>("update_desktop"));
+      setDesktopUpdateStatus(
+        await updateDesktop((progress) => {
+          setDesktopUpdateProgress(progress);
+          setDesktopUpdateStatus(progress.text);
+        }),
+      );
       clearFeedback("desktop");
     } catch (error) {
-      setDesktopUpdateStatus(`桌面端更新检查失败：${String(error)}`);
-      setError(`桌面端更新检查失败：${String(error)}`, "desktop");
+      setDesktopUpdateStatus(`桌面端更新失败：${String(error)}`);
+      setError(`桌面端更新失败：${String(error)}`, "desktop");
+    } finally {
+      setDesktopUpdateProgress(undefined);
     }
   }, []);
   const automatic = useCallback(
@@ -189,6 +201,7 @@ export function useLauncher() {
     versionsLoading,
     updateStatus,
     desktopUpdateStatus,
+    desktopUpdateProgress,
     checkDesktopUpdate,
     run,
     save,

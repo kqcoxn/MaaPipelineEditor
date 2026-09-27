@@ -47,6 +47,7 @@ export function LaunchDock({
           ? "环境就绪"
           : "需要准备环境";
   const detail =
+    m.desktopUpdateProgress?.text ||
     m.progress ||
     (!s?.running && m.updateStatus) ||
     (s?.running
@@ -140,7 +141,13 @@ export function LaunchDock({
         <span>
           <strong title={status}>{status}</strong>
           <small title={detail}>{detail}</small>
-          <DownloadProgressBar progress={m.downloadProgress} />
+          <DownloadProgressBar
+            progress={
+              m.desktopUpdateProgress
+                ? m.desktopUpdateProgress.download
+                : m.downloadProgress
+            }
+          />
         </span>
       </div>
       <div className="launch-action">

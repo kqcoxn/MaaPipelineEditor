@@ -4,6 +4,7 @@ mod content;
 mod crash;
 mod credentials;
 mod desktop_release;
+mod desktop_update;
 mod diagnostics;
 mod engine;
 mod exports;

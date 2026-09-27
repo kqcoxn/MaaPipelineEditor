@@ -31,7 +31,12 @@ export function parseInstallProgress(value: string): InstallProgress {
       const total = nonnegative(event.total) ? event.total : 0;
       const percent =
         total > 0 ? Math.min(100, (event.downloaded / total) * 100) : undefined;
-      const label = event.artifact === "editor" ? "Editor" : "运行环境";
+      const label =
+        event.artifact === "desktop"
+          ? "MPE Desktop"
+          : event.artifact === "editor"
+            ? "Editor"
+            : "运行环境";
       const amount =
         total > 0
           ? `${size(event.downloaded)} / ${size(total)}（${percent!.toFixed(1)}%）`
@@ -48,6 +53,14 @@ export function parseInstallProgress(value: string): InstallProgress {
         text: `${label}：${waiting}${amount} · ${speed}/s · 已用 ${elapsed}s`,
         download: { label: `${label}下载进度`, percent },
       };
+    }
+    if (event.artifact === "desktop") {
+      const desktopPhases: Record<string, string> = {
+        verifying: "MPE Desktop 下载完成，正在校验更新包",
+        installing: "正在安装 MPE Desktop，安装完成后将重启",
+        restarting: "MPE Desktop 安装完成，正在重启",
+      };
+      return { text: desktopPhases[event.phase] ?? value };
     }
     return { text: phases[event.phase] ?? value };
   } catch {

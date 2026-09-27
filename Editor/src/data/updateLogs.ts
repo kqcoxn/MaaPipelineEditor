@@ -130,9 +130,18 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.4",
+    date: "2026-9",
+    type: "perf",
+    maafwVersion: "5.14.0",
+    updates: {
+      perfs: ["为桌面端本体添加进度提示"],
+    },
+  },
+  {
     version: "2.0.3",
     date: "2026-9-27",
-    type: "perf",
+    type: "fix",
     maafwVersion: "5.14.0",
     updates: {
       perfs: [

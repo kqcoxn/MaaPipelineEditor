@@ -371,53 +371,12 @@ pub async fn save_github_token(
 pub async fn update_desktop(
     window: WebviewWindow,
     app: tauri::AppHandle,
+    on_progress: tauri::ipc::Channel<Value>,
 ) -> Result<String, String> {
     authorize(&window, "launcher")?;
-    let state = app.state::<State>();
-    let _operation = Operation::acquire(&state)?;
-    if state.session.lock().unwrap().is_some() {
-        return Err("结束编辑后才能更新 MPE Desktop".into());
-    }
-    use tauri_plugin_updater::UpdaterExt;
-    if option_env!("MPE_UPDATER_PUBLIC_KEY")
-        .unwrap_or("")
-        .is_empty()
-    {
-        return Ok("此构建未配置正式更新签名".into());
-    }
-    let updater = app
-        .updater_builder()
-        // Read the revision from the exact manifest returned by this check.
-        .version_comparator(|_, _| true)
-        .pubkey(option_env!("MPE_UPDATER_PUBLIC_KEY").unwrap_or(""))
-        .endpoints(vec![format!(
-            "{}/latest/download/mpe-desktop-updater.json",
-            engine::RELEASES
-        )
-        .parse()
-        .map_err(|e| format!("{e}"))?])
-        .map_err(|e| e.to_string())?
-        .build()
-        .map_err(|e| e.to_string())?;
-    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
-        if !crate::desktop_release::needs_update(
-            &update.raw_json,
-            crate::desktop_release::revision(),
-        )? {
-            return Ok("MPE Desktop 已是最新修订版".into());
-        }
-        update
-            .download_and_install(|_, _| {}, || {})
-            .await
-            .map_err(|e| e.to_string())?;
-        state.busy.store(false, Ordering::SeqCst);
-        // Tauri spawns the replacement process before exiting this one.
-        fs2::FileExt::unlock(&app.state::<crate::state::InstanceLock>().0)
-            .map_err(|e| e.to_string())?;
-        app.restart();
-    }
-    Ok("MPE Desktop 已是最新版本".into())
+    crate::desktop_update::run(app, on_progress).await
 }
+
 #[tauri::command]
 pub fn quit_desktop(window: WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
     authorize(&window, "launcher")?;

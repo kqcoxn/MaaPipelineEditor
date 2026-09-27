@@ -1,4 +1,5 @@
 import { GitHubTokenSettings } from "../components/GitHubTokenSettings";
+import { DownloadProgressBar } from "../components/DownloadProgressBar";
 import { Image } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { Button } from "../components/ui/button";
@@ -83,6 +84,7 @@ export function SettingsPage({ model: m }: { model: Model }) {
             {m.desktopUpdateStatus && (
               <span className="desktop-update-status hint" role="status">
                 {m.desktopUpdateStatus}
+                <DownloadProgressBar progress={m.desktopUpdateProgress?.download} />
               </span>
             )}
           </span>
