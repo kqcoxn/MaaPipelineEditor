@@ -72,18 +72,24 @@ Release 流水线生成 Windows x64 NSIS、macOS arm64 DMG、对应 MPE Desktop 
 
 每个平台的 `mpe-environment-<平台>.zip` 仅包含 mpelb 和 runtime，`MaaPipelineEditor-*-stable.zip` 由 Web 自部署与所有平台的桌面安装共享。清单的 `platforms.<平台>.bundle` 描述基础包，顶层 `editor` 描述 Editor 下载地址及校验值；发布索引校验两类产物完整后才收录版本。桌面安装在同一事务中校验、替换两类资源，任何一步失败均恢复之前的环境。
 
-运行 `yarn migrate` 同步 Editor、MPE Desktop 配置、Cargo 与仓库发布版本；该命令不修改桌面修订号。
+运行 `yarn migrate` 同步 Editor、MPE Desktop 配置、Cargo 与仓库发布版本；该命令不修改桌面标识版号。
 
 桌面更新由 `Desktop/desktop-release.json` 单独控制：
 
-- `desktopRevision`：桌面端的发布修订号。启动器界面、Rust 宿主、内置资源或依赖有需要用户接收的改动时，执行 `yarn desktop:revision` 加一，再提交配置文件。
-- `minimumDesktopRevision`：当前 MPE 前后端所需的最低桌面修订号。只有前后端确实依赖新的宿主能力时才手动提高，不能超过当前修订号；递增脚本不会自动提高它。
+- `desktopIdentifier`：桌面端的发布标识版号。启动器界面、Rust 宿主、内置资源或依赖有需要用户接收的改动时，执行 `yarn desktop:revision` 同步为当前产品版本（`X.Y.Z`），再提交配置文件。
+- `minimumDesktopIdentifier`：当前 MPE 前后端所需的最低桌面标识版号。只有前后端确实依赖新的宿主能力时才执行 `yarn desktop:revision X.Y.Z --minimum` 提高，不能超过当前标识版号；同步脚本不会自动提高它。
 
-构建将修订号嵌入宿主；发布脚本将其写入 `mpe-desktop-updater.json`。环境打包和 `desktop:prepare` 读取同一配置，把最低要求写入 `mpe-manifest.json`。管理协议版本独立校验。
+`yarn desktop:revision [X.Y.Z]` 支持指定目标版号，默认使用 Desktop/package.json 的产品版本；替换前预览并确认，`--yes` 跳过确认，`--dry-run` 仅预览。脚本只精确替换选定版号及其对应过渡字段，拒绝降低版号；无桌面调整时保留现有版号。版号按三个数字段比较。
 
-产品版本号更高但修订号相同或更低时，不下载、不安装、不重启 MPE Desktop；只有远端修订号更高才通过 Tauri 执行签名校验和安装。清单缺失或包含无效修订号会报错，不按产品版本号兜底升级。产品版本仍显示实际安装包版本，修订号记录在启动日志和日志包的 `desktop.txt` 中。
+过渡期保留整数 `desktopRevision` / `minimumDesktopRevision`，供旧版桌面端更新检查和 LocalBridge 环境清单使用。同步新的标识版号时，脚本自动把 `desktopRevision` 加一；重复同步同一版号不递增。提高最低要求时，`--minimum` 仅接受当前桌面标识版号，并把整数最低要求同步到当前整数修订号。新桌面端按 `desktopIdentifier` 判断更新；最低宿主要求继续按整数校验，以支持已安装的历史环境。
 
-发布流水线仍为每个稳定版本构建安装包和清单，供新用户下载；已有用户是否更新由修订号决定。发布桌面改动前必须递增修订号；单纯前后端更新无需执行递增命令。
+结束过渡前不要删除整数配置或清单字段。删除时需同时调整发布脚本、同步脚本、Rust 构建与环境校验、LocalBridge 环境清单及版本索引校验；不再保留整数更新字段后，尚未升级的旧桌面端将无法自动更新。
+
+构建将标识版号嵌入宿主；发布脚本将其写入 `mpe-desktop-updater.json`。环境打包和 `desktop:prepare` 读取同一配置，把最低要求写入 `mpe-manifest.json`。管理协议版本独立校验。
+
+产品版本号更高但标识版号相同或更低时，不下载、不安装、不重启 MPE Desktop；只有远端标识版号更高才通过 Tauri 执行签名校验和安装。清单缺失或包含无效标识版号会报错，不按产品版本号兜底升级。产品版本仍显示实际安装包版本，标识版号记录在启动日志和日志包的 `desktop.txt` 中。
+
+发布流水线仍为每个稳定版本构建安装包和清单，供新用户下载；已有用户是否更新由标识版号决定。发布桌面改动前必须同步标识版号；单纯前后端更新无需执行同步命令。
 
 正式 tag 构建需要：
 

@@ -99,6 +99,9 @@ test("release manifest pairs the shared revision with signed artifacts for both 
     result.desktopRevision,
     (await readDesktopConfig()).desktopRevision,
   );
+  assert.equal(result.desktopIdentifier, (await readDesktopConfig()).desktopIdentifier);
+  // The old installed updater accepts only a positive u32 and updates from revision 7.
+  assert.ok(Number.isInteger(result.desktopRevision) && result.desktopRevision > 7 && result.desktopRevision <= 0xffffffff);
   assert.equal(result.version, "1.20.0");
   assert.equal(
     result.platforms["windows-x86_64"].signature,

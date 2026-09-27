@@ -79,7 +79,7 @@ fn compatibility_filter_sorting_and_corrupt_cache() {
     index.releases.extend(fixture("1.9.0").releases);
     let mut incompatible = fixture("99.0.0");
     incompatible.releases[0]["manifest"]["minimumDesktopRevision"] =
-        (crate::desktop_release::revision() + 1).into();
+        (crate::desktop_release::legacy_revision() + 1).into();
     index.releases.extend(incompatible.releases);
     assert_eq!(index.versions(), ["1.10.0", "1.9.0"]);
     let dir = Directory::new();

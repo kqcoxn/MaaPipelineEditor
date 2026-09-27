@@ -21,7 +21,7 @@ const snapshot = (): Snapshot => ({
   running: false,
   busy: false,
   desktopVersion: "2.0.0",
-  desktopRevision: 1,
+  desktopRevision: "2.0.2",
 });
 const result = (patch: Partial<VersionList> = {}): VersionList => ({
   versions: ["2.0.1"],

@@ -274,7 +274,7 @@ mod tests {
         value["editor"] = Value::Null;
         assert!(validate_manifest(&value, "latest").is_err());
         value = fixture();
-        value["minimumDesktopRevision"] = (crate::desktop_release::revision() + 1).into();
+        value["minimumDesktopRevision"] = (crate::desktop_release::legacy_revision() + 1).into();
         assert!(validate_manifest(&value, "latest").is_err());
         value["minimumDesktopRevision"] = 1.into();
         value["platforms"][platform()]["bundle"] = Value::Null;

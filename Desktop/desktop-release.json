@@ -1,4 +1,6 @@
 {
-  "desktopRevision": 7,
-  "minimumDesktopRevision": 7
+  "desktopIdentifier": "2.0.2",
+  "minimumDesktopIdentifier": "2.0.2",
+  "desktopRevision": 8,
+  "minimumDesktopRevision": 8
 }

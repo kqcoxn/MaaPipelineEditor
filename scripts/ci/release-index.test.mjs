@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { entryFor, generateIndex } from "./release-index.mjs";
 
-const manifest = version => ({ version, minimumDesktopRevision: 1, managementProtocol: 1,
+const manifest = version => ({ version, minimumDesktopRevision: 8, managementProtocol: 1,
   editor: { url: "https://example.com/editor.zip", sha256: "c".repeat(64) },
   platforms: { "windows-amd64": { binary: { url: "https://example.com/lb.exe", sha256: "a".repeat(64) },
     bundle: { url: "https://example.com/bundle.zip", sha256: "b".repeat(64) } } } });

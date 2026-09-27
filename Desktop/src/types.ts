@@ -27,7 +27,7 @@ export type Snapshot = {
   running: boolean;
   busy: boolean;
   desktopVersion: string;
-  desktopRevision: number;
+  desktopRevision: string;
 };
 export type LinkItem = {
   title: string;

@@ -65,6 +65,7 @@ if (action === "configure") {
       {
         version,
         desktopRevision: desktop.desktopRevision,
+        desktopIdentifier: desktop.desktopIdentifier,
         notes: "MPE Desktop 更新",
         pub_date: new Date().toISOString(),
         platforms,

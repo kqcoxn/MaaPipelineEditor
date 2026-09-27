@@ -1,3 +1,4 @@
+import { isLegacyRevision } from "../lib/desktop-release.mjs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -6,7 +7,7 @@ const repository = "kqcoxn/MaaPipelineEditor";
 const base = `https://github.com/${repository}/releases`;
 const stable = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 export function entryFor(manifest, assets) {
-  if (!stable.test(manifest.version) || (!Number.isInteger(manifest.minimumDesktopRevision) || manifest.minimumDesktopRevision < 1 || manifest.minimumDesktopRevision > 0xffffffff) ||
+  if (!stable.test(manifest.version) || !isLegacyRevision(manifest.minimumDesktopRevision) ||
       !Number.isInteger(manifest.managementProtocol) || manifest.managementProtocol < 1 ||
       !manifest.platforms || Object.keys(manifest.platforms).length === 0)
     throw new Error("Invalid environment manifest metadata");

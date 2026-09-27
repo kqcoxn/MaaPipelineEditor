@@ -13,6 +13,7 @@ func TestDesktopReleaseConfiguration(t *testing.T) {
 		want uint32
 	}{
 		{`{"desktopRevision":7,"minimumDesktopRevision":2}`, 2},
+		{`{"desktopIdentifier":"2.0.2","minimumDesktopIdentifier":"2.0.2","desktopRevision":8,"minimumDesktopRevision":8}`, 8},
 		{`{"desktopRevision":1,"minimumDesktopRevision":2}`, 0},
 		{`{"desktopRevision":1}`, 0},
 		{`{"desktopRevision":0,"minimumDesktopRevision":0}`, 0},

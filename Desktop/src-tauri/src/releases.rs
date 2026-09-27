@@ -34,7 +34,8 @@ impl Index {
                 || !v.build.is_empty()
                 || entry["manifestUrl"]
                     != format!("{}/download/v{version}/mpe-manifest.json", engine::RELEASES)
-                || crate::desktop_release::parse_revision(&m["minimumDesktopRevision"]).is_err()
+                || crate::desktop_release::parse_legacy_revision(&m["minimumDesktopRevision"])
+                    .is_err()
                 || m["managementProtocol"].as_u64().is_none()
             {
                 return Err("版本索引元数据无效".into());

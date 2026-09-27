@@ -1,27 +1,31 @@
 use serde_json::Value;
 
-// The build script validates and embeds the single release configuration.
-pub fn revision() -> u32 {
-    env!("MPE_DESKTOP_REVISION").parse().unwrap()
+#[path = "revision.rs"]
+mod revision;
+pub fn revision() -> &'static str {
+    env!("MPE_DESKTOP_REVISION")
+}
+pub use revision::parse as parse_revision;
+pub fn needs_update(manifest: &Value, current: &str) -> Result<bool, String> {
+    Ok(parse_revision(&manifest["desktopIdentifier"])? > parse_revision(&Value::from(current))?)
 }
 
-pub fn parse_revision(value: &Value) -> Result<u32, String> {
+// Transitional integer metadata is retained for existing installed environments.
+pub fn legacy_revision() -> u32 {
+    env!("MPE_DESKTOP_LEGACY_REVISION").parse().unwrap()
+}
+pub fn parse_legacy_revision(value: &Value) -> Result<u32, String> {
     value
         .as_u64()
         .and_then(|v| u32::try_from(v).ok())
         .filter(|v| *v > 0)
-        .ok_or_else(|| "桌面修订号缺失或无效".into())
+        .ok_or_else(|| "桌面兼容修订号缺失或无效".into())
 }
-
-pub fn needs_update(manifest: &Value, current: u32) -> Result<bool, String> {
-    Ok(parse_revision(&manifest["desktopRevision"])? > current)
-}
-
 pub fn require_supported(value: &Value) -> Result<(), String> {
-    let minimum = parse_revision(&value["minimumDesktopRevision"])?;
-    if minimum > revision() {
+    let minimum = parse_legacy_revision(&value["minimumDesktopRevision"])?;
+    if minimum > legacy_revision() {
         return Err(format!(
-            "请先更新 MPE Desktop，需要桌面修订号 {minimum} 或更高"
+            "请先更新 MPE Desktop，需要桌面兼容修订号 {minimum} 或更高"
         ));
     }
     Ok(())
@@ -46,10 +50,32 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn transition_metadata_serves_old_and_new_updaters() {
+        let manifest = json!({"desktopRevision":8,"desktopIdentifier":"2.0.2"});
+        assert!(parse_legacy_revision(&manifest["desktopRevision"]).unwrap() > 7);
+        assert!(needs_update(&manifest, "2.0.1").unwrap());
+        assert!(!needs_update(&manifest, "2.0.2").unwrap());
+        assert!(require_supported(&json!({"minimumDesktopRevision":7})).is_ok());
+        assert!(needs_update(
+            &json!({"desktopRevision":9,"desktopIdentifier":"bad"}),
+            "2.0.2"
+        )
+        .is_err());
+    }
+
+    #[test]
     fn revision_controls_updates_independently_of_product_version() {
-        assert!(!needs_update(&json!({"version":"99.0.0", "desktopRevision":7}), 7).unwrap());
-        assert!(!needs_update(&json!({"desktopRevision":6}), 7).unwrap());
-        assert!(needs_update(&json!({"version":"1.10.1", "desktopRevision":8}), 7).unwrap());
+        assert!(!needs_update(
+            &json!({"version":"99.0.0", "desktopIdentifier":"2.0.2"}),
+            "2.0.2"
+        )
+        .unwrap());
+        assert!(!needs_update(&json!({"desktopIdentifier":"2.0.1"}), "2.0.2").unwrap());
+        assert!(needs_update(
+            &json!({"version":"1.10.1", "desktopIdentifier":"2.0.10"}),
+            "2.0.9"
+        )
+        .unwrap());
     }
 
     #[test]
@@ -62,7 +88,7 @@ mod tests {
             json!("8"),
             json!(4294967296_u64),
         ] {
-            assert!(needs_update(&json!({"desktopRevision":value}), 1).is_err());
+            assert!(needs_update(&json!({"desktopIdentifier":value}), "2.0.2").is_err());
         }
     }
 
@@ -72,7 +98,7 @@ mod tests {
             json!({"ready":true,"version":"99.0.0","minimumDesktopRevision":1,"problems":[]});
         assert_eq!(check_environment(ready.clone())["ready"], true);
         let mut future = ready;
-        future["minimumDesktopRevision"] = (revision() + 1).into();
+        future["minimumDesktopRevision"] = (legacy_revision() + 1).into();
         let checked = check_environment(future);
         assert_eq!(checked["ready"], false);
         assert!(checked["problems"][0]

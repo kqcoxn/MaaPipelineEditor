@@ -4,15 +4,26 @@ fn main() {
         &std::fs::read_to_string("../desktop-release.json").expect("desktop release configuration"),
     )
     .expect("valid desktop release JSON");
-    let revision = config["desktopRevision"]
+    #[path = "src/revision.rs"]
+    mod revision;
+    let revision = revision::parse(&config["desktopIdentifier"]).expect("valid desktopIdentifier");
+    let minimum = revision::parse(&config["minimumDesktopIdentifier"])
+        .expect("valid minimumDesktopIdentifier");
+    assert!(
+        minimum <= revision,
+        "minimumDesktopIdentifier exceeds desktopIdentifier"
+    );
+    println!("cargo:rustc-env=MPE_DESKTOP_REVISION={revision}");
+    let legacy = config["desktopRevision"]
         .as_u64()
         .filter(|v| *v > 0 && *v <= u32::MAX as u64)
-        .expect("valid desktopRevision");
-    let _minimum = config["minimumDesktopRevision"]
+        .expect("valid legacy revision");
+    let minimum_legacy = config["minimumDesktopRevision"]
         .as_u64()
-        .filter(|v| *v > 0 && *v <= revision)
-        .expect("valid minimumDesktopRevision");
-    println!("cargo:rustc-env=MPE_DESKTOP_REVISION={revision}");
+        .filter(|v| *v > 0 && *v <= legacy)
+        .expect("valid legacy minimum");
+    let _ = minimum_legacy;
+    println!("cargo:rustc-env=MPE_DESKTOP_LEGACY_REVISION={legacy}");
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
             "snapshot",
