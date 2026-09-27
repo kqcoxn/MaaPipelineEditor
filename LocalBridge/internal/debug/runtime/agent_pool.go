@@ -111,7 +111,7 @@ func (p *AgentPool) EnsureBound(agent protocol.AgentProfile, resourcePaths []str
 	return entry.client, nil
 }
 
-// PreparePIAgent 创建（必要时由 MaaFramework 自动生成 identifier）、启动并绑定 PI Agent。
+// PreparePIAgent 创建（必要时自动分配通信地址）、启动并绑定 PI Agent。
 // starter 必须在 Connect 前启动 AgentServer 子进程。
 func (p *AgentPool) PreparePIAgent(agent protocol.AgentProfile, resourcePaths []string, starter func(identifier string) error, scope ...string) (protocol.AgentProfile, error) {
 	resourceKey, resolutions, err := resolveResourceBinding(resourcePaths)
@@ -136,13 +136,8 @@ func (p *AgentPool) PreparePIAgent(agent protocol.AgentProfile, resourcePaths []
 		}
 	}
 	if client == nil {
-		client, err = maa.NewAgentClient(maa.WithIdentifier(identifier))
+		client, identifier, err = mfw.NewProjectAgentClient(identifier)
 		if err != nil {
-			return agent, err
-		}
-		identifier, err = client.Identifier()
-		if err != nil {
-			client.Destroy()
 			return agent, err
 		}
 	}
@@ -151,11 +146,14 @@ func (p *AgentPool) PreparePIAgent(agent protocol.AgentProfile, resourcePaths []
 	entry := p.clients[key]
 	if entry == nil {
 		entry = &agentEntry{client: client}
+		// 只有完成启动和资源绑定才转交给 Pool，所有失败路径都释放新客户端。
+		defer func() {
+			if p.clients[key] == nil {
+				client.Destroy()
+			}
+		}()
 	}
 	if err := starter(identifier); err != nil {
-		if p.clients[key] == nil {
-			client.Destroy()
-		}
 		return agent, err
 	}
 

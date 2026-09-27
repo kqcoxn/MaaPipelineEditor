@@ -138,7 +138,7 @@ func (s *Service) Initialize() (err error) {
 
 	s.initialized = true
 
-	logger.Info("MFW", "MaaFramework 初始化成功")
+	logger.Info("MFW", "MaaFramework 初始化成功: version=%s logDir=%s", maa.Version(), logDir)
 	return nil
 }
 

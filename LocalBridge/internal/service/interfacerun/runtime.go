@@ -114,17 +114,12 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 		if !agent.Enabled {
 			continue
 		}
-		client, err := maa.NewAgentClient(maa.WithIdentifier(agent.Identifier))
+		client, identifier, err := mfw.NewProjectAgentClient(agent.Identifier)
 		if err != nil {
 			fail(err)
 			return
 		}
 		clients = append(clients, client)
-		identifier, err := client.Identifier()
-		if err != nil {
-			fail(err)
-			return
-		}
 		if err = client.BindResource(adapter.GetResource()); err != nil {
 			fail(err)
 			return
