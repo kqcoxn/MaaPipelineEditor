@@ -3,7 +3,7 @@ import {
   Suspense,
   lazy,
   useEffect,
-  useMemo,
+  useLayoutEffect,
   useState,
   type ComponentType,
   type ErrorInfo,
@@ -16,16 +16,16 @@ type LazyFeatureLoader<Props> = () => Promise<{
   default: ComponentType<Props>;
 }>;
 
+const FEATURE_LOADING_DELAY_MS = 250;
 const PRODUCTION_MIN_FEATURE_LOADING_MS = 2_000;
 
-export function getMinimumFeatureLoadingMs(
-  isDevelopment = import.meta.env.DEV,
-): number {
-  return isDevelopment ? 0 : PRODUCTION_MIN_FEATURE_LOADING_MS;
+interface LazyFeatureEntry<Props> {
+  Component: ComponentType<Props>;
+  markIndicatorVisible: () => void;
 }
 const lazyComponentCache = new WeakMap<
   LazyFeatureLoader<object>,
-  ComponentType<object>
+  LazyFeatureEntry<object>
 >();
 
 interface LazyFeatureProps<Props extends object> {
@@ -46,62 +46,66 @@ interface FeatureErrorBoundaryState {
   failed: boolean;
 }
 
-function createLazyComponent<Props>(
-  loader: LazyFeatureLoader<Props>,
-  _attempt: number,
-) {
+function createLazyComponent<Props>(loader: LazyFeatureLoader<Props>) {
   const cacheKey = loader as LazyFeatureLoader<object>;
   const cached = lazyComponentCache.get(cacheKey);
-  if (cached) return cached as ComponentType<Props>;
+  if (cached) return cached as LazyFeatureEntry<Props>;
 
+  let indicatorVisibleUntil = 0;
   const Component = lazy(async () => {
-    const startedAt = Date.now();
     try {
       return await loader();
     } finally {
-      const remainingMs =
-        getMinimumFeatureLoadingMs() - (Date.now() - startedAt);
-      if (remainingMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingMs));
+      // 仅在提示已实际显示时保留防闪烁时长，快速加载不额外等待。
+      // 多处同时使用同一模块时，后出现的提示也要完整展示。
+      while (indicatorVisibleUntil > Date.now()) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, indicatorVisibleUntil - Date.now()),
+        );
       }
     }
   });
-  lazyComponentCache.set(cacheKey, Component as ComponentType<object>);
-  return Component;
+  const entry: LazyFeatureEntry<Props> = {
+    Component: Component as ComponentType<Props>,
+    markIndicatorVisible: () => {
+      if (!import.meta.env.DEV) {
+        indicatorVisibleUntil = Date.now() + PRODUCTION_MIN_FEATURE_LOADING_MS;
+      }
+    },
+  };
+  lazyComponentCache.set(cacheKey, entry as LazyFeatureEntry<object>);
+  return entry;
 }
 
 function FeatureLoadingIndicator({
   label,
   mode,
+  onVisible,
 }: {
   label: string;
   mode: "fullscreen" | "inline";
+  onVisible: () => void;
 }) {
-  const [stage, setStage] = useState({
-    detail: "正在请求功能模块",
-    progress: 18,
-  });
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const dependencyTimer = window.setTimeout(
-      () => setStage({ detail: "正在加载所需依赖", progress: 44 }),
-      520,
+    const timer = window.setTimeout(
+      () => setVisible(true),
+      FEATURE_LOADING_DELAY_MS,
     );
-    const initializeTimer = window.setTimeout(
-      () => setStage({ detail: "正在初始化功能界面", progress: 76 }),
-      1_180,
-    );
-    return () => {
-      window.clearTimeout(dependencyTimer);
-      window.clearTimeout(initializeTimer);
-    };
+    return () => window.clearTimeout(timer);
   }, []);
+
+  useLayoutEffect(() => {
+    if (visible) onVisible();
+  }, [visible, onVisible]);
+
+  if (!visible) return null;
 
   return (
     <ProcessIndicator
       label={label}
-      detail={stage.detail}
-      progress={stage.progress}
+      detail="正在加载…"
       mode={mode}
     />
   );
@@ -141,10 +145,7 @@ export function LazyFeature<Props extends object>({
   mode = "fullscreen",
 }: LazyFeatureProps<Props>) {
   const [attempt, setAttempt] = useState(0);
-  const Component = useMemo(
-    () => createLazyComponent(loader, attempt),
-    [attempt, loader],
-  );
+  const { Component, markIndicatorVisible } = createLazyComponent(loader);
   const resetLoader = () => {
     lazyComponentCache.delete(loader as LazyFeatureLoader<object>);
   };
@@ -160,14 +161,22 @@ export function LazyFeature<Props extends object>({
       fallback={(retry) => (
         <ProcessIndicator
           label={`${loadingLabel}失败`}
-          detail="功能模块未能完成加载，请检查网络后重试"
+          detail="功能模块未能完成加载，请重试；若持续失败，请重新打开编辑器"
           mode={mode}
           error
           onRetry={retry}
         />
       )}
     >
-      <Suspense fallback={<FeatureLoadingIndicator label={loadingLabel} mode={mode} />}>
+      <Suspense
+        fallback={
+          <FeatureLoadingIndicator
+            label={loadingLabel}
+            mode={mode}
+            onVisible={markIndicatorVisible}
+          />
+        }
+      >
         <Component {...(componentProps ?? ({} as Props))} />
       </Suspense>
     </FeatureErrorBoundary>

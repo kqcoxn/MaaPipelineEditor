@@ -20,12 +20,15 @@ interface ProcessIndicatorProps {
 export function ProcessIndicator({
   label,
   detail = "正在准备所需资源",
-  progress = 12,
+  progress,
   mode = "fullscreen",
   error = false,
   onRetry,
 }: ProcessIndicatorProps) {
-  const normalizedProgress = Math.min(100, Math.max(0, progress));
+  const normalizedProgress =
+    progress !== undefined && Number.isFinite(progress)
+      ? Math.min(100, Math.max(0, progress))
+      : undefined;
 
   return (
     <div
@@ -66,21 +69,25 @@ export function ProcessIndicator({
                 <span>{detail}</span>
               </div>
             </div>
-            <Progress
-              className={style.progress}
-              percent={normalizedProgress}
-              showInfo={false}
-              status="active"
-              strokeLinecap="square"
-              size={["100%", 4]}
-            />
-            <div className={style.meta}>
-              <span className={style.activity}>
-                <i />
-                处理中
-              </span>
-              <span>{Math.round(normalizedProgress)}%</span>
-            </div>
+            {normalizedProgress !== undefined && (
+              <>
+                <Progress
+                  className={style.progress}
+                  percent={normalizedProgress}
+                  showInfo={false}
+                  status="active"
+                  strokeLinecap="square"
+                  size={["100%", 4]}
+                />
+                <div className={style.meta}>
+                  <span className={style.activity}>
+                    <i />
+                    处理中
+                  </span>
+                  <span>{Math.round(normalizedProgress)}%</span>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>

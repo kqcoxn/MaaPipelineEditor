@@ -20,9 +20,7 @@ import style from "../../../styles/panels/ToolPanel.module.less";
 import { useEmbedMode } from "../../../hooks/useEmbedMode";
 import { showEmbedServiceNotice } from "../../../features/embed/components/serviceNotice";
 import { openExternalUrl } from "../../../features/embed/navigation/externalNavigation";
-import { LazyFeature } from "../../async/LazyFeature";
-
-const loadToolboxPanel = () => import("./ToolboxPanel");
+import ToolboxPanel from "./ToolboxPanel";
 
 /** 全局工具 */
 type GlobalToolType = {
@@ -330,13 +328,7 @@ function GlobalPanel() {
                     </span>
                   </span>
                 }
-                content={
-                  <LazyFeature
-                    loader={loadToolboxPanel}
-                    loadingLabel="正在加载字段工具包"
-                    mode="inline"
-                  />
-                }
+                content={<ToolboxPanel />}
                 trigger="click"
               >
                 <Tooltip placement="bottom" title="工具箱">
