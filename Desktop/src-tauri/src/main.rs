@@ -95,6 +95,7 @@ fn main() {
             commands::quit_desktop,
             commands::desktop_reply,
             commands::desktop_open_devtools,
+            commands::desktop_open_recovery,
             commands::desktop_heartbeat,
             commands::desktop_save_path,
             exports::desktop_save_archive,

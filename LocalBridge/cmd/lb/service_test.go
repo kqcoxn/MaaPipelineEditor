@@ -23,10 +23,7 @@ func TestOwnerPipeEOFStopsManagedService(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer r.Close()
-	previous, previousMode := os.Stdin, managedMode
-	os.Stdin, managedMode = r, true
-	defer func() { os.Stdin, managedMode = previous, previousMode }()
-	watchOwner(s)
+	watchOwnerInput(s, r)
 	if err := w.Close(); err != nil {
 		t.Fatal(err)
 	}

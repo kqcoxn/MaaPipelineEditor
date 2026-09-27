@@ -178,7 +178,9 @@ func runServer(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	defer func() { installLock.Close(); service.Close() }()
-	watchOwner(service)
+	if err := watchOwner(service); err != nil {
+		return fmt.Errorf("隔离桌面托管输入失败: %w", err)
+	}
 	// 打印启动 Banner
 	printBanner()
 

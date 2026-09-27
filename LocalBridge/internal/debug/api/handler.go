@@ -173,7 +173,10 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 
 	h.traceReplay.StopSession(sessionID)
 	h.startups.cancel("run:"+sessionID, nil)
-	h.runner.DisposeSession(sessionID)
+	if err := h.runner.DisposeSession(sessionID); err != nil {
+		h.sendError(conn, "debug_session_busy", err.Error(), map[string]string{"sessionId": sessionID})
+		return
+	}
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
 		return

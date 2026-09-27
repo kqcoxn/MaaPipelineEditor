@@ -36,6 +36,7 @@ fn main() {
             "quit_desktop",
             "desktop_reply",
             "desktop_open_devtools",
+            "desktop_open_recovery",
             "desktop_heartbeat",
             "desktop_save_path",
             "desktop_save_archive",

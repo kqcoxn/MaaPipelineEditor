@@ -9,6 +9,8 @@ import { activityDuration, presentDebugActivity } from "@/features/debug/selecto
 import type { DebugRunStarted } from "@/features/debug/types";
 import { Island } from "@/components/island";
 import { DebugRunIslandDetails } from "./DebugRunIslandDetails";
+import { desktopContext, desktopInvoke } from "@/features/desktop/host";
+import { message, modal } from "@/utils/ui/antdAppApi";
 import styles from "./DebugRunIsland.module.less";
 
 interface DebugRunIslandProps {
@@ -43,11 +45,25 @@ function DebugRunIslandContent({ run, status: sessionStatus, stopPending, onStop
     setStopStartedAt(stopping ? performance.now() : undefined);
   }, [stopping]);
 
+  const stopOverdue = stopping && stopStartedAt !== undefined && performance.now() - stopStartedAt >= 10_000;
+  const recover = () => {
+    if (desktopContext) {
+      void desktopInvoke("desktop_open_recovery").catch((error) => message.error(String(error)));
+    } else {
+      modal.info({
+        title: "停止尚未完成",
+        content: "当前操作尚未退出。请先保存文件并导出诊断日志，再在运行 LocalBridge 的终端结束并重新启动服务，随后重新连接。",
+      });
+    }
+  };
+
   const title = terminal
     ? { completed: "已完成", failed: "执行失败", stopped: "已停止" }[status as "completed" | "failed" | "stopped"]
-    : stopping ? "正在停止…" : status === "preparing" ? "正在准备" : view.title;
+    : stopOverdue ? "停止尚未完成" : stopping ? "正在停止…" : status === "preparing" ? "正在准备" : view.title;
   const subtitle = terminal
     ? traceSession?.failure?.message ?? `总耗时 ${activityDuration(Date.parse(run.startedAt), now)} · 点击查看运行详情`
+    : stopOverdue
+      ? "当前操作未退出 · 请先保存文件、导出日志，再恢复服务"
     : stopping
       ? `等待当前操作结束 · ${activityDuration(stopStartedAt, performance.now())}`
       : view.subtitle;
@@ -78,7 +94,10 @@ function DebugRunIslandContent({ run, status: sessionStatus, stopPending, onStop
       }}
       onOpen={() => openModal("overview")}
       openLabel="打开调试面板"
-      actions={!terminal ? [{
+      actions={!terminal ? stopOverdue ? [{
+        key: "recover",
+        node: <Button danger shape="round" onClick={recover}>{desktopContext ? "打开环境管理" : "恢复指引"}</Button>,
+      }] : [{
         key: "stop",
         node: (
           <Button

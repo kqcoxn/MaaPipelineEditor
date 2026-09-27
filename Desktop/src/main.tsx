@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import {
   House,
   FolderOpen,
@@ -34,6 +35,13 @@ document.addEventListener("contextmenu", (event) => event.preventDefault(), true
 function App() {
   const m = useLauncher();
   const [page, setPage] = useState("home");
+  useEffect(() => {
+    let disposed = false;
+    const subscription = listen("open-service-recovery", () => {
+      if (!disposed) setPage("engine");
+    }).catch((error) => { m.setError(String(error)); return undefined; });
+    return () => { disposed = true; void subscription.then((unlisten) => unlisten?.()); };
+  }, [m.setError]);
   const s = m.snapshot;
   const background = useBackground(s?.settings);
   // Wait for persisted preferences before starting decorative loops.

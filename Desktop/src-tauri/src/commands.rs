@@ -428,6 +428,15 @@ pub fn quit_desktop(window: WebviewWindow, app: tauri::AppHandle) -> Result<(), 
     Ok(())
 }
 #[tauri::command]
+pub fn desktop_open_recovery(window: WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
+    authorize(&window, "renderer")?;
+    use tauri::Emitter;
+    app.emit_to("launcher", "open-service-recovery", ())
+        .map_err(|e| e.to_string())?;
+    session::show_launcher(&app);
+    Ok(())
+}
+#[tauri::command]
 pub async fn desktop_open_devtools(window: WebviewWindow) -> Result<(), String> {
     authorize(&window, "renderer")?;
     window.open_devtools();

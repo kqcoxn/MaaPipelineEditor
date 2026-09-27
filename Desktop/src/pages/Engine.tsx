@@ -175,7 +175,7 @@ export function Engine({ model: m }: { model: Model }) {
               s.service.error ||
               "正在读取实例状态"}
           </p>
-          <p>中断服务会停止当前任务。正常停止超时后可选择强制结束。</p>
+          <p>请先保存编辑文件并导出诊断日志。结束服务会停止当前任务；正常停止超时后可选择强制结束，再重新打开项目。</p>
           <div className="actions">
             <Button
               variant="secondary"

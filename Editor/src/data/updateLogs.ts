@@ -142,6 +142,7 @@ export const updateLogs: UpdateLogItem[] = [
       ],
       fixes: [
         "修复 PI Agent 客户端创建时资源绑定失败无错误处理的问题",
+        "修复外部脚本卡住时无中断与恢复手段的问题",
         "修复桌面端打包范围不全的问题",
       ],
     },

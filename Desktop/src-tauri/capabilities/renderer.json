@@ -6,6 +6,7 @@
     "core:event:allow-unlisten",
     "allow-desktop-reply",
     "allow-desktop-open-devtools",
+    "allow-desktop-open-recovery",
     "allow-desktop-heartbeat",
     "allow-desktop-save-path",
     "allow-desktop-save-archive",

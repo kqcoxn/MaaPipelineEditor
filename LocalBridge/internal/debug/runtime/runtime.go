@@ -525,7 +525,8 @@ func (r *Runtime) Stop() error {
 	if r.adapter == nil {
 		return nil
 	}
-	return r.adapter.PostStop()
+	_, err := r.adapter.RequestStop()
+	return err
 }
 
 func (r *Runtime) Wait() Result {

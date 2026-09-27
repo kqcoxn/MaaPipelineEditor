@@ -562,17 +562,9 @@ func (a *MaaFWAdapter) StopTask() error {
 
 // PostStop 发送停止信号
 func (a *MaaFWAdapter) PostStop() error {
-	a.mu.RLock()
-	tasker := a.tasker
-	a.mu.RUnlock()
-
-	if tasker == nil {
-		return nil
-	}
-
-	stopJob := tasker.PostStop()
-	if stopJob == nil {
-		return fmt.Errorf("发送停止信号失败")
+	stopJob, err := a.RequestStop()
+	if err != nil || stopJob == nil {
+		return err
 	}
 	stopJob.Wait()
 	if err := stopJob.Error(); err != nil {
@@ -582,6 +574,29 @@ func (a *MaaFWAdapter) PostStop() error {
 		return fmt.Errorf("停止任务失败: %s", stopJob.Status())
 	}
 	return nil
+}
+
+// RequestStop submits cancellation without waiting for an uninterruptible
+// native action. The caller must keep the runtime alive until its task ends.
+func (a *MaaFWAdapter) RequestStop() (*maa.TaskJob, error) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+
+	if a.tasker == nil {
+		return nil, nil
+	}
+
+	stopJob := a.tasker.PostStop()
+	if stopJob == nil {
+		return nil, fmt.Errorf("发送停止信号失败")
+	}
+	if err := stopJob.Error(); err != nil {
+		return nil, err
+	}
+	if status := stopJob.Status(); status.Invalid() || status.Failure() {
+		return nil, fmt.Errorf("发送停止信号失败: %s", status)
+	}
+	return stopJob, nil
 }
 
 // ============================================================================

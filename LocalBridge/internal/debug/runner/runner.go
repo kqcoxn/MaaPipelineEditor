@@ -47,7 +47,6 @@ type Run struct {
 
 	mu            sync.RWMutex
 	stopRequested bool
-	disposed      bool
 	stopReason    string
 }
 
@@ -238,23 +237,25 @@ func (r *Runner) Stop(
 	return run.Runtime.Stop()
 }
 
-func (r *Runner) DisposeSession(sessionID string) {
+func (r *Runner) DisposeSession(sessionID string) error {
 	run := r.activeRun(sessionID)
 	if run != nil {
-		run.markDisposed()
+		run.markStopRequested("session_disposed")
 		if err := run.Runtime.Stop(); err != nil {
-			logger.Warn("DebugVNext", "销毁 session 时停止 run 失败: %v", err)
+			return err
 		}
 		select {
 		case <-run.Done:
 		case <-time.After(5 * time.Second):
-			logger.Warn("DebugVNext", "等待 debug run 停止超时，强制释放 runtime: %s", run.ID)
-			run.Runtime.Destroy()
+			// The native task can still hold callbacks and borrowed resources.
+			// wait owns cleanup and the execution lease until it really finishes.
+			logger.Warn("DebugVNext", "等待 debug run 停止超时，保留运行资源；需要结束 LocalBridge 恢复: %s", run.ID)
+			return fmt.Errorf("当前操作尚未退出，无法销毁调试会话；请保存文件并导出日志后结束 LocalBridge")
 		}
-		r.unregister(run)
 	}
 	r.traces.DeleteSession(sessionID)
 	r.artifacts.DeleteSession(sessionID)
+	return nil
 }
 
 func (r *Runner) ArtifactStore() *artifact.Store {
@@ -303,7 +304,7 @@ func (r *Runner) wait(run *Run, eventSender EventSender, snapshotSender Snapshot
 	result := run.Runtime.Wait()
 	run.Runtime.Destroy()
 
-	if !r.unregister(run) || run.isDisposed() {
+	if !r.unregister(run) {
 		return
 	}
 
@@ -508,23 +509,10 @@ func (r *Run) markStopRequested(reason string) bool {
 	return true
 }
 
-func (r *Run) markDisposed() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.disposed = true
-}
-
 func (r *Run) wasStopRequested() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.stopRequested
-}
-
-func (r *Run) isDisposed() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	return r.disposed
 }
 
 func (r *Run) stopReasonOrDefault() string {

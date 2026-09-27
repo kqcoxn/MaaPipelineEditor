@@ -36,3 +36,7 @@ impl Drop for Job {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "windows_job_tests.rs"]
+mod tests;

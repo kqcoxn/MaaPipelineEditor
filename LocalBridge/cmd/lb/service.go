@@ -53,12 +53,21 @@ func init() {
 	service.AddCommand(status, stop)
 	rootCmd.AddCommand(service)
 }
-func watchOwner(s *managed.Service) {
+func watchOwner(s *managed.Service) error {
 	if !managedMode {
-		return
+		return nil
 	}
-	owner := os.Stdin
+	owner, err := managed.DetachOwnerInput()
+	if err != nil {
+		return err
+	}
+	watchOwnerInput(s, owner)
+	return nil
+}
+
+func watchOwnerInput(s *managed.Service, owner io.ReadCloser) {
 	go func() {
+		defer owner.Close()
 		_, _ = io.Copy(io.Discard, owner)
 		s.RequestStop()
 		select {

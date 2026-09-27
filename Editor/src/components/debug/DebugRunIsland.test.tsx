@@ -9,7 +9,12 @@ import { debugProtocolClient } from "@/services/server";
 import { DebugRunIsland } from "./DebugRunIsland";
 
 vi.mock("@/services/server", () => ({ debugProtocolClient: { stopRun: vi.fn(() => true) } }));
-vi.mock("@/utils/ui/antdAppApi", () => ({ message: { error: vi.fn(), warning: vi.fn() } }));
+vi.mock("@/utils/ui/antdAppApi", () => ({ message: { error: vi.fn(), warning: vi.fn() }, modal: { info: vi.fn() } }));
+const desktop = vi.hoisted(() => ({ enabled: false, invoke: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/features/desktop/host", () => ({
+  get desktopContext() { return desktop.enabled ? {} : undefined; },
+  desktopInvoke: desktop.invoke,
+}));
 
 const session: DebugSessionSnapshot = {
   sessionId: "live-session", status: "running", createdAt: "", updatedAt: "",
@@ -36,6 +41,8 @@ describe("调试悬浮状态条", () => {
     useDebugSessionStore.setState(useDebugSessionStore.getInitialState());
     useDebugTraceStore.setState(useDebugTraceStore.getInitialState());
     vi.mocked(debugProtocolClient.stopRun).mockReset().mockReturnValue(true);
+    desktop.enabled = false;
+    desktop.invoke.mockClear();
   });
   afterEach(() => {
     cleanup();
@@ -84,6 +91,34 @@ describe("调试悬浮状态条", () => {
     expect(screen.getByRole("button", { name: "打开调试面板" }).closest('[data-terminal]')).toHaveAttribute("data-exiting", "true");
     act(() => vi.advanceTimersByTime(240));
     expect(screen.queryByText("已停止")).toBeNull();
+  });
+
+  it("停止超过十秒提供恢复入口，保留真实状态，晚到的完成结果移除入口", () => {
+    desktop.enabled = true;
+    startRun();
+    render(<DebugRunIsland stopPending={false} onStop={vi.fn()} />);
+    act(() => useDebugSessionStore.getState().setSessionSnapshot({ ...session, status: "stopping" }));
+    act(() => vi.advanceTimersByTime(9750));
+    expect(screen.queryByRole("button", { name: "打开环境管理" })).toBeNull();
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByText("停止尚未完成")).toBeInTheDocument();
+    expect(useDebugSessionStore.getState().session?.status).toBe("stopping");
+    expect(debugProtocolClient.stopRun).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "打开环境管理" }));
+    expect(desktop.invoke).toHaveBeenCalledWith("desktop_open_recovery");
+    act(() => useDebugSessionStore.getState().setSessionSnapshot({ ...session, status: "completed" }));
+    expect(screen.queryByRole("button", { name: "打开环境管理" })).toBeNull();
+    expect(screen.getByText("已完成")).toBeInTheDocument();
+  });
+
+  it("网页模式停止超时展示恢复指引，断线后清除", () => {
+    startRun();
+    render(<DebugRunIsland stopPending={true} onStop={vi.fn()} />);
+    act(() => vi.advanceTimersByTime(10250));
+    expect(screen.getByRole("button", { name: "恢复指引" })).toBeInTheDocument();
+    expect(desktop.invoke).not.toHaveBeenCalled();
+    act(() => useDebugSessionStore.getState().resetForConnectionLoss());
+    expect(screen.queryByRole("button", { name: "恢复指引" })).toBeNull();
   });
 
   it("展开显示轮次和候选，结束后保持详情直到收起", () => {
