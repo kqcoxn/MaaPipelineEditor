@@ -48,6 +48,7 @@ import {
   DEBUG_PIPELINE_OVERRIDE_ERROR_CODE,
   parseDebugPipelineOverrideDraft,
 } from "../utils/pipelineOverride";
+import { useProjectInterfaceAgentTest } from "./useProjectInterfaceAgentTest";
 import { useDebugStopControl } from "./useDebugStopControl";
 import { useDebugResourceChecks } from "./useDebugResourceChecks";
 import { useDebugNodeExecutionController } from "./useDebugNodeExecutionController";
@@ -66,7 +67,6 @@ export function useDebugModalController() {
   const [testingAgentIds, setTestingAgentIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const agentTestTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const pendingRunRef = useRef<{ mode: DebugRunMode; target?: DebugNodeTarget; input?: DebugRunRequest["input"] } | undefined>(undefined);
   const {
     modalOpen,
@@ -198,8 +198,6 @@ export function useDebugModalController() {
 
   useEffect(() => {
     return debugProtocolClient.onAgentTested((result) => {
-      clearTimeout(agentTestTimeouts.current[result.agentId]);
-      delete agentTestTimeouts.current[result.agentId];
       setTestingAgentIds((current) => {
         if (!current.has(result.agentId)) return current;
         const next = new Set(current);
@@ -208,7 +206,7 @@ export function useDebugModalController() {
       });
       if (result.success) {
         message.success(result.message);
-      } else {
+      } else if (result.failureStage !== "canceled") {
         message.error(result.message);
       }
     });
@@ -531,73 +529,9 @@ export function useDebugModalController() {
     });
   };
 
-  const testProjectInterfaceAgent = (agentIndex: number) => {
-    if (!piContext) {
-      message.warning("Project Interface 上下文尚未就绪");
-      return;
-    }
-    const agent = piContext.agents?.[agentIndex];
-    if (!agent) return;
-    clearProtocolError();
-    clearAgentTestResult(agent.id);
-    const override = piContext ? projectInterface.agentOverrides[agent.id] : undefined;
-    setTestingAgentIds((current) => new Set(current).add(agent.id));
-    if (agentTestTimeouts.current[agent.id]) clearTimeout(agentTestTimeouts.current[agent.id]);
-    agentTestTimeouts.current[agent.id] = setTimeout(() => {
-      delete agentTestTimeouts.current[agent.id];
-      setTestingAgentIds((current) => {
-        const next = new Set(current);
-        next.delete(agent.id);
-        return next;
-      });
-      debugProtocolClient.stopAgent({ projectContextId: piContext.contextId, agentIndex });
-      const timeoutMessage = "Agent 连接测试超时，已停止启动进程";
-      setAgentTestResult({
-        agentId: agent.id,
-        success: false,
-        checkedAt: new Date().toISOString(),
-        message: timeoutMessage,
-        failureStage: "connect",
-      });
-      message.warning(timeoutMessage);
-    }, 12000);
-    const sent = debugProtocolClient.testAgent({
-      agent: { id: agent.id, enabled: true, transport: "identifier" },
-      projectContextId: piContext.contextId,
-      agentIndex,
-      agentOverride: override,
-    });
-    if (!sent) {
-      setTestingAgentIds((current) => {
-        const next = new Set(current);
-        next.delete(agent.id);
-        return next;
-      });
-      clearTimeout(agentTestTimeouts.current[agent.id]);
-      delete agentTestTimeouts.current[agent.id];
-      setAgentTestResult({
-        agentId: agent.id,
-        success: false,
-        checkedAt: new Date().toISOString(),
-        message: "发送 Agent 连接测试请求失败，请检查 LocalBridge 连接",
-        failureStage: "context",
-      });
-    }
-  };
-
-  const stopProjectInterfaceAgent = (agentIndex: number) => {
-    if (!piContext) return;
-    const agent = piContext.agents?.[agentIndex];
-    if (!agent) return;
-    clearTimeout(agentTestTimeouts.current[agent.id]);
-    delete agentTestTimeouts.current[agent.id];
-    setTestingAgentIds((current) => {
-      const next = new Set(current);
-      next.delete(agent.id);
-      return next;
-    });
-    debugProtocolClient.stopAgent({ projectContextId: piContext.contextId, agentIndex });
-  };
+  const { testProjectInterfaceAgent, stopProjectInterfaceAgent, stoppingAgentIds } = useProjectInterfaceAgentTest({
+    projectInterface, connected, setTestingAgentIds, clearProtocolError, clearAgentTestResult, setAgentTestResult,
+  });
 
   const focusNode = (nodeId: string) => {
     selectNode(nodeId);
@@ -707,6 +641,7 @@ export function useDebugModalController() {
     selectedArtifact,
     requestArtifact,
     testingAgentIds,
+    stoppingAgentIds,
     startRun,
     stopRun,
     stopPending,

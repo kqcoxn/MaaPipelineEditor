@@ -235,7 +235,7 @@ export function OverviewPanel({
     session?.status ?? "idle",
   );
   const canStartRun = debugReadiness.ready && !runLocked;
-  const canStopRun = session?.status === "running" && Boolean(activeRun?.runId);
+  const canStopRun = session?.status === "preparing" || (session?.status === "running" && Boolean(activeRun?.runId));
   const failedNodeExecutionRecords = useMemo(
     () => allNodeExecutionRecords.filter((record) => record.hasFailure),
     [allNodeExecutionRecords],

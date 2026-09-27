@@ -8,6 +8,21 @@ export function buildAgentFailureGuidance(
   failureStage?: string,
 ): AgentFailureGuidance {
   const normalized = `${failureStage ?? ""} ${message}`.toLowerCase();
+  if (/启动准备超时/.test(normalized)) {
+    return {
+      title: "Agent 初始化超时",
+      checks: [
+        "查看 stdout/stderr 中的依赖下载、资源更新或网络错误。",
+        "首次安装较慢时，可在项目目录先完成依赖安装（使用 uv 的项目运行 uv sync --locked），再重新测试。",
+      ],
+    };
+  }
+  if (/退出码|已退出或已停止/.test(normalized)) {
+    return {
+      title: "Agent 进程提前退出",
+      checks: ["查看 stdout/stderr 和退出码，定位依赖安装或 Python 启动异常。"],
+    };
+  }
   if (/agent_context_conflict|identifier.+占用|conflict/.test(normalized)) {
     return {
       title: "Agent 标识符发生冲突",
@@ -18,7 +33,7 @@ export function buildAgentFailureGuidance(
     };
   }
   if (
-    failureStage === "start" ||
+    (failureStage === "start" && !/握手失败/.test(normalized)) ||
     /createprocess|executable file not found|no such file|cannot find|系统找不到|启动 pi agent 失败/.test(
       normalized,
     )
@@ -34,7 +49,7 @@ export function buildAgentFailureGuidance(
   }
   if (
     failureStage === "connect" ||
-    /connect|timeout|timed out|连接|超时|未响应/.test(normalized)
+    /connect|timeout|timed out|连接|握手|超时|未响应/.test(normalized)
   ) {
     return {
       title: "Agent 进程未建立连接",

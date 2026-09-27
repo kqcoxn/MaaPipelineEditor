@@ -128,8 +128,8 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 			fail(err)
 			return
 		}
-		_ = client.SetTimeout(5 * time.Second)
-		if err = client.Connect(); err != nil {
+		s.log("等待 Agent 初始化（最多 3 分钟）；依赖下载期间可停止任务")
+		if err = supervisor.ConnectAgent(ctx, plans[0].ContextID, agent.ID, client, 5*time.Second); err != nil {
 			fail(fmt.Errorf("Agent 连接失败: %w", err))
 			return
 		}

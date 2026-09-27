@@ -136,10 +136,14 @@ export const updateLogs: UpdateLogItem[] = [
     maafwVersion: "5.14.0",
     updates: {
       perfs: [
+        "优化 agent 连接机制，延长硬时限并加入中断检测",
         "优化桌面端版本获取与缓存机制，独立启动器与前后端更新检查配置",
         "优化桌面端交互效果",
       ],
-      fixes: ["修复桌面端打包范围不全的问题"],
+      fixes: [
+        "修复 PI Agent 客户端创建时资源绑定失败无错误处理的问题",
+        "修复桌面端打包范围不全的问题",
+      ],
     },
   },
   {

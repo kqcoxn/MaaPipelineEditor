@@ -36,6 +36,9 @@ type supervisedProcess struct {
 	done              chan struct{}
 	contexts          map[string]bool
 	running           bool
+	connected         bool
+	stopped           bool
+	exitCode          int
 }
 
 type Supervisor struct {
@@ -133,11 +136,16 @@ func (s *Supervisor) Ensure(plan *RuntimePlan, agent AgentPlan, identifier strin
 func (s *Supervisor) StopContext(contextID string) {
 	s.mu.Lock()
 	var targets []*supervisedProcess
-	for _, process := range s.processes {
+	for key, process := range s.processes {
 		if process.contexts[contextID] {
 			delete(process.contexts, contextID)
 		}
 		if len(process.contexts) == 0 {
+			process.stopped = true
+			delete(s.processes, key)
+			if s.identifiers[process.identifier] == key {
+				delete(s.identifiers, process.identifier)
+			}
 			targets = append(targets, process)
 		}
 	}
@@ -172,6 +180,7 @@ func (s *Supervisor) stopAgent(contextID, agentID string, cancelPending bool) {
 	for key, process := range s.processes {
 		if process.contexts[contextID] && process.agentID == agentID {
 			target = process
+			process.stopped = true
 			delete(s.processes, key)
 			if s.identifiers[process.identifier] == key {
 				delete(s.identifiers, process.identifier)
@@ -218,6 +227,7 @@ func (s *Supervisor) MarkConnected(contextID, agentID string) {
 	for _, candidate := range s.processes {
 		if candidate.contexts[contextID] && candidate.agentID == agentID {
 			process = candidate
+			process.connected = true
 			break
 		}
 	}
@@ -231,6 +241,7 @@ func (s *Supervisor) StopAll() {
 	s.mu.Lock()
 	targets := make([]*supervisedProcess, 0, len(s.processes))
 	for _, process := range s.processes {
+		process.stopped = true
 		targets = append(targets, process)
 	}
 	s.mu.Unlock()
@@ -261,13 +272,19 @@ func (s *Supervisor) wait(process *supervisedProcess) {
 	}
 	s.mu.Lock()
 	process.running = false
-	delete(s.processes, process.key)
-	if s.identifiers[process.identifier] == process.key {
-		delete(s.identifiers, process.identifier)
+	process.exitCode = exitCode
+	publishExit := s.processes[process.key] == nil || s.processes[process.key] == process
+	// An old canceled process may finish after its replacement has started.
+	if s.processes[process.key] == process {
+		if s.identifiers[process.identifier] == process.key {
+			delete(s.identifiers, process.identifier)
+		}
 	}
 	close(process.done)
 	s.mu.Unlock()
-	s.publish(process, "exited", &exitCode, message)
+	if publishExit {
+		s.publish(process, "exited", &exitCode, message)
+	}
 }
 
 func (s *Supervisor) capture(process *supervisedProcess, stream string, reader interface{ Read([]byte) (int, error) }) {
@@ -298,11 +315,11 @@ func (s *Supervisor) capture(process *supervisedProcess, stream string, reader i
 }
 
 func (s *Supervisor) publish(process *supervisedProcess, state string, exitCode *int, message string) {
+	s.mu.Lock()
 	status := AgentProcessStatus{ContextID: process.contextID, AgentID: process.agentID, State: state, ExitCode: exitCode, Message: message, OccurredAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	if process.cmd != nil && process.cmd.Process != nil {
 		status.PID = process.cmd.Process.Pid
 	}
-	s.mu.Lock()
 	status.Output = append([]string(nil), process.output...)
 	s.mu.Unlock()
 	s.eventBus.Publish(eventbus.EventProjectInterfaceAgent, status)

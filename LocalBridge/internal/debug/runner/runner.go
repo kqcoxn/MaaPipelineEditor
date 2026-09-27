@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -80,6 +81,7 @@ func New(
 }
 
 func (r *Runner) Start(
+	ctx context.Context,
 	req protocol.RunRequest,
 	eventSender EventSender,
 	snapshotSender SnapshotSender,
@@ -131,6 +133,10 @@ func (r *Runner) Start(
 	runtime, err := debugruntime.New(r.service, r.root, req.SessionID, runID, req, r.artifacts, r.agentPool, r.emitFunc(eventSender))
 	if err != nil {
 		r.failStart(req.SessionID, runID, err, eventSender, snapshotSender)
+		return StartResult{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		runtime.Destroy()
 		return StartResult{}, err
 	}
 

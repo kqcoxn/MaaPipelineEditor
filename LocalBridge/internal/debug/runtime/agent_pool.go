@@ -22,9 +22,28 @@ type AgentPool struct {
 }
 
 type agentEntry struct {
+	connectMu       sync.Mutex
 	client          *maa.AgentClient
 	resourceAdapter *mfw.MaaFWAdapter
 	resourceKey     string
+}
+
+// ConnectPrepared serializes native handshakes with retries and pool cleanup.
+func (p *AgentPool) ConnectPrepared(agent protocol.AgentProfile, connect func(*maa.AgentClient) error) error {
+	key, err := agentPoolKey(agent)
+	if err != nil {
+		return err
+	}
+	p.mu.Lock()
+	entry := p.clients[key]
+	if entry == nil {
+		p.mu.Unlock()
+		return fmt.Errorf("Agent client 未准备")
+	}
+	entry.connectMu.Lock()
+	p.mu.Unlock()
+	defer entry.connectMu.Unlock()
+	return connect(entry.client)
 }
 
 func NewAgentPool() *AgentPool {
@@ -186,6 +205,7 @@ func (p *AgentPool) Close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for key, entry := range p.clients {
+		entry.connectMu.Lock()
 		if entry.client != nil {
 			if entry.client.Connected() {
 				_ = entry.client.Disconnect()
@@ -193,6 +213,7 @@ func (p *AgentPool) Close() {
 			entry.client.Destroy()
 		}
 		delete(p.clients, key)
+		entry.connectMu.Unlock()
 	}
 	for key, adapter := range p.resources {
 		adapter.Destroy()

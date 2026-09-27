@@ -33,6 +33,7 @@ export function ProjectInterfaceAgentSection({
         const override = pi.agentOverrides[agent.id];
         const overrideArgs = override?.childArgs?.join(" ") ?? "";
         const testing = controller.testingAgentIds.has(agent.id);
+        const stopping = controller.stoppingAgentIds.has(agent.id);
         const testResult = controller.agentTestResults[agent.id];
         const runError = getAgentRunError(controller.lastError, agent.id, agents.length);
         const failure = agentFailure(testResult, runError, status?.state, status?.message);
@@ -73,10 +74,10 @@ export function ProjectInterfaceAgentSection({
                     size="small"
                     icon={testing ? <StopOutlined /> : <ReloadOutlined />}
                     danger={testing}
-                    disabled={!agent.enabled}
+                    disabled={!agent.enabled || stopping}
                     onClick={() => testing ? controller.stopProjectInterfaceAgent(agent.index) : controller.testProjectInterfaceAgent(agent.index)}
                   >
-                    {testing ? "停止测试" : "测试并唤起"}
+                    {stopping ? "正在停止…" : testing ? "停止测试" : "测试并唤起"}
                   </Button>
                 </Space>
               </div>
@@ -84,7 +85,9 @@ export function ProjectInterfaceAgentSection({
               <div className={styles.piAgentMeta}>
                 <Text type="secondary" className={styles.piAgentCommand}>工作目录：{pi.context?.interfaceRoot ?? "-"}</Text>
               </div>
-              {failure && <AgentFailureAlert message={failure.message} failureStage={failure.failureStage} command={command} workingDirectory={pi.context?.interfaceRoot} />}
+              {testing && <Alert type="info" showIcon title={stopping ? "正在停止 Agent" : "正在等待 Agent 就绪"}
+                description="首次启动可能下载依赖或检查资源，准备阶段最多等待 3 分钟。可查看下方输出，或点击停止测试。" />}
+              {!testing && failure && failure.failureStage !== "canceled" && <AgentFailureAlert message={failure.message} failureStage={failure.failureStage} command={command} workingDirectory={pi.context?.interfaceRoot} />}
               <div className={styles.piAgentOverride}>
                 <label>
                   <Text type="secondary">启动程序覆盖</Text>

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,6 +46,7 @@ type Handler struct {
 	sessionContexts  map[string]string
 	contextLeases    map[string]int
 	disposedContexts map[string]bool
+	startups         startupOperations
 }
 
 func NewHandler(service *mfw.Service, root string, piService *projectinterface.Service, clientVersion string) *Handler {
@@ -89,6 +91,7 @@ func NewHandler(service *mfw.Service, root string, piService *projectinterface.S
 }
 
 func (h *Handler) Close() {
+	h.startups.close()
 	h.agentSupervisor.StopAll()
 	h.runner.AgentPool().Close()
 }
@@ -169,6 +172,7 @@ func (h *Handler) handleDestroySession(conn *server.Connection, msg models.Messa
 	}
 
 	h.traceReplay.StopSession(sessionID)
+	h.startups.cancel("run:"+sessionID, nil)
 	h.runner.DisposeSession(sessionID)
 	if err := h.sessions.Destroy(sessionID); err != nil {
 		h.sendError(conn, "debug_session_not_found", err.Error(), nil)
@@ -213,19 +217,64 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
 		return
 	}
+	if req.SessionID == "" {
+		snapshot := h.sessions.Create(h.capabilities)
+		req.SessionID = snapshot.SessionID
+		h.send(conn, "/lte/debug/session_created", snapshot)
+	} else {
+		if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
+			// Session 状态保存在 LocalBridge 内存中，服务重启后前端可能仍带着旧 ID。
+			// 启动调试是可恢复操作，此时创建新会话并通知前端使用新 ID。
+			logger.Warn("DebugVNext", "run 请求使用了不存在的 session，创建新会话: stale=%s", req.SessionID)
+			snapshot := h.sessions.Create(h.capabilities)
+			req.SessionID = snapshot.SessionID
+			h.send(conn, "/lte/debug/session_created", snapshot)
+		}
+	}
+
 	release, err := h.service.AcquireExecution("调试器", controllerIDFromOptions(req.Profile.Controller.Options))
 	if err != nil {
 		h.sendError(conn, "debug_runtime_busy", err.Error(), nil)
 		return
 	}
+	ctx, finish, err := h.startups.begin("run:"+req.SessionID, connectionDone(conn))
+	if err != nil {
+		release()
+		h.sendError(conn, "debug_runtime_busy", err.Error(), nil)
+		return
+	}
+	if snapshot, err := h.sessions.SetPreparing(req.SessionID, ""); err == nil {
+		h.snapshotSender(conn)(snapshot)
+	}
+	go func() {
+		defer finish()
+		h.runPrepared(ctx, conn, req, release)
+	}()
+}
+
+func (h *Handler) runPrepared(ctx context.Context, conn *server.Connection, req protocol.RunRequest, release func()) {
 	transferred := false
 	defer func() {
 		if !transferred {
+			h.agentSupervisor.StopContext(req.ProjectContextID)
+			var snapshot debugsession.Snapshot
+			var err error
+			if ctx.Err() != nil {
+				snapshot, err = h.sessions.SetIdle(req.SessionID)
+			} else {
+				snapshot, err = h.sessions.SetFailed(req.SessionID)
+			}
+			if err == nil {
+				h.snapshotSender(conn)(snapshot)
+			}
 			release()
 		}
 	}()
 
-	if err := h.prepareProjectInterfaceRun(&req); err != nil {
+	if err := h.prepareProjectInterfaceRun(ctx, &req); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		var agentErr *projectInterfaceAgentStartError
 		if errors.As(err, &agentErr) {
 			h.sendError(conn, "debug_pi_agent_start_failed", agentErr.Error(), map[string]interface{}{
@@ -244,23 +293,14 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		return
 	}
 
-	if req.SessionID == "" {
-		snapshot := h.sessions.Create(h.capabilities)
-		req.SessionID = snapshot.SessionID
-		h.send(conn, "/lte/debug/session_created", snapshot)
-	} else {
-		if _, err := h.sessions.Snapshot(req.SessionID); err != nil {
-			// Session 状态保存在 LocalBridge 内存中，服务重启后前端可能仍带着旧 ID。
-			// 启动调试是可恢复操作，此时创建新会话并通知前端使用新 ID。
-			logger.Warn("DebugVNext", "run 请求使用了不存在的 session，创建新会话: stale=%s", req.SessionID)
-			snapshot := h.sessions.Create(h.capabilities)
-			req.SessionID = snapshot.SessionID
-			h.send(conn, "/lte/debug/session_created", snapshot)
-		}
+	if ctx.Err() != nil {
+		return
 	}
-
-	result, err := h.runner.Start(req, h.eventSender(conn), h.snapshotSender(conn), release)
+	result, err := h.runner.Start(ctx, req, h.eventSender(conn), h.snapshotSender(conn), release)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
 		detail := map[string]interface{}{"mode": req.Mode, "sessionId": req.SessionID}
 		if strings.Contains(strings.ToLower(err.Error()), "agent") {
 			detail["agentIds"] = enabledAgentIDs(req.Profile.Agents)
@@ -280,6 +320,9 @@ func (h *Handler) handleRunStart(conn *server.Connection, msg models.Message) {
 		"startedAt": result.StartedAt,
 		"session":   result.Session,
 	})
+	if ctx.Err() != nil {
+		_ = h.runner.Stop(result.SessionID, result.RunID, "startup_canceled", h.eventSender(conn), h.snapshotSender(conn))
+	}
 }
 
 func enabledAgentIDs(agents []protocol.AgentProfile) []string {
@@ -347,6 +390,13 @@ func (h *Handler) handleRunStop(conn *server.Connection, msg models.Message) {
 		return
 	}
 
+	if h.startups.cancel("run:"+req.SessionID, func() {
+		if snapshot, err := h.sessions.SetStopping(req.SessionID); err == nil {
+			h.snapshotSender(conn)(snapshot)
+		}
+	}) {
+		return
+	}
 	if err := h.runner.Stop(req.SessionID, req.RunID, req.Reason, h.eventSender(conn), h.snapshotSender(conn)); err != nil {
 		h.sendError(conn, "debug_run_stop_failed", err.Error(), map[string]string{
 			"sessionId": req.SessionID,
@@ -439,171 +489,6 @@ func (h *Handler) handleScreenshotCapture(conn *server.Connection, msg models.Me
 			"height":       bounds.Dy(),
 		},
 	})
-}
-
-func (h *Handler) handleAgentTest(conn *server.Connection, msg models.Message) {
-	req, err := decodeData[protocol.AgentTestRequest](msg)
-	if err != nil {
-		h.sendError(conn, "debug_invalid_request", err.Error(), nil)
-		return
-	}
-	go h.runAgentTest(conn, req)
-}
-
-func (h *Handler) runAgentTest(conn *server.Connection, req protocol.AgentTestRequest) {
-	var piAgentID string
-	if strings.TrimSpace(req.ProjectContextID) != "" {
-		plan, contextErr := h.projectInterface.Context(req.ProjectContextID)
-		if contextErr != nil {
-			h.sendAgentTestFailure(conn, req.Agent.ID, contextErr.Error(), "context")
-			return
-		}
-		if req.AgentIndex < 0 || req.AgentIndex >= len(plan.Agents) {
-			h.sendAgentTestFailure(conn, req.Agent.ID, "PI Agent 索引无效", "configuration")
-			return
-		}
-		agentPlan := plan.Agents[req.AgentIndex]
-		if !agentPlan.Enabled {
-			h.sendAgentTestFailure(conn, agentPlan.ID, "PI Agent 已关闭", "configuration")
-			return
-		}
-		if req.AgentOverride != nil && strings.TrimSpace(req.AgentOverride.ChildExec) != "" {
-			agentPlan.ChildExec = strings.TrimSpace(req.AgentOverride.ChildExec)
-			agentPlan.ChildArgs = append([]string(nil), req.AgentOverride.ChildArgs...)
-		}
-		agent, prepareErr := h.preparePIAgent(plan, agentPlan)
-		if prepareErr != nil {
-			h.agentSupervisor.StopAgentIfRunning(req.ProjectContextID, agentPlan.ID)
-			h.sendAgentTestFailure(conn, agentPlan.ID, prepareErr.Error(), "start")
-			return
-		}
-		req.Agent = agent
-		req.ResourcePaths = plan.ResourcePaths
-		piAgentID = plan.Agents[req.AgentIndex].ID
-	}
-	result := h.testAgentConnection(req.Agent, req.ResourcePaths)
-	if piAgentID != "" && !result.Success {
-		h.agentSupervisor.StopAgentIfRunning(req.ProjectContextID, piAgentID)
-	}
-	if result.Success && piAgentID != "" {
-		h.agentSupervisor.MarkConnected(req.ProjectContextID, piAgentID)
-	}
-	h.send(conn, "/lte/debug/agent_tested", result)
-}
-
-func (h *Handler) sendAgentTestFailure(conn *server.Connection, agentID, message, failureStage string) {
-	h.send(conn, "/lte/debug/agent_tested", protocol.AgentTestResult{
-		AgentID: strings.TrimSpace(agentID), CheckedAt: time.Now().UTC().Format(time.RFC3339Nano), Message: message, FailureStage: failureStage,
-	})
-}
-
-func (h *Handler) handleAgentStop(conn *server.Connection, msg models.Message) {
-	req, err := decodeData[protocol.AgentStopRequest](msg)
-	if err != nil || strings.TrimSpace(req.ProjectContextID) == "" || req.AgentIndex < 0 {
-		h.sendError(conn, "debug_invalid_request", "停止 PI Agent 请求格式错误", nil)
-		return
-	}
-	plan, err := h.projectInterface.Context(req.ProjectContextID)
-	if err != nil {
-		h.sendError(conn, "debug_pi_context_failed", err.Error(), nil)
-		return
-	}
-	if req.AgentIndex >= len(plan.Agents) {
-		h.sendError(conn, "debug_invalid_request", "PI Agent 索引无效", nil)
-		return
-	}
-	h.agentSupervisor.StopAgent(req.ProjectContextID, plan.Agents[req.AgentIndex].ID)
-}
-
-func (h *Handler) testAgentConnection(agent protocol.AgentProfile, resourcePaths []string) protocol.AgentTestResult {
-	result := protocol.AgentTestResult{
-		AgentID:   strings.TrimSpace(agent.ID),
-		CheckedAt: time.Now().UTC().Format(time.RFC3339Nano),
-	}
-	logger.Debug("DebugVNext", "开始测试 agent 连接: %s", agentProfileLogLabel(agent))
-	paths := nonEmptyStrings(resourcePaths)
-	if len(paths) == 0 {
-		result.Message = "Agent 连接测试需要先配置资源路径"
-		result.FailureStage = "resource"
-		return result
-	}
-	if !h.service.IsInitialized() {
-		result.Message = "MaaFramework 未初始化，无法加载资源"
-		result.FailureStage = "resource"
-		return result
-	}
-
-	agentPool := h.runner.AgentPool()
-	var client *maa.AgentClient
-	var err error
-	if agentPool != nil {
-		client, err = agentPool.EnsureBound(agent, paths)
-	} else {
-		client, err = createAgentClient(agent)
-	}
-	if err != nil {
-		result.Message = err.Error()
-		result.FailureStage = "resource"
-		logger.Warn("DebugVNext", "创建 agent client 失败: %s, err=%v", agentProfileLogLabel(agent), err)
-		return result
-	}
-	if agent.TimeoutMS > 0 {
-		if err := client.SetTimeout(time.Duration(agent.TimeoutMS) * time.Millisecond); err != nil {
-			result.Message = err.Error()
-			result.FailureStage = "connect"
-			logger.Warn("DebugVNext", "设置 agent timeout 失败: %s, err=%v", agentProfileLogLabel(agent), err)
-			return result
-		}
-	}
-	if !client.Connected() {
-		connectTimeout := time.Duration(agent.TimeoutMS) * time.Millisecond
-		if connectTimeout <= 0 || connectTimeout > 10*time.Second {
-			connectTimeout = 10 * time.Second
-		}
-		connectErr := make(chan error, 1)
-		go func() { connectErr <- client.Connect() }()
-		select {
-		case err := <-connectErr:
-			if err != nil {
-				result.Message = err.Error()
-				result.FailureStage = "connect"
-				logger.Warn("DebugVNext", "agent client connect 失败: %s, err=%v", agentProfileLogLabel(agent), err)
-				return result
-			}
-		case <-time.After(connectTimeout):
-			result.Message = fmt.Sprintf("Agent 连接超时（%s）", connectTimeout)
-			result.FailureStage = "connect"
-			logger.Warn("DebugVNext", "agent client connect 超时: %s", agentProfileLogLabel(agent))
-			go func() {
-				if err := <-connectErr; err == nil {
-					_ = client.Disconnect()
-				}
-			}()
-			return result
-		}
-	} else if !client.Alive() {
-		result.Message = "agent 已连接但未响应"
-		result.FailureStage = "connect"
-		logger.Warn("DebugVNext", "agent 已连接但未响应: %s", agentProfileLogLabel(agent))
-		return result
-	}
-	effectiveIdentifier, err := client.Identifier()
-	if err != nil {
-		logger.Warn("DebugVNext", "读取 agent identifier 失败: %s, err=%v", agentProfileLogLabel(agent), err)
-	} else {
-		logger.Debug("DebugVNext", "agent client 已连接: %s, effectiveIdentifier=%s", agentProfileLogLabel(agent), effectiveIdentifier)
-	}
-	if !client.Connected() || !client.Alive() {
-		result.Message = "agent 已连接但状态检查失败"
-		result.FailureStage = "connect"
-		logger.Warn("DebugVNext", "agent 连接状态检查失败: %s, connected=%v, alive=%v", agentProfileLogLabel(agent), client.Connected(), client.Alive())
-		return result
-	}
-	result.Success = true
-	result.Message = "agent 连接测试通过"
-	result.CustomRecognitions, _ = client.GetCustomRecognitionList()
-	result.CustomActions, _ = client.GetCustomActionList()
-	return result
 }
 
 func (h *Handler) handleTraceSnapshot(conn *server.Connection, msg models.Message) {
@@ -751,7 +636,7 @@ func validateRunRequest(req protocol.RunRequest) error {
 	return nil
 }
 
-func (h *Handler) prepareProjectInterfaceRun(req *protocol.RunRequest) error {
+func (h *Handler) prepareProjectInterfaceRun(ctx context.Context, req *protocol.RunRequest) error {
 	source := strings.TrimSpace(req.ConfigurationSource)
 	if source == "" || source == "manual" {
 		return nil
@@ -797,7 +682,7 @@ func (h *Handler) prepareProjectInterfaceRun(req *protocol.RunRequest) error {
 		if !agentPlan.Enabled {
 			continue
 		}
-		agent, err := h.preparePIAgent(plan, agentPlan)
+		agent, err := h.preparePIAgent(ctx, plan, agentPlan)
 		if err != nil {
 			h.agentSupervisor.StopAgentIfRunning(plan.ContextID, agentPlan.ID)
 			return &projectInterfaceAgentStartError{
@@ -873,7 +758,7 @@ func (h *Handler) releaseSessionContext(sessionID string) {
 	}
 }
 
-func (h *Handler) preparePIAgent(plan *projectinterface.RuntimePlan, agentPlan projectinterface.AgentPlan) (protocol.AgentProfile, error) {
+func (h *Handler) preparePIAgent(ctx context.Context, plan *projectinterface.RuntimePlan, agentPlan projectinterface.AgentPlan) (protocol.AgentProfile, error) {
 	required := true
 	agent := protocol.AgentProfile{
 		ID: agentPlan.ID, Enabled: true, Transport: "identifier", Identifier: agentPlan.Identifier,
@@ -881,8 +766,19 @@ func (h *Handler) preparePIAgent(plan *projectinterface.RuntimePlan, agentPlan p
 	}
 	scope := strings.Join([]string{plan.ProjectID, plan.Revision, plan.Language, plan.ControllerName, plan.ResourceName, fmt.Sprint(agentPlan.Index), agentPlan.ChildExec, strings.Join(agentPlan.ChildArgs, "\x00")}, "\x00")
 	prepared, err := h.runner.AgentPool().PreparePIAgent(agent, plan.ResourcePaths, func(identifier string) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		return h.agentSupervisor.Ensure(plan, agentPlan, identifier, h.projectInterfaceEnvironment(plan))
 	}, scope)
+	if err == nil {
+		err = h.runner.AgentPool().ConnectPrepared(prepared, func(client *maa.AgentClient) error {
+			return h.agentSupervisor.ConnectAgent(ctx, plan.ContextID, agentPlan.ID, client, time.Duration(agent.TimeoutMS)*time.Millisecond)
+		})
+	}
+	if err != nil {
+		h.agentSupervisor.StopAgentIfRunning(plan.ContextID, agentPlan.ID)
+	}
 	return prepared, err
 }
 
