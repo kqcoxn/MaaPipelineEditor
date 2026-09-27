@@ -3,14 +3,14 @@ name: update-local-mfw
 description: 更新本机开发用 LocalBridge 实际加载的 MaaFramework 动态库与 MaaAgentBinary。用于“更新本地 mfw 依赖”“更新本地运行时”或已确认运行时过旧后的更新请求；不用于同步参考源码、修改 Go Binding 或开发产品内更新功能。
 ---
 
-使用仓库根目录的统一入口 `yarn update:mfw`，先阅读 `dev/docs/本地MaaFramework依赖更新.md`。目标版本默认来自当前源码 `Editor/src/stores/app/configStore.ts` 的 `mfwVersion`，不要擅自改成 latest 或修改该版本声明。
+使用仓库根目录的统一入口 `yarn lb:update`，先阅读 `dev/docs/本地MaaFramework依赖更新.md`。目标版本默认来自当前源码 `Editor/src/stores/app/configStore.ts` 的 `mfwVersion`，不要擅自改成 latest 或修改该版本声明。
 
 ## 执行流程
 
-1. 先运行 `yarn update:mfw --dry-run`，检查版本和目标 bin 目录。默认更新 `LocalBridge/build/runtime/maafw/bin`；其他构建位置使用 `--binary-dir` 指定可执行文件目录。结合启动日志的“使用自带库路径”核对目标。
+1. 先运行 `yarn lb:update --dry-run`，检查版本和目标 bin 目录。默认更新 `LocalBridge/build/runtime/maafw/bin`；其他构建位置使用 `--binary-dir` 指定可执行文件目录。结合启动日志的“使用自带库路径”核对目标。
 2. 用户明确要求更新本地依赖即已授权执行，无需重复确认。仅添加/修改更新能力的请求不等于要求立即替换本机依赖。仅排查错误时先诊断，不因统一的“请更新”提示就自动更新。
 3. 更新前确认没有 LocalBridge / Agent 使用该目录。不要直接终止来源不明的进程；若无法确定实际加载路径或相关进程的归属，先询问必要信息。
-4. 执行 `yarn update:mfw`，使用与预览相同的参数。其他构建位置使用 `--binary-dir` 指定可执行文件目录，依赖固定写入其 `runtime/maafw` 子目录。不能绕过目录检查。
+4. 执行 `yarn lb:update`，使用与预览相同的参数。其他构建位置使用 `--binary-dir` 指定可执行文件目录，依赖固定写入其 `runtime/maafw` 子目录。不能绕过目录检查。
 5. 下载器对临时网络问题每个请求最多追加 2 次重试（5 秒、15 秒），不要在外层再叠加自动重试。认证、证书校验、文件占用、校验或解压失败时停止并汇报。
 6. 汇报实际版本、目标目录和验证结果。文件大小/摘要、包结构校验通过不等于动态库已成功加载。按当前平台可用工具检查此前缺失的符号；最终由 LocalBridge 重启后的实际加载路径和初始化日志确认。未重启验证时如实说明，并列出用户需要检查的内容。
 

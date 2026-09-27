@@ -182,7 +182,7 @@ jobs:
         with:
           targets: ${{ matrix.target }}
       - run: node scripts/ci/desktop-release.mjs configure
-      - run: yarn desktop:install
+      - run: yarn desk:install
       - run: yarn --cwd Desktop tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundle }} --config src-tauri/release.conf.json
       - run: node scripts/ci/desktop-release.mjs collect Desktop/src-tauri/target/${{ matrix.target }}/release/bundle desktop-artifacts
       - uses: actions/upload-artifact@v4

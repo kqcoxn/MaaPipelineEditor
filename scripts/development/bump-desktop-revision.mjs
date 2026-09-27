@@ -4,7 +4,7 @@ import { readDesktopConfig, setDesktopRevision, planDesktopRevision } from "../l
 
 const args = process.argv.slice(2);
 if (args.some(a => a.startsWith("-") && !["--yes", "-y", "--minimum", "--dry-run"].includes(a)) || args.filter(a => !a.startsWith("-")).length > 1)
-  throw new Error("用法：yarn desktop:revision [X.Y.Z] [--minimum] [--yes] [--dry-run]");
+  throw new Error("用法：yarn revision [X.Y.Z] [--minimum] [--yes] [--dry-run]");
 const current = await readDesktopConfig();
 const product = JSON.parse(await readFile(new URL("../../Desktop/package.json", import.meta.url), "utf8")).version;
 const minimum = args.includes("--minimum");

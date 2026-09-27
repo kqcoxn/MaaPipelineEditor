@@ -19,10 +19,10 @@ jobs:
         with:
           go-version-file: LocalBridge/go.mod
       - run: node --test scripts/ci/release-index.test.mjs scripts/ci/desktop-release.test.mjs scripts/development/desktop-revision.test.mjs
-      - run: yarn desktop:install
+      - run: yarn desk:install
       - run: yarn --cwd Desktop build
-      - run: yarn desktop:test
-      - run: yarn editor:install
+      - run: yarn --cwd Desktop test
+      - run: yarn ed:install
       - run: yarn --cwd Editor vitest run src/features/desktop/closeSession.test.ts src/stores/project/fileDirtyState.test.ts src/stores/project/fileCache.test.ts src/features/embed/navigation/externalNavigation.test.ts src/services/localBridgeConnection.test.ts
       - run: cargo fmt --check
         working-directory: Desktop/src-tauri

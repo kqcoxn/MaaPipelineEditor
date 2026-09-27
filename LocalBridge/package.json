@@ -1,7 +1,8 @@
 {
   "scripts": {
+    "dev": "air -c .air.toml",
     "build": "go mod tidy && go build -o ./build/mpelb.exe ./cmd/lb",
     "run": "./build/mpelb.exe --root ./test-json",
-    "server": "air -c .air.toml"
+    "test": "node --test ../scripts/development/mfw/runtime.test.mjs ../scripts/development/mfw/ocr.test.mjs ../scripts/development/mfw/transfer.test.mjs"
   }
 }

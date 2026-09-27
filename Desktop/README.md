@@ -7,23 +7,23 @@ MPE Desktop 使用一个 Tauri 2 宿主承载独立启动器与现有 Web Editor
 需要 Node.js、Yarn 1、Rust stable、Go（版本见 LocalBridge/go.mod），以及 [Tauri 平台前置工具](https://tauri.app/zh-cn/start/prerequisites/)。
 
 ```sh
-yarn desktop:install
+yarn desk:install
 yarn --cwd Desktop build
 cargo check --manifest-path Desktop/src-tauri/Cargo.toml
-yarn desktop:test
+yarn --cwd Desktop test
 ```
 
 准备真实编辑会话时，先准备与 `mfwVersion` 对应的 runtime，再执行：
 
 ```sh
-yarn editor:install
-yarn desktop:prepare [runtime目录]
-yarn desktop:dev
+yarn ed:install
+yarn desk:prepare [runtime目录]
+yarn desk
 ```
 
-`desktop:prepare` 构建 Editor 和 mpelb，默认从现有全局安装读取 runtime，经统一安装事务替换**全局** mpelb、Editor 与 runtime。此操作需要所有 mpelb 服务停止，会影响随后终端使用的版本。它不是开发服务器，也不自动打开 MPE Desktop。未发布首个配套清单前，使用此入口验证本地源码；安装界面的在线版本来自实际 GitHub Release。
+`desk:prepare` 构建 Editor 和 mpelb，默认从现有全局安装读取 runtime，经统一安装事务替换**全局** mpelb、Editor 与 runtime。此操作需要所有 mpelb 服务停止，会影响随后终端使用的版本。它不是开发服务器，也不自动打开 MPE Desktop。未发布首个配套清单前，使用此入口验证本地源码；安装界面的在线版本来自实际 GitHub Release。
 
-`desktop:dev` 和 `desktop:build` 分别用于手动启动开发界面和生成本机安装包。不要自动启动 GUI 或浏览器测试。
+`desk` 和 `desk:build` 分别用于手动启动开发界面和生成本机安装包。不要自动启动 GUI 或浏览器测试。
 
 ## 边界与接口
 
@@ -76,16 +76,16 @@ Release 流水线生成 Windows x64 NSIS、macOS arm64 DMG、对应 MPE Desktop 
 
 桌面更新由 `Desktop/desktop-release.json` 单独控制：
 
-- `desktopIdentifier`：桌面端的发布标识版号。启动器界面、Rust 宿主、内置资源或依赖有需要用户接收的改动时，执行 `yarn desktop:revision` 同步为当前产品版本（`X.Y.Z`），再提交配置文件。
-- `minimumDesktopIdentifier`：当前 MPE 前后端所需的最低桌面标识版号。只有前后端确实依赖新的宿主能力时才执行 `yarn desktop:revision X.Y.Z --minimum` 提高，不能超过当前标识版号；同步脚本不会自动提高它。
+- `desktopIdentifier`：桌面端的发布标识版号。启动器界面、Rust 宿主、内置资源或依赖有需要用户接收的改动时，执行 `yarn revision` 同步为当前产品版本（`X.Y.Z`），再提交配置文件。
+- `minimumDesktopIdentifier`：当前 MPE 前后端所需的最低桌面标识版号。只有前后端确实依赖新的宿主能力时才执行 `yarn revision X.Y.Z --minimum` 提高，不能超过当前标识版号；同步脚本不会自动提高它。
 
-`yarn desktop:revision [X.Y.Z]` 支持指定目标版号，默认使用 Desktop/package.json 的产品版本；替换前预览并确认，`--yes` 跳过确认，`--dry-run` 仅预览。脚本只精确替换选定版号及其对应过渡字段，拒绝降低版号；无桌面调整时保留现有版号。版号按三个数字段比较。
+`yarn revision [X.Y.Z]` 支持指定目标版号，默认使用 Desktop/package.json 的产品版本；替换前预览并确认，`--yes` 跳过确认，`--dry-run` 仅预览。脚本只精确替换选定版号及其对应过渡字段，拒绝降低版号；无桌面调整时保留现有版号。版号按三个数字段比较。
 
 过渡期保留整数 `desktopRevision` / `minimumDesktopRevision`，供旧版桌面端更新检查和 LocalBridge 环境清单使用。同步新的标识版号时，脚本自动把 `desktopRevision` 加一；重复同步同一版号不递增。提高最低要求时，`--minimum` 仅接受当前桌面标识版号，并把整数最低要求同步到当前整数修订号。新桌面端按 `desktopIdentifier` 判断更新；最低宿主要求继续按整数校验，以支持已安装的历史环境。
 
 结束过渡前不要删除整数配置或清单字段。删除时需同时调整发布脚本、同步脚本、Rust 构建与环境校验、LocalBridge 环境清单及版本索引校验；不再保留整数更新字段后，尚未升级的旧桌面端将无法自动更新。
 
-构建将标识版号嵌入宿主；发布脚本将其写入 `mpe-desktop-updater.json`。环境打包和 `desktop:prepare` 读取同一配置，把最低要求写入 `mpe-manifest.json`。管理协议版本独立校验。
+构建将标识版号嵌入宿主；发布脚本将其写入 `mpe-desktop-updater.json`。环境打包和 `desk:prepare` 读取同一配置，把最低要求写入 `mpe-manifest.json`。管理协议版本独立校验。
 
 产品版本号更高但标识版号相同或更低时，不下载、不安装、不重启 MPE Desktop；只有远端标识版号更高才通过 Tauri 执行签名校验和安装。清单缺失或包含无效标识版号会报错，不按产品版本号兜底升级。产品版本仍显示实际安装包版本，标识版号记录在启动日志和日志包的 `desktop.txt` 中。
 

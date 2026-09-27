@@ -12,7 +12,7 @@
 - macOS 更新产物是 `.app.tar.gz` 及签名；`.dmg` 用于安装分发。Windows v2 更新使用相应 NSIS `.exe` 或 `.msi` 及签名。不要混用旧版兼容产物格式。
 - 下载、安装和应用重启是不同阶段，需在应用工作状态允许时执行。不要沿用 v1 的内置 updater 对话框配置。
 
-- 项目使用 `Desktop/desktop-release.json` 中的 `desktopRevision` 判断桌面更新；`minimumDesktopRevision` 表达前后端最低宿主要求。产品版本迁移不递增修订号，桌面改动通过 `yarn desktop:revision` 递增；最低要求单独维护。
+- 项目使用 `Desktop/desktop-release.json` 中的 `desktopRevision` 判断桌面更新；`minimumDesktopRevision` 表达前后端最低宿主要求。产品版本迁移不递增修订号，桌面改动通过 `yarn revision` 递增；最低要求单独维护。
 
 ## MPE 前后端版本切换
 

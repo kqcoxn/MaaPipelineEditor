@@ -18,7 +18,7 @@ async function main(ocr, signal) {
     },
   });
   if (values.help) {
-    console.log(`用法: yarn ${ocr ? "lb:deps" : "update:mfw"} [--dry-run] [--version 5.13.0]
+    console.log(`用法: yarn ${ocr ? "lb:deps" : "lb:update"} [--dry-run] [--version 5.13.0]
   安装内容: MaaFramework、MaaAgentBinary${ocr ? "、OCR (ppocr_v6-small)" : ""}
   默认版本: Editor/src/stores/app/configStore.ts 的 mfwVersion
   --binary-dir  LocalBridge 可执行文件目录，默认 LocalBridge/build

@@ -30,7 +30,7 @@ if (actual !== mfwVersion)
   );
 // npm_execpath is the Yarn JS entrypoint; avoid shell quoting on Windows.
 const yarn = process.env.npm_execpath;
-if (!yarn) throw new Error("请通过 yarn desktop:prepare 运行");
+if (!yarn) throw new Error("请通过 yarn desk:prepare 运行");
 execFileSync(
   process.execPath,
   [yarn, "--cwd", "Editor", "build", "--mode", "stable"],
@@ -66,4 +66,4 @@ execFileSync(
   ],
   { cwd: root, stdio: "inherit" },
 );
-console.log("全局源码环境已准备完成。可运行 yarn desktop:dev 手动验收。");
+console.log("全局源码环境已准备完成。可运行 yarn desk 手动验收。");

@@ -10,7 +10,7 @@ description: 同步 MaaPipelineEditor 的 MaaFramework 社区参考项目。当�
 在仓库根目录执行：
 
 ```bash
-yarn sync:references
+yarn refs:sync
 ```
 
 该命令使用 Node.js 调用系统 `git`，Windows 与 macOS 均可直接运行，不依赖 PowerShell。脚本的默认目标是与 MPE 同级的 `maa-refs` 目录。参考副本以索引登记的原仓库为准：不存在时克隆；已存在时获取远端默认分支并强制对齐，覆盖本地修改和提交，清理未跟踪及忽略文件。分支分叉、detached HEAD 或没有 upstream 均自动恢复到远端默认分支。子模块不参与调研，不下载或更新，并移除已检出的子模块内容。该覆盖规则仅适用于参考源码目录，不用于 MPE 自身或 LocalBridge 运行库。

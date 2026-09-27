@@ -36,8 +36,8 @@ PERF-001 的正式快速基线见 `results/首次自动化基线-2026-08-31.md`�
 从仓库根目录执行：
 
 ```bash
-yarn perf:generate
-yarn perf:verify
+yarn --cwd Editor generate
+yarn --cwd Editor test
 yarn --cwd Editor vitest run src/core/parser/performanceDataset.test.ts
 ```
 

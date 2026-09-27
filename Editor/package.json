@@ -10,13 +10,15 @@
     "dayjs": "1.11.23"
   },
   "scripts": {
-    "icon": "npx iconfont-h5",
     "postinstall": "patch-package && node scripts/setup/copy-monaco.cjs",
     "dev": "vite",
     "build": "vite build",
     "build-past": "vite build --mode mfw_5_0",
     "lint": "eslint . --max-warnings=0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "icon": "npx iconfont-h5",
+    "generate": "node ../scripts/performance/generate-editor-datasets.mjs",
+    "test": "node --test ../scripts/performance/generate-editor-datasets.test.mjs"
   },
   "dependencies": {
     "@ant-design/icons": "6.3.2",
