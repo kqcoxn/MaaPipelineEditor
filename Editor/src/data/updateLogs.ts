@@ -135,7 +135,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "perf",
     maafwVersion: "5.14.0",
     updates: {
-      perfs: ["为桌面端本体添加进度提示"],
+      perfs: ["为桌面端本体添加进度提示", "优化桌面端组件样式"],
     },
   },
   {

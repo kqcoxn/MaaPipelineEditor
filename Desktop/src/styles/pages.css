@@ -150,6 +150,10 @@
   font-size: var(--font-caption) !important;
   opacity: 1;
 }
+.hint[role="status"] {
+  font-size: var(--font-body) !important;
+  line-height: 1.6;
+}
 .problem {
   color: var(--warning) !important;
 }

@@ -6,12 +6,25 @@ export function DownloadProgressBar({
   progress?: DownloadProgress;
 }) {
   if (!progress) return null;
+  const percent =
+    progress.percent === undefined
+      ? undefined
+      : Math.min(100, Math.max(0, progress.percent));
   return (
-    <progress
+    <span
       className="download-progress"
+      role="progressbar"
       aria-label={progress.label}
-      max={100}
-      value={progress.percent}
-    />
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={percent}
+      data-indeterminate={percent === undefined || undefined}
+    >
+      <span
+        className="download-progress-fill"
+        aria-hidden="true"
+        style={percent === undefined ? undefined : { width: `${percent}%` }}
+      />
+    </span>
   );
 }

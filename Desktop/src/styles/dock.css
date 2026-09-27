@@ -122,9 +122,9 @@
   line-height: 21px;
 }
 .launch-status small {
-  font-size: var(--font-caption);
+  font-size: var(--font-body);
   margin: 0;
-  line-height: 18px;
+  line-height: 1.5;
   color: var(--muted);
 }
 .launch-action {
