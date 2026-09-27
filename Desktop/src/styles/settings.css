@@ -35,6 +35,12 @@
 .settings-page .setting-row > .button {
   flex-shrink: 0;
 }
+.desktop-update-status {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 .settings-page .actions {
   gap: 12px;
 }

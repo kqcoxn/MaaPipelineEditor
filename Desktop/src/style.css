@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Bundle toast positioning and layout instead of relying on runtime injection. */
+@import "sonner/dist/styles.css";
 @import "./styles/base.css";
 @import "./styles/shell.css";
 @import "./styles/cards.css";

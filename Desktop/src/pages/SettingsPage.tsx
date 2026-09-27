@@ -80,6 +80,11 @@ export function SettingsPage({ model: m }: { model: Model }) {
           <span>
             <strong>MPE Desktop {m.snapshot?.desktopVersion}</strong>
             <small>桌面端更新独立于所选 MPE 前后端版本。</small>
+            {m.desktopUpdateStatus && (
+              <span className="desktop-update-status hint" role="status">
+                {m.desktopUpdateStatus}
+              </span>
+            )}
           </span>
           <Button
             variant="secondary"
@@ -89,11 +94,6 @@ export function SettingsPage({ model: m }: { model: Model }) {
             检查桌面端更新
           </Button>
         </div>
-        {m.desktopUpdateStatus && (
-          <p className="hint" role="status">
-            {m.desktopUpdateStatus}
-          </p>
-        )}
       </section>
       <GitHubTokenSettings model={m} />
       <section className="panel">
