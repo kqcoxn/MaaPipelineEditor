@@ -131,13 +131,13 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.4",
-    date: "2026-9",
+    date: "2026-9-29",
     type: "perf",
     maafwVersion: "5.14.0",
     updates: {
       perfs: [
         "优化日志导出范围，减少无意义的限制",
-        "为桌面端本体添加进度提示",
+        "为桌面端本体更新添加进度提示，提供中断检测操作",
         "优化桌面端组件样式",
       ],
       fixes: ["修复停止任务时可能导致 lb 异常退出的问题"],

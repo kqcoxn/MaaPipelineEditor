@@ -93,6 +93,7 @@ fn main() {
             commands::github_token_status,
             commands::save_github_token,
             commands::update_desktop,
+            commands::cancel_update_check,
             commands::quit_desktop,
             commands::desktop_reply,
             commands::desktop_open_devtools,

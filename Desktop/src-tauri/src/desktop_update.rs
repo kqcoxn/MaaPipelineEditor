@@ -36,7 +36,22 @@ pub async fn run(app: tauri::AppHandle, on_progress: Channel<Value>) -> Result<S
         .map_err(|e| e.to_string())?
         .build()
         .map_err(|e| e.to_string())?;
-    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+    let (cancel, cancelled) = tokio::sync::oneshot::channel();
+    *state.update_check.lock().unwrap() = Some(cancel);
+    let _ = on_progress.send(json!({"artifact": "desktop", "phase": "checking"}));
+    let checked = tokio::select! {
+        biased;
+        _ = cancelled => Ok(None),
+        result = tokio::time::timeout(Duration::from_secs(30), updater.check()) => {
+            result.map_err(|_| "桌面端检测超时，请检查网络后重试".to_string())
+                .and_then(|result| result.map_err(|e| e.to_string()))
+        }
+    };
+    // Taking the sender also closes the cancellation window before downloading.
+    if state.update_check.lock().unwrap().take().is_none() {
+        return Ok("已取消检测，可启动当前版本".into());
+    }
+    if let Some(update) = checked? {
         if !crate::desktop_release::needs_update(
             &update.raw_json,
             crate::desktop_release::revision(),

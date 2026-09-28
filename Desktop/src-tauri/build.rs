@@ -44,6 +44,7 @@ fn main() {
             "github_token_status",
             "save_github_token",
             "update_desktop",
+            "cancel_update_check",
             "quit_desktop",
             "desktop_reply",
             "desktop_open_devtools",

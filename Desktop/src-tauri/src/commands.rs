@@ -480,3 +480,16 @@ mod tests {
         assert!(!allowed_origin(&url("http://127.0.0.1:1420"), "renderer"));
     }
 }
+
+#[tauri::command]
+pub fn cancel_update_check(window: WebviewWindow, app: tauri::AppHandle) -> Result<bool, String> {
+    authorize(&window, "launcher")?;
+    let state = app.state::<State>();
+    let sender = state.update_check.lock().unwrap().take();
+    if let Some(sender) = sender {
+        let _ = sender.send(());
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}

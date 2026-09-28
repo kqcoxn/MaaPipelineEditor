@@ -1,3 +1,4 @@
+import { CHECK_CANCELLED, CHECK_TIMEOUT, waitForCheck } from "./checkCancellation";
 import { invoke } from "@tauri-apps/api/core";
 import type { Snapshot, VersionList } from "../types";
 import type { NoticeKind } from "./feedback";
@@ -24,13 +25,21 @@ export async function updateEnvironment(
   onStatus: (status: string) => void,
   onNotice: (notice: string, kind?: NoticeKind) => void = () => {},
   allowInstall = true,
+  check?: { signal: AbortSignal; complete: () => void },
 ): Promise<string> {
   onStatus("正在联网检查 MPE 更新");
   let result: VersionList;
   try {
-    result = await invoke<VersionList>("release_versions", { force: true });
+    const request = invoke<VersionList>("release_versions", { force: true });
+    result = await (check ? waitForCheck(request, check.signal) : request);
+    if (check?.signal.aborted)
+      return check.signal.reason === CHECK_TIMEOUT ? CHECK_TIMEOUT : CHECK_CANCELLED;
+    check?.complete();
     onVersions(result);
   } catch (error) {
+    check?.complete();
+    if (check?.signal.aborted)
+      return check.signal.reason === CHECK_TIMEOUT ? CHECK_TIMEOUT : CHECK_CANCELLED;
     const message = `MPE 版本检查失败：${String(error)}`;
     onNotice(message, "error");
     return message;
@@ -92,6 +101,7 @@ export async function runAutomaticUpdates(
   environment: () => Promise<unknown>,
   desktop: () => Promise<unknown>,
   target: "all" | "mpe" | "desktop" = "all",
+  cancelled: () => boolean = () => false,
 ) {
   const failures: unknown[] = [];
   if (target !== "desktop" && s.settings.autoCheckMpe) {
@@ -102,6 +112,7 @@ export async function runAutomaticUpdates(
     }
   }
   if (
+    !cancelled() &&
     target !== "mpe" &&
     s.settings.autoUpdateDesktop &&
     s.settings.onboardingDone &&

@@ -56,6 +56,7 @@ export function parseInstallProgress(value: string): InstallProgress {
     }
     if (event.artifact === "desktop") {
       const desktopPhases: Record<string, string> = {
+        checking: "正在检查桌面端更新",
         verifying: "MPE Desktop 下载完成，正在校验更新包",
         installing: "正在安装 MPE Desktop，安装完成后将重启",
         restarting: "MPE Desktop 安装完成，正在重启",

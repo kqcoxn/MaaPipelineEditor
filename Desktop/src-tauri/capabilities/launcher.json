@@ -21,6 +21,7 @@
     "allow-github-token-status",
     "allow-save-github-token",
     "allow-update-desktop",
+    "allow-cancel-update-check",
     "allow-quit-desktop",
     "allow-list-logs",
     "allow-read-log",

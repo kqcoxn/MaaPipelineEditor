@@ -6,6 +6,7 @@ import {
   LoaderCircle,
   Play,
   CircleAlert,
+  X,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { DownloadProgressBar } from "./DownloadProgressBar";
@@ -153,23 +154,27 @@ export function LaunchDock({
       <div className="launch-action">
         <Button
           className="launch-button"
-          disabled={locked || !s}
-          onClick={onLaunch}
+          disabled={!m.canCancelCheck && (locked || !s)}
+          onClick={m.canCancelCheck ? () => void m.cancelCheck() : onLaunch}
         >
-          {m.busy ? (
+          {m.canCancelCheck ? (
+            <X aria-hidden="true" />
+          ) : m.busy ? (
             <LoaderCircle className="spin" aria-hidden="true" />
           ) : needsEnvironment ? (
             <Box aria-hidden="true" />
           ) : (
             <Play fill="currentColor" aria-hidden="true" />
           )}
-          {m.busy
-            ? "正在准备"
-            : s?.running
-              ? "编辑中"
-              : needsEnvironment
-                ? "进入环境管理"
-                : "启动编辑器"}
+          {m.canCancelCheck
+            ? "取消检测"
+            : m.busy
+              ? "正在准备"
+              : s?.running
+                ? "编辑中"
+                : needsEnvironment
+                  ? "进入环境管理"
+                  : "启动编辑器"}
         </Button>
       </div>
     </footer>

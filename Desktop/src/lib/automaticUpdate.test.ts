@@ -254,3 +254,27 @@ describe("independent update preferences", () => {
     expect(completed).toEqual(["mpe"]);
   });
 });
+
+describe("cancelling version checks", () => {
+  it("releases the wait and ignores a late version response without installing", async () => {
+    let finish!: (value: VersionList) => void;
+    vi.mocked(invoke).mockReset();
+    vi.mocked(invoke).mockReturnValue(new Promise<VersionList>(resolve => { finish = resolve; }));
+    const controller = new AbortController();
+    const versions = vi.fn();
+    const pending = updateEnvironment(snapshot(), versions, vi.fn(), vi.fn(), true,
+      { signal: controller.signal, complete: vi.fn() });
+    controller.abort();
+    expect(await pending).toContain("已取消检测");
+    finish(result());
+    await Promise.resolve();
+    expect(versions).not.toHaveBeenCalled();
+    expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).toEqual(["release_versions"]);
+  });
+
+  it("does not continue to desktop updates after cancellation", async () => {
+    const desktop = vi.fn();
+    await runAutomaticUpdates(snapshot(), async () => {}, desktop, "all", () => true);
+    expect(desktop).not.toHaveBeenCalled();
+  });
+});
