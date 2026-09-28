@@ -1025,7 +1025,7 @@ export class MFWProtocol extends BaseProtocol {
   public onLogsExported(callback: (data: {
     success: boolean;
     filename?: string;
-    content?: string;
+    download_path?: string;
     message?: string;
   }) => void): () => void {
     this.logsExportedCallbacks.push(callback);
@@ -1042,7 +1042,7 @@ export class MFWProtocol extends BaseProtocol {
   public onMFWLogsExported(callback: (data: {
     success: boolean;
     filename?: string;
-    content?: string;
+    download_path?: string;
     message?: string;
   }) => void): () => void {
     this.mfwLogsExportedCallbacks.push(callback);

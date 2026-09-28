@@ -71,10 +71,10 @@ func (h *UtilityHandler) Handle(msg models.Message, conn *server.Connection) *mo
 		h.handleSnapshotLogs(msg)
 
 	case "/etl/utility/export_logs":
-		h.handleExportLogs(conn, msg)
+		go h.handleExportLogs(conn, msg)
 
 	case "/etl/utility/export_mfw_logs":
-		h.handleExportLogs(conn, msg)
+		go h.handleExportLogs(conn, msg)
 
 	default:
 		logger.Warn("Utility", "未知的Utility路由: %s", path)

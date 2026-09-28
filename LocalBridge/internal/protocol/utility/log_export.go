@@ -1,9 +1,9 @@
 package utility
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -33,21 +33,24 @@ func (h *UtilityHandler) handleSnapshotLogs(msg models.Message) {
 
 func (h *UtilityHandler) handleExportLogs(conn *server.Connection, msg models.Message) {
 	snapshot, err := h.captureLogs(msg)
-	var archive []byte
+	var downloadPath string
+	filename := fmt.Sprintf("mpe-logs-%s.zip", time.Now().Format("20060102-150405"))
 	buildErr := err
 	if err != nil {
 		logger.Warn("Diagnostics", "保存诊断快照失败: %v", err)
 		snapshot.Warnings = append(snapshot.Warnings, "无法保存供离线导出使用的快照: "+err.Error())
 	}
 	if err == nil || snapshot.CapturedAt != "" {
-		archive, buildErr = diagnostics.Build(snapshot)
+		downloadPath, buildErr = conn.PrepareDownload(filename, func(destination io.Writer) error {
+			return diagnostics.Write(destination, snapshot)
+		})
 	}
 	response := map[string]interface{}{"success": buildErr == nil}
 	if buildErr != nil {
 		response["message"] = "日志导出失败: " + buildErr.Error()
 	} else {
-		response["filename"] = fmt.Sprintf("mpe-logs-%s.zip", time.Now().Format("20060102-150405"))
-		response["content"] = base64.StdEncoding.EncodeToString(archive)
+		response["filename"] = filename
+		response["download_path"] = downloadPath
 		response["message"] = "日志导出成功"
 	}
 	route := "/lte/utility/logs_exported"

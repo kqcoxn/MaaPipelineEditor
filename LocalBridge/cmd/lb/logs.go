@@ -26,11 +26,7 @@ func init() {
 		if desktopDir != "" {
 			snapshot.DesktopDir = desktopDir
 		}
-		archive, err := diagnostics.Build(snapshot)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(output, archive, 0600)
+		return diagnostics.Save(output, snapshot)
 	}}
 	export.Flags().StringVar(&output, "output", "", "输出 ZIP 路径")
 	_ = export.MarkFlagRequired("output")

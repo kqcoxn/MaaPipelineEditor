@@ -23,6 +23,12 @@ func put(t *testing.T, root, name, content string) string {
 	return path
 }
 
+func Build(snapshot Snapshot) ([]byte, error) {
+	var destination bytes.Buffer
+	err := Write(&destination, snapshot)
+	return destination.Bytes(), err
+}
+
 func unpack(t *testing.T, data []byte) map[string]string {
 	t.Helper()
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
@@ -52,7 +58,17 @@ func TestArchiveIncludesAllDiagnosticSourcesAndOfflineSnapshot(t *testing.T) {
 	root, logs, mfw, desktop := t.TempDir(), t.TempDir(), t.TempDir(), t.TempDir()
 	opened := put(t, root, "resource/pipeline/main.json", `{"Entry": {}}`)
 	put(t, logs, "lb.log", "backend content")
-	for name, content := range map[string]string{"maafw.log": "framework content", "maafw.log.1": "history", "custom.log": "agent", "vision/frame.webp": "recognition image", "on_error/failed.png": "failure image"} {
+	put(t, logs, "vision/nested/frame.png", "excluded default recognition image")
+	put(t, logs, "nested/VISION/frame.png", "excluded nested recognition image")
+	put(t, logs, "on_error/nested/failed.png", "excluded default error screenshot")
+	put(t, logs, "nested/ON_ERROR/failed.png", "excluded nested error screenshot")
+	put(t, logs, "vision.log", "unrelated log")
+	put(t, logs, "on_error.log", "error text log")
+	for name, content := range map[string]string{
+		"maafw.log": "framework content", "maafw.log.1": "history", "custom.log": "agent",
+		"vision/frame.webp": "recognition image", "vision/nested/result.json": "recognition details",
+		"on_error/failed.png": "failure image", "vision-cache/keep.png": "other image",
+	} {
 		put(t, mfw, name, content)
 	}
 	put(t, desktop, "launcher.log", "launcher content")
@@ -84,10 +100,23 @@ func TestArchiveIncludesAllDiagnosticSourcesAndOfflineSnapshot(t *testing.T) {
 		}
 		files := unpack(t, data)
 		for name, content := range map[string]string{
-			"localbridge/lb.log": "backend content", "debug/maafw.log": "framework content", "debug/maafw.log.1": "history", "debug/custom.log": "agent", "debug/vision/frame.webp": "recognition image", "debug/on_error/failed.png": "failure image", "desktop/launcher.log": "launcher content", "desktop/mpelb.previous.log": "previous output", "mpe/open-files/disk/resource/pipeline/main.json": `{"Entry": {}}`,
+			"localbridge/lb.log": "backend content", "localbridge/vision.log": "unrelated log",
+			"debug/maafw.log": "framework content", "debug/maafw.log.1": "history", "debug/custom.log": "agent",
+			"localbridge/on_error.log": "error text log", "debug/vision-cache/keep.png": "other image",
+			"desktop/launcher.log": "launcher content", "desktop/mpelb.previous.log": "previous output",
+			"mpe/open-files/disk/resource/pipeline/main.json": `{"Entry": {}}`,
 		} {
 			if files[name] != content {
 				t.Errorf("%s = %q, want %q", name, files[name], content)
+			}
+		}
+		for _, name := range []string{
+			"debug/vision/frame.webp", "localbridge/default/vision/nested/result.json",
+			"localbridge/vision/nested/frame.png", "localbridge/nested/VISION/frame.png",
+			"debug/on_error/failed.png", "localbridge/on_error/nested/failed.png", "localbridge/nested/ON_ERROR/failed.png",
+		} {
+			if _, exists := files[name]; exists {
+				t.Errorf("exported excluded diagnostic file: %s", name)
 			}
 		}
 		if strings.Contains(string(data), "DO NOT EXPORT") || files["desktop/settings.json"] != "" {
@@ -139,7 +168,7 @@ func TestArchiveReportsMissingFilesAndRejectsOutsideRoot(t *testing.T) {
 	}
 }
 
-func TestArchiveRefusesSymlinkEscapeAndOversizedFile(t *testing.T) {
+func TestArchiveRefusesSymlinkEscape(t *testing.T) {
 	root := t.TempDir()
 	outside := put(t, t.TempDir(), "secret.log", "secret")
 	link := filepath.Join(root, "link.log")
@@ -152,16 +181,80 @@ func TestArchiveRefusesSymlinkEscapeAndOversizedFile(t *testing.T) {
 			t.Fatal("exported external symlink")
 		}
 	}
+}
+
+func TestArchiveStreamsFullFileLargerThan128MiB(t *testing.T) {
+	root := t.TempDir()
 	f, err := os.Create(filepath.Join(root, "large.log"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = f.Truncate(MaxArchiveBytes + 1)
+	const size = 128*1024*1024 + 1
+	err = f.Truncate(size)
+	if err == nil {
+		_, err = f.WriteAt([]byte("last byte"), size-9)
+	}
 	f.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Build(Snapshot{LogDir: root, MFWDir: root}); err == nil || !strings.Contains(err.Error(), "128 MB") {
-		t.Fatalf("expected size error, got %v", err)
+	output := filepath.Join(t.TempDir(), "logs.zip")
+	if err := Save(output, Snapshot{LogDir: root, MFWDir: root}); err != nil {
+		t.Fatal(err)
+	}
+	r, err := zip.OpenReader(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	for _, entry := range r.File {
+		if entry.Name != "localbridge/large.log" {
+			continue
+		}
+		if entry.UncompressedSize64 != size {
+			t.Fatalf("size = %d", entry.UncompressedSize64)
+		}
+		reader, err := entry.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer reader.Close()
+		if _, err := io.CopyN(io.Discard, reader, size-9); err != nil {
+			t.Fatal(err)
+		}
+		tail, err := io.ReadAll(reader)
+		if err != nil || string(tail) != "last byte" {
+			t.Fatalf("tail = %q, error = %v", tail, err)
+		}
+		return
+	}
+	t.Fatal("large log missing")
+}
+
+func TestSaveWithinLogsExcludesOutputAndPreservesPreviousArchiveOnFailure(t *testing.T) {
+	root := t.TempDir()
+	put(t, root, "maafw.log", "complete log")
+	output := put(t, root, "logs.zip", "previous archive")
+	if err := Save(output, Snapshot{LogDir: root, MFWDir: root, Payload: Payload{FrontendLogs: map[string]interface{}{"invalid": make(chan int)}}}); err == nil {
+		t.Fatal("expected encoding error")
+	}
+	data, err := os.ReadFile(output)
+	if err != nil || string(data) != "previous archive" {
+		t.Fatalf("previous archive changed: %q, %v", data, err)
+	}
+	if err := Save(output, Snapshot{LogDir: root, MFWDir: root}); err != nil {
+		t.Fatal(err)
+	}
+	data, err = os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := unpack(t, data)
+	if len(files) != 2 || files["debug/maafw.log"] != "complete log" {
+		t.Fatalf("archive includes its own output: %v", files)
+	}
+	entries, err := os.ReadDir(root)
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("temporary output retained: %v, %v", entries, err)
 	}
 }

@@ -131,6 +131,7 @@ pub fn start(app: &tauri::AppHandle, root: String) -> Result<(), String> {
         }
     };
     *state.session.lock().unwrap() = Some(Session {
+        address: address.into(),
         child,
         id: ready["id"].as_str().unwrap_or_default().into(),
         root,

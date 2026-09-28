@@ -93,7 +93,7 @@ describe("automatic environment updates", () => {
         () => {},
         () => {},
       ),
-    ).toBe("MPE 2.0.0 已是最新可用版本");
+    ).toBe("MPE 已是最新可用版本");
     vi.mocked(invoke).mockRejectedValueOnce(new Error("offline"));
     expect(
       await updateEnvironment(

@@ -59,6 +59,9 @@ export function LoggerPanel() {
   const tabScrollStateRef = useRef(createInitialScrollState());
   const [pulse, setPulse] = useState(false);
   const [exporting, setExporting] = useState(false);
+  useEffect(() => {
+    if (!connected) setExporting(false);
+  }, [connected]);
   const [activeTab, setActiveTab] = useState<LoggerTabType>("operation");
   const latestOpId = opLogs.at(-1)?.id;
   const latestBackendId = backendLogs.at(-1)?.id;
@@ -189,13 +192,13 @@ export function LoggerPanel() {
 
   useEffect(() => {
     return mfwProtocol.onLogsExported(async (data) => {
-      if (!data.success || !data.content) {
+      if (!data.success || !data.download_path) {
         setExporting(false);
         message.error(data.message || "日志导出失败");
         return;
       }
       try {
-        const saved = await saveLogArchive(data.content, data.filename || "mpe-logs.zip");
+        const saved = await saveLogArchive(data.download_path, data.filename || "mpe-logs.zip");
         if (!saved) return;
         emitAchievementEvent("achievement:logs_exported");
         message.success(saved.path ? `日志已保存至：${saved.path}` : "日志导出成功", 6);

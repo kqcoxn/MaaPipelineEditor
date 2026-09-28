@@ -16,7 +16,7 @@ import (
 )
 
 // 通信协议版本
-const ProtocolVersion = "2.0.2"
+const ProtocolVersion = "2.0.3"
 
 // 版本握手路由
 const (
@@ -41,6 +41,7 @@ type WebSocketServer struct {
 	mu             sync.RWMutex
 	server         *http.Server
 	allowedOrigins []string
+	downloads      sync.Map
 }
 
 // 创建 WebSocket 服务器
@@ -76,6 +77,7 @@ func (s *WebSocketServer) StartWithReady(ready func(string)) error {
 
 	// 设置 HTTP 路由
 	mux := http.NewServeMux()
+	mux.HandleFunc(downloadPrefix, s.handleDownload)
 	mux.HandleFunc("/", s.handleWebSocket)
 
 	// 创建 HTTP 服务器

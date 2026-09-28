@@ -135,7 +135,11 @@ export const updateLogs: UpdateLogItem[] = [
     type: "perf",
     maafwVersion: "5.14.0",
     updates: {
-      perfs: ["为桌面端本体添加进度提示", "优化桌面端组件样式"],
+      perfs: [
+        "优化日志导出范围，减少无意义的限制",
+        "为桌面端本体添加进度提示",
+        "优化桌面端组件样式",
+      ],
       fixes: ["修复停止任务时可能导致 lb 异常退出的问题"],
     },
   },

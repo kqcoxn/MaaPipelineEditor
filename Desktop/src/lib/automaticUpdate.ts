@@ -62,7 +62,7 @@ export async function updateEnvironment(
       onNotice(message, "action");
       return message;
     }
-    const message = `MPE ${s.environment.version} 已是最新可用版本`;
+    const message = "MPE 已是最新可用版本";
     onNotice(allowInstall ? "" : message, "info");
     return message;
   }

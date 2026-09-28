@@ -1,7 +1,6 @@
-use crate::commands::authorize;
-use base64::Engine;
-use std::{io::Write, path::Path};
-use tauri::WebviewWindow;
+use crate::{commands::authorize, state::State};
+use std::{io::Read, path::Path};
+use tauri::{Manager, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
 
 pub(crate) fn display_path(path: &Path) -> String {
@@ -13,11 +12,12 @@ pub(crate) fn display_path(path: &Path) -> String {
     }
 }
 
-// Write next to the destination, then atomically replace it only after a complete write.
-pub(crate) fn save_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
+// Stream to a sibling temporary file, validate the ZIP, then replace atomically.
+fn save_archive(path: &Path, source: &mut impl Read) -> Result<(), String> {
     let parent = path.parent().ok_or("无效保存位置")?;
     let mut temporary = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
-    temporary.write_all(bytes).map_err(|e| e.to_string())?;
+    std::io::copy(source, &mut temporary).map_err(|e| e.to_string())?;
+    zip::ZipArchive::new(temporary.as_file()).map_err(|_| "日志包 ZIP 结构无效")?;
     temporary.as_file().sync_all().map_err(|e| e.to_string())?;
     temporary.persist(path).map_err(|e| e.to_string())?;
     Ok(())
@@ -26,7 +26,7 @@ pub(crate) fn save_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
 pub(crate) fn save_zip(
     app: &tauri::AppHandle,
     name: &str,
-    bytes: &[u8],
+    source: impl FnOnce() -> Result<Box<dyn Read>, String>,
 ) -> Result<Option<String>, String> {
     let name = name.replace(['/', '\\', ':'], "_");
     let name = if name.to_lowercase().ends_with(".zip") {
@@ -45,24 +45,23 @@ pub(crate) fn save_zip(
         return Ok(None);
     };
     let path = file.into_path().map_err(|e| e.to_string())?;
-    save_bytes(&path, bytes)?;
+    save_archive(&path, &mut source()?)?;
     Ok(Some(display_path(&path)))
 }
 
-fn decode_archive(content: &str) -> Result<Vec<u8>, String> {
-    if content.len() > 180 * 1024 * 1024 {
-        return Err("日志包过大，请减少日志后重试（最大 128 MB）".into());
+fn download_url(address: &str, path: &str) -> Result<reqwest::Url, String> {
+    let token = path
+        .strip_prefix("/diagnostics/")
+        .ok_or("无效的日志下载地址")?;
+    if token.is_empty() || !token.bytes().all(|b| b.is_ascii_alphanumeric()) {
+        return Err("无效的日志下载地址".into());
     }
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(content)
-        .map_err(|_| "日志包数据无效")?;
-    if bytes.len() > 128 * 1024 * 1024
-        || !(bytes.starts_with(b"PK\x03\x04") || bytes.starts_with(b"PK\x05\x06"))
-    {
-        return Err("日志包不是有效的 ZIP 数据或超过 128 MB".into());
-    }
-    zip::ZipArchive::new(std::io::Cursor::new(&bytes)).map_err(|_| "日志包 ZIP 结构无效")?;
-    Ok(bytes)
+    let mut url = reqwest::Url::parse(address).map_err(|e| e.to_string())?;
+    url.set_scheme("http").map_err(|_| "无效的本地服务地址")?;
+    url.set_path(path);
+    url.set_query(None);
+    url.set_fragment(None);
+    Ok(url)
 }
 
 #[tauri::command]
@@ -70,38 +69,128 @@ pub async fn desktop_save_archive(
     window: WebviewWindow,
     app: tauri::AppHandle,
     name: String,
-    content: String,
+    download_path: String,
 ) -> Result<Option<String>, String> {
     authorize(&window, "renderer")?;
-    tauri::async_runtime::spawn_blocking(move || save_zip(&app, &name, &decode_archive(&content)?))
-        .await
-        .map_err(|e| e.to_string())?
+    let address = app
+        .state::<State>()
+        .session
+        .lock()
+        .unwrap()
+        .as_ref()
+        .ok_or("编辑器会话已结束")?
+        .address
+        .clone();
+    let url = download_url(&address, &download_path)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let client = reqwest::blocking::Client::builder()
+            .no_proxy()
+            .redirect(reqwest::redirect::Policy::none())
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .timeout(None)
+            .build()
+            .map_err(|e| e.to_string())?;
+        let result = save_zip(&app, &name, || {
+            let response = client.get(url.clone()).send().map_err(|e| e.to_string())?;
+            if !response.status().is_success() {
+                return Err("日志下载失败，请重新导出".into());
+            }
+            Ok(Box::new(response))
+        });
+        // A cancelled dialog has not consumed the ticket; release its disk space.
+        if !matches!(&result, Ok(Some(_))) {
+            let _ = client
+                .delete(url)
+                .timeout(std::time::Duration::from_secs(5))
+                .send();
+        }
+        result
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn rejects_invalid_archive_data() {
-        assert!(decode_archive("invalid").is_err());
-        assert!(decode_archive("aGVsbG8=").is_err());
-        assert!(decode_archive("UEsFBg==").is_err());
-        let bytes = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()))
-            .finish()
-            .unwrap()
-            .into_inner();
-        assert_eq!(
-            decode_archive(&base64::engine::general_purpose::STANDARD.encode(&bytes)).unwrap(),
-            bytes
-        );
+    use std::io::{Cursor, Write};
+
+    fn archive(text: &[u8]) -> Vec<u8> {
+        let mut zip = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        zip.start_file("log.txt", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(text).unwrap();
+        zip.finish().unwrap().into_inner()
     }
+
     #[test]
-    fn saves_complete_content_and_replaces_existing_file() {
+    fn validates_download_ticket_without_allowing_arbitrary_paths() {
+        assert_eq!(
+            download_url("ws://127.0.0.1:1234", "/diagnostics/ABC123")
+                .unwrap()
+                .as_str(),
+            "http://127.0.0.1:1234/diagnostics/ABC123"
+        );
+        for path in [
+            "/diagnostics/",
+            "/diagnostics/../secret",
+            "http://example.com",
+            "/diagnostics/a?b",
+        ] {
+            assert!(download_url("ws://127.0.0.1:1234", path).is_err());
+        }
+    }
+
+    #[test]
+    fn saves_complete_archive_and_preserves_destination_on_failure() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("logs.zip");
-        save_bytes(&path, b"old").unwrap();
-        save_bytes(&path, b"new complete archive").unwrap();
-        assert_eq!(std::fs::read(path).unwrap(), b"new complete archive");
-        assert!(save_bytes(&dir.path().join("missing/logs.zip"), b"x").is_err());
+        let old = archive(b"old");
+        let new = archive(b"new complete archive");
+        save_archive(&path, &mut old.as_slice()).unwrap();
+        save_archive(&path, &mut new.as_slice()).unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), new);
+        assert!(save_archive(&path, &mut &b"invalid ZIP"[..]).is_err());
+        struct Broken;
+        impl Read for Broken {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("download interrupted"))
+            }
+        }
+        assert!(save_archive(&path, &mut Broken).is_err());
+        assert_eq!(std::fs::read(path).unwrap(), new);
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn saves_archive_larger_than_128_mib_without_truncation() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut source = tempfile::tempfile().unwrap();
+        let mut zip = zip::ZipWriter::new(&mut source);
+        zip.start_file(
+            "large.log",
+            zip::write::SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Stored),
+        )
+        .unwrap();
+        const SIZE: u64 = 128 * 1024 * 1024;
+        std::io::copy(&mut std::io::repeat(0).take(SIZE), &mut zip).unwrap();
+        zip.write_all(b"tail").unwrap();
+        zip.finish().unwrap();
+        use std::io::{Seek, SeekFrom};
+        source.seek(SeekFrom::Start(0)).unwrap();
+        let destination = dir.path().join("large.zip");
+        save_archive(&destination, &mut source).unwrap();
+        let mut saved = zip::ZipArchive::new(std::fs::File::open(destination).unwrap()).unwrap();
+        let mut entry = saved.by_name("large.log").unwrap();
+        assert_eq!(entry.size(), SIZE + 4);
+        std::io::copy(
+            &mut Read::by_ref(&mut entry).take(SIZE),
+            &mut std::io::sink(),
+        )
+        .unwrap();
+        let mut tail = String::new();
+        entry.read_to_string(&mut tail).unwrap();
+        assert_eq!(tail, "tail");
     }
 }

@@ -7,6 +7,7 @@ use std::{
     },
 };
 pub struct Session {
+    pub address: String,
     pub child: Child,
     pub id: String,
     pub root: String,

@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gorilla/websocket"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
@@ -11,14 +12,15 @@ import (
 
 // WebSocket 连接
 type Connection struct {
-	ID     string
-	conn   *websocket.Conn
-	send   chan []byte
-	done   chan struct{}
-	server *WebSocketServer
-	mu     sync.Mutex
-	closed bool
-	doneMu sync.Once
+	ID        string
+	conn      *websocket.Conn
+	send      chan []byte
+	done      chan struct{}
+	server    *WebSocketServer
+	mu        sync.Mutex
+	closed    bool
+	doneMu    sync.Once
+	exporting atomic.Bool
 }
 
 // 创建新连接

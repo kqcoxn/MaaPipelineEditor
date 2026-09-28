@@ -78,6 +78,9 @@ export function DebugLogPanel({
   const connected = useWSStore((state) => state.connected);
   const [logState, setLogState] = useState<MaafwLogState>(INITIAL_STATE);
   const [exporting, setExporting] = useState(false);
+  useEffect(() => {
+    if (!connected) setExporting(false);
+  }, [connected]);
   const viewerRef = useRef<HTMLPreElement>(null);
 
   const refreshLog = useCallback(() => {
@@ -129,14 +132,14 @@ export function DebugLogPanel({
       }
     });
     const unsubscribeExported = mfwProtocol.onMFWLogsExported(async (data) => {
-      if (!data.success || !data.content) {
+      if (!data.success || !data.download_path) {
         setExporting(false);
         message.error(data.message ?? "诊断日志打包失败");
         return;
       }
 
       try {
-        const saved = await saveLogArchive(data.content, data.filename ?? "mfw-logs.zip");
+        const saved = await saveLogArchive(data.download_path, data.filename ?? "mfw-logs.zip");
         if (saved) message.success(saved.path ? `日志已保存至：${saved.path}` : "诊断日志打包成功", 6);
       } catch (error) {
         message.error(`日志保存失败：${String(error)}`);

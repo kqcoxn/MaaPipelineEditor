@@ -2,7 +2,6 @@ package diagnostics
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,25 +14,19 @@ import (
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 )
 
-const MaxArchiveBytes int64 = 128 * 1024 * 1024
-
 var DesktopFiles = []string{"launcher.log", "launcher.previous.log", "mpelb.log", "mpelb.previous.log", "desktop.txt"}
 
 type archiveWriter struct {
 	zip      *zip.Writer
-	total    int64
 	warnings []string
 	names    map[string]bool
+	excluded []os.FileInfo
 }
 
 func (w *archiveWriter) writeJSON(name string, value interface{}) error {
 	data, err := json.MarshalIndent(value, "", "  ")
 	if err != nil {
 		return err
-	}
-	w.total += int64(len(data))
-	if w.total > MaxArchiveBytes {
-		return fmt.Errorf("诊断文件总量超过 128 MB，请从日志目录按需打包")
 	}
 	f, err := w.zip.Create(name)
 	if err != nil {
@@ -65,9 +58,10 @@ func (w *archiveWriter) file(root, path, name string) error {
 	if !info.Mode().IsRegular() {
 		return nil
 	}
-	w.total += info.Size()
-	if w.total > MaxArchiveBytes {
-		return fmt.Errorf("诊断文件总量超过 128 MB，请从日志目录按需打包")
+	for _, excluded := range w.excluded {
+		if os.SameFile(info, excluded) {
+			return nil
+		}
 	}
 	entry, err := w.zip.Create(name)
 	if err != nil {
@@ -93,6 +87,10 @@ func (w *archiveWriter) directory(root string, name func(string) string) error {
 			return nil
 		}
 		if entry.IsDir() {
+			// Skip recognition intermediates and error screenshots in diagnostic exports.
+			if path != root && (strings.EqualFold(entry.Name(), "vision") || strings.EqualFold(entry.Name(), "on_error")) {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		rel, err := filepath.Rel(root, path)
@@ -133,9 +131,17 @@ func isFrameworkFile(name string) bool {
 		strings.Contains("|.png|.jpg|.jpeg|.bmp|.gif|.webp|", "|"+ext+"|")
 }
 
-func Build(snapshot Snapshot) ([]byte, error) {
-	var buf bytes.Buffer
-	w := &archiveWriter{zip: zip.NewWriter(&buf), names: map[string]bool{}, warnings: []string{}}
+// Write streams a complete ZIP to the destination without buffering the archive.
+func Write(destination io.Writer, snapshot Snapshot, excludePaths ...string) error {
+	w := &archiveWriter{zip: zip.NewWriter(destination), names: map[string]bool{}, warnings: []string{}}
+	if named, ok := destination.(interface{ Name() string }); ok {
+		excludePaths = append(excludePaths, named.Name())
+	}
+	for _, path := range excludePaths {
+		if info, err := os.Stat(path); err == nil {
+			w.excluded = append(w.excluded, info)
+		}
+	}
 	w.warnings = append(w.warnings, snapshot.Warnings...)
 	payload := snapshot.Payload
 	if payload.FrontendState == nil {
@@ -143,12 +149,12 @@ func Build(snapshot Snapshot) ([]byte, error) {
 	}
 	if payload.FrontendLogs != nil {
 		if err := w.writeJSON("mpe/frontend-logs.json", payload.FrontendLogs); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if payload.FrontendState != nil {
 		if err := w.writeJSON("mpe/frontend-state.json", payload.FrontendState); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	for _, file := range payload.OpenedFiles {
@@ -158,13 +164,13 @@ func Build(snapshot Snapshot) ([]byte, error) {
 		}
 		rel, err := filepath.Rel(snapshot.Root, file.FilePath)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if err := w.file(snapshot.Root, file.FilePath, "mpe/open-files/disk/"+filepath.ToSlash(rel)); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	// Keep the MaaLogAnalyzer/MFAA debug layout, including vision and on_error images.
+	// Keep the MaaLogAnalyzer/MFAA debug layout for the remaining files.
 	archiveName := func(rel string) string {
 		if isFrameworkFile(rel) {
 			return "debug/" + rel
@@ -175,11 +181,11 @@ func Build(snapshot Snapshot) ([]byte, error) {
 		return "localbridge/" + rel
 	}
 	if err := w.directory(snapshot.MFWDir, archiveName); err != nil {
-		return nil, err
+		return err
 	}
 	if filepath.Clean(snapshot.LogDir) != filepath.Clean(snapshot.MFWDir) {
 		if err := w.directory(snapshot.LogDir, func(rel string) string { return "localbridge/" + rel }); err != nil {
-			return nil, err
+			return err
 		}
 	}
 	if !w.names["debug/maafw.log"] {
@@ -192,7 +198,7 @@ func Build(snapshot Snapshot) ([]byte, error) {
 				continue
 			}
 			if err := w.file(snapshot.DesktopDir, path, "desktop/"+name); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
@@ -211,10 +217,10 @@ func Build(snapshot Snapshot) ([]byte, error) {
 	manifest["openedFiles"] = payload.OpenedFiles
 	manifest["warnings"] = w.warnings
 	if err := w.writeJSON("manifest.json", manifest); err != nil {
-		return nil, err
+		return err
 	}
 	if err := w.zip.Close(); err != nil {
-		return nil, err
+		return err
 	}
-	return buf.Bytes(), nil
+	return nil
 }

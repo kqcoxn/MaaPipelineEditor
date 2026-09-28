@@ -1,5 +1,4 @@
 use crate::{engine, settings};
-use std::time::{Duration, Instant};
 
 pub fn write_info(app: &tauri::AppHandle) -> std::io::Result<()> {
     std::fs::write(
@@ -13,14 +12,18 @@ pub fn write_info(app: &tauri::AppHandle) -> std::io::Result<()> {
     )
 }
 
-pub fn archive(app: &tauri::AppHandle) -> Result<Vec<u8>, String> {
+pub fn archive(app: &tauri::AppHandle) -> Result<tempfile::TempPath, String> {
     let binary = settings::engine_dir().join(settings::binary_name());
     let dir = settings::data_dir(app);
+    let output = tempfile::NamedTempFile::new()
+        .map_err(|e| e.to_string())?
+        .into_temp_path();
     if !binary.exists() {
-        return crate::logs::archive(&dir);
+        let file = std::fs::File::create(&output).map_err(|e| e.to_string())?;
+        crate::logs::archive(&dir, file)?;
+        return Ok(output);
     }
     let temporary = tempfile::tempdir().map_err(|e| e.to_string())?;
-    let output = temporary.path().join("diagnostics.zip");
     let errors = temporary.path().join("errors.txt");
     let mut child = engine::command(&binary)
         .args(["logs", "export", "--output"])
@@ -32,26 +35,12 @@ pub fn archive(app: &tauri::AppHandle) -> Result<Vec<u8>, String> {
         .stderr(std::fs::File::create(&errors).map_err(|e| e.to_string())?)
         .spawn()
         .map_err(|e| format!("启动诊断打包失败：{e}"))?;
-    let deadline = Instant::now() + Duration::from_secs(60);
-    loop {
-        match child.try_wait() {
-            Ok(Some(status)) if status.success() => break,
-            Ok(Some(_)) => {
-                return Err(format!(
-                    "诊断打包失败：{}",
-                    std::fs::read_to_string(&errors).unwrap_or_default()
-                ))
-            }
-            Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(100)),
-            result => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(match result {
-                    Err(err) => err.to_string(),
-                    _ => "诊断打包超时，请检查日志文件大小".into(),
-                });
-            }
-        }
+    let status = child.wait().map_err(|e| e.to_string())?;
+    if !status.success() {
+        return Err(format!(
+            "诊断打包失败：{}",
+            std::fs::read_to_string(&errors).unwrap_or_default()
+        ));
     }
-    std::fs::read(output).map_err(|e| e.to_string())
+    Ok(output)
 }
