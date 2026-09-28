@@ -33,6 +33,7 @@ type Runtime struct {
 
 	adapter       *mfw.MaaFWAdapter
 	taskJob       *maa.TaskJob
+	stopJob       *maa.TaskJob
 	contextSinkID int64
 	taskerSinkID  int64
 	agentClients  []*maa.AgentClient
@@ -516,56 +517,6 @@ func (r *Runtime) Start() error {
 	default:
 		return fmt.Errorf("暂不支持 run mode: %s", r.mode)
 	}
-}
-
-func (r *Runtime) Stop() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.adapter == nil {
-		return nil
-	}
-	_, err := r.adapter.RequestStop()
-	return err
-}
-
-func (r *Runtime) Wait() Result {
-	r.mu.Lock()
-	job := r.taskJob
-	r.mu.Unlock()
-
-	if job == nil {
-		return Result{Status: "invalid", Err: fmt.Errorf("任务尚未提交")}
-	}
-
-	job.Wait()
-	status := job.Status()
-	return Result{
-		Status: status.String(),
-		OK:     status.Success() && job.Error() == nil,
-		Err:    job.Error(),
-	}
-}
-
-func (r *Runtime) Destroy() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	// 不 Disconnect agent —— Pool 拥有连接生命周期，agent server 进程需要保持运行。
-	// adapter 使用的是 Pool 的 Resource（borrowed），Destroy 时不会释放它。
-	r.agentClients = nil
-
-	if r.adapter == nil {
-		return
-	}
-	if r.contextSinkID > 0 {
-		r.adapter.RemoveContextSink(r.contextSinkID)
-	}
-	if r.taskerSinkID > 0 {
-		r.adapter.RemoveTaskerSink(r.taskerSinkID)
-	}
-	r.adapter.Destroy()
-	r.adapter = nil
 }
 
 func (r *Runtime) Entry() string {

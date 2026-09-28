@@ -136,6 +136,7 @@ export const updateLogs: UpdateLogItem[] = [
     maafwVersion: "5.14.0",
     updates: {
       perfs: ["为桌面端本体添加进度提示", "优化桌面端组件样式"],
+      fixes: ["修复停止任务时可能导致 lb 异常退出的问题"],
     },
   },
   {
@@ -197,7 +198,7 @@ export const updateLogs: UpdateLogItem[] = [
   },
   {
     version: "1.10.1",
-    date: "2026-9",
+    date: "2026-9-14",
     type: "fix",
     updates: {
       fixes: ["修复部分情况下无法恢复页面画布缓存的问题"],

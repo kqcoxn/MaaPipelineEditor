@@ -577,7 +577,8 @@ func (a *MaaFWAdapter) PostStop() error {
 }
 
 // RequestStop submits cancellation without waiting for an uninterruptible
-// native action. The caller must keep the runtime alive until its task ends.
+// native action. Keep the runtime alive until the stop job finishes and the
+// tasker is idle; PostStop can unblock the original job before callbacks return.
 func (a *MaaFWAdapter) RequestStop() (*maa.TaskJob, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
