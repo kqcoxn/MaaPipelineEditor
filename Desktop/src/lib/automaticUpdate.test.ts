@@ -6,6 +6,7 @@ import {
   updateEnvironment,
 } from "./automaticUpdate";
 import type { Snapshot, VersionList } from "../types";
+import { installEnvironment } from "./environmentInstall";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 const snapshot = (): Snapshot => ({
@@ -45,6 +46,7 @@ describe("automatic environment updates", () => {
       if (command === "release_versions")
         return result({ versions: input.force ? ["2.0.1"] : ["2.0.0"] });
       installed.push(String(input.version));
+      return { ...snapshot().environment, version: input.version };
     });
     const statuses: string[] = [];
     const notices: string[] = [];
@@ -65,7 +67,8 @@ describe("automatic environment updates", () => {
     expect(kinds).toEqual(["pending", "success"]);
     expect(statuses).toEqual([
       "正在联网检查 MPE 更新",
-      "发现 MPE 2.0.1，正在更新",
+      "发现前后端更新：MPE 2.0.0 → 2.0.1（Editor + LB），正在下载并更新",
+      "MPE 已更新至 2.0.1",
     ]);
   });
 
@@ -78,6 +81,45 @@ describe("automatic environment updates", () => {
     expect(summary).toContain("不自动安装");
     expect(onVersions).toHaveBeenCalledWith(cached);
     expect(invoke).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces an automatic-update error throughout a manual retry", async () => {
+    let status = "";
+    let notice = "";
+    let kind: string | undefined;
+    const onStatus = (value: string) => { status = value; };
+    const onNotice = (value: string, nextKind?: string) => {
+      notice = value;
+      kind = nextKind;
+    };
+    vi.mocked(invoke)
+      .mockResolvedValueOnce(result())
+      .mockRejectedValueOnce(new Error("request timed out"));
+    await expect(updateEnvironment(snapshot(), () => {}, onStatus, onNotice))
+      .rejects.toThrow("request timed out");
+    expect(status).toContain("更新失败");
+    expect(kind).toBe("error");
+
+    let finish!: (value: Snapshot["environment"]) => void;
+    vi.mocked(invoke).mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const pending = installEnvironment("latest", onStatus, onNotice);
+    expect(status).toBe("正在下载并安装 MPE");
+    expect(notice).toBe(status);
+    expect(kind).toBe("pending");
+    finish({ ...snapshot().environment, version: "2.0.1" });
+    await pending;
+    expect(status).toBe("MPE 已更新至 2.0.1");
+    expect(notice).toContain("Editor 与 LB 已更新至 MPE 2.0.1");
+    expect(kind).toBe("success");
+
+    vi.mocked(invoke).mockResolvedValueOnce({
+      ...snapshot().environment, ready: false, problems: ["Editor 版本不匹配"],
+    });
+    await expect(installEnvironment("latest", onStatus, onNotice))
+      .rejects.toThrow("Editor 版本不匹配");
+    expect(status).toContain("更新失败");
+    expect(notice).toBe(status);
+    expect(kind).toBe("error");
   });
 
   it("reports current versions and lookup failures without a success message", async () => {

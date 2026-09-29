@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 use tauri::Emitter;
+mod download;
 
 pub const RELEASES: &str = "https://github.com/kqcoxn/MaaPipelineEditor/releases";
 pub fn command(path: &Path) -> Command {
@@ -26,7 +27,7 @@ pub fn client() -> Result<reqwest::blocking::Client, String> {
         .build()
         .map_err(|e| e.to_string())
 }
-pub fn manifest(version: &str) -> Result<Value, String> {
+pub fn manifest(app: &tauri::AppHandle, version: &str) -> Result<Value, String> {
     if !version
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
@@ -38,13 +39,10 @@ pub fn manifest(version: &str) -> Result<Value, String> {
     } else {
         format!("{RELEASES}/download/v{version}/mpe-manifest.json")
     };
-    let value: Value = client()?
-        .get(address)
-        .timeout(Duration::from_secs(20))
-        .send()
-        .and_then(|r| r.error_for_status())
-        .and_then(|r| r.json())
-        .map_err(|e| e.to_string())?;
+    let value = download::manifest(&client()?, &address, |message| {
+        crate::logs::record(app, message);
+        let _ = app.emit_to("launcher", "engine-progress", message);
+    })?;
     validate_manifest(&value, version)?;
     Ok(value)
 }
@@ -165,7 +163,7 @@ pub fn stop(id: &str, force: bool) -> Result<(), String> {
     Err("正常停止超时，可选择强制结束".into())
 }
 pub fn install(app: &tauri::AppHandle, version: &str) -> Result<Value, String> {
-    let m = manifest(version)?;
+    let m = manifest(app, version)?;
     let version = m["version"].as_str().ok_or("无效版本")?;
     let a = &m["platforms"][platform()]["binary"];
     let url = a["url"]
@@ -177,7 +175,7 @@ pub fn install(app: &tauri::AppHandle, version: &str) -> Result<Value, String> {
         .send()
         .and_then(|r| r.error_for_status())
         .and_then(|r| r.bytes())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("下载安装工具失败：{}", download::describe_error(&e)))?;
     if hex::encode(Sha256::digest(&bytes)) != a["sha256"].as_str().unwrap_or("") {
         return Err("安装工具校验失败".into());
     }

@@ -24,22 +24,13 @@ export function Engine({ model: m }: { model: Model }) {
   const [stopFailed, setStopFailed] = useState(false);
   const install = () =>
     m.run(async () => {
-      m.setNotice("正在下载并安装 MPE", "pending", "environment");
-      const installed = await invoke<{ version: string }>(
-        "install_environment",
-        { version: choice },
-      );
+      await m.installEnvironment(choice);
       await invoke("save_settings", {
         settings: {
           ...s!.settings,
           fixedVersion: choice === "latest" ? null : choice,
         },
       });
-      m.setNotice(
-        `Editor 与 LB 已更新至 ${installed.version}`,
-        "success",
-        "environment",
-      );
     }, "environment");
   const conflict = s && s.service.state !== "stopped";
   return (

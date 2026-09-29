@@ -6,6 +6,7 @@ import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
 import { runAutomaticUpdates, updateEnvironment } from "./lib/automaticUpdate";
 import { updateDesktop } from "./lib/desktopUpdate";
+import { installEnvironment } from "./lib/environmentInstall";
 import {
   clearFeedback,
   setError,
@@ -244,6 +245,10 @@ export function useLauncher() {
     save,
     refresh,
     checkVersions,
+    installEnvironment: (version: string) =>
+      installEnvironment(version, setUpdateStatus, (message, kind) =>
+        setNotice(message, kind, "environment"),
+      ),
     setNotice,
     setError,
   };

@@ -2,6 +2,7 @@ import { CHECK_CANCELLED, CHECK_TIMEOUT, waitForCheck } from "./checkCancellatio
 import { invoke } from "@tauri-apps/api/core";
 import type { Snapshot, VersionList } from "../types";
 import type { NoticeKind } from "./feedback";
+import { installEnvironment } from "./environmentInstall";
 
 export function newer(a: string, b: string): boolean {
   const x = a.split(".").map(Number),
@@ -83,17 +84,13 @@ export async function updateEnvironment(
     onNotice(summary, "action");
     return summary;
   }
-  onStatus(`发现 MPE ${latest}，正在更新`);
-  onNotice(`${found}，正在下载并更新`, "pending");
-  try {
-    await invoke("install_environment", { version: latest });
-    onNotice(`前后端更新完成：Editor 与 LB 已更新至 MPE ${latest}`, "success");
-    return `MPE 已更新至 ${latest}`;
-  } catch (error) {
-    onNotice(`MPE ${latest} 更新失败：${String(error)}`, "error");
-    onStatus(`MPE ${latest} 更新失败：${String(error)}`);
-    throw error;
-  }
+  const installed = await installEnvironment(
+    latest,
+    onStatus,
+    onNotice,
+    `${found}，正在下载并更新`,
+  );
+  return `MPE 已更新至 ${installed.version}`;
 }
 
 export async function runAutomaticUpdates(

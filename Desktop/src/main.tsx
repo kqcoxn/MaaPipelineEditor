@@ -72,7 +72,7 @@ function App() {
           "check_environment",
         );
         if (!environment.ready)
-          await invoke("install_environment", { version: "latest" });
+          await m.installEnvironment("latest");
       }
     });
     if (check) setPage("engine");

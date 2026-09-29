@@ -130,6 +130,16 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.5",
+    date: "2026-10",
+    type: "fix",
+    maafwVersion: "5.14.1",
+    updates: {
+      perfs: ["优化桌面端远程监测失败后的重试逻辑"],
+      fixes: ["修复桌面端重试更新后错误状态未及时更新的问题"],
+    },
+  },
+  {
     version: "2.0.4",
     date: "2026-9-29",
     type: "perf",
