@@ -5,7 +5,7 @@ import {
   SaveOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
-import { memo, useState, useCallback, useEffect } from "react";
+import { memo, useState, useCallback, useEffect, useRef } from "react";
 import type { NodeType } from "../../stores/flow/types";
 import { useFlowStore } from "../../stores/flow";
 import { NodeTypeEnum } from "../flow/nodes";
@@ -61,6 +61,7 @@ export const NodeJsonEditorModal = memo(
   ({ open, onClose, node, onSave }: NodeJsonEditorModalProps) => {
     const [jsonValue, setJsonValue] = useState<string>("");
     const [validationError, setValidationError] = useState<string | null>(null);
+    const initializedNode = useRef<string | null>(null);
 
     const jsonIndent = useConfigStore((state) => state.configs.jsonIndent);
 
@@ -78,7 +79,13 @@ export const NodeJsonEditorModal = memo(
 
     // 当模态框打开时，初始化 JSON 值
     useEffect(() => {
-      if (open && node) {
+      if (!open || !node) {
+        initializedNode.current = null;
+        return;
+      }
+      const nodeKey = `${node.type}:${node.id}`;
+      if (initializedNode.current !== nodeKey) {
+        initializedNode.current = nodeKey;
         const mfwData = convertNodeToMfwFormat(node);
         const initialJson = JSON.stringify(mfwData, null, jsonIndent);
         setJsonValue(initialJson);

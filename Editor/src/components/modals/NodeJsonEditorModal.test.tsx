@@ -1,10 +1,11 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPipelineNode, useFlowStore } from "@/stores/flow";
 import { subscribeAchievementEvents } from "@/features/achievements/bus";
 import { NodeJsonEditorModal } from "./NodeJsonEditorModal";
 import { initializeAchievements } from "@/features/achievements/listeners";
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
+import { useConfigStore } from "@/stores/app/configStore";
 
 vi.mock("../json/MfwJsonEditor", () => ({
   MfwJsonEditor: ({ value, onChange }: { value: string; onChange: (value: string) => void }) =>
@@ -16,6 +17,31 @@ vi.mock("@/features/achievements/notify", () => ({ startUnlockNotifier: () => ()
 afterEach(() => { cleanup(); useFlowStore.getState().clearHistory(); });
 
 describe("节点 JSON 成就", () => {
+  it("同一节点更新与缩进配置变化不覆盖草稿，重开时读取当前节点", () => {
+    const node = createPipelineNode("draft-node");
+    useFlowStore.getState().setNodes([node]);
+    const onClose = vi.fn();
+    const onSave = vi.fn();
+    const view = render(<NodeJsonEditorModal open node={node} onClose={onClose} onSave={onSave} />);
+    const editor = screen.getByRole("textbox", { name: "JSON" });
+    const draft = '{"timeout": 123';
+    fireEvent.change(editor, { target: { value: draft } });
+    const updated = { ...node, position: { x: 10, y: 20 }, data: { ...node.data, label: "updated" } };
+    view.rerender(<NodeJsonEditorModal open node={updated} onClose={onClose} onSave={onSave} />);
+    const previousIndent = useConfigStore.getState().configs.jsonIndent;
+    try {
+      act(() => useConfigStore.getState().setConfig("jsonIndent", previousIndent + 1));
+      expect(editor).toHaveValue(draft);
+      expect(screen.getByRole("button", { name: /保\s*存/ })).toBeDisabled();
+      view.rerender(<NodeJsonEditorModal open={false} node={updated} onClose={onClose} onSave={onSave} />);
+      view.rerender(<NodeJsonEditorModal open node={updated} onClose={onClose} onSave={onSave} />);
+      expect((editor as HTMLTextAreaElement).value).not.toBe(draft);
+      expect(() => JSON.parse((editor as HTMLTextAreaElement).value)).not.toThrow();
+    } finally {
+      act(() => useConfigStore.getState().setConfig("jsonIndent", previousIndent));
+    }
+  });
+
   it.each(["format", "invalid"])("%s 不触发解锁", (mode) => {
     const node = createPipelineNode("json-node");
     useFlowStore.getState().setNodes([node]);
