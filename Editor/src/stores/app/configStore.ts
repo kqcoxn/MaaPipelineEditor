@@ -2,9 +2,8 @@ import { create } from "zustand";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import type { HandleDirection } from "@/components/flow/nodes/constants";
 import type { FieldSortConfig } from "@/core/sorting/types";
-import { encryptApiKey, isEncryptedKey } from "@/utils/ai/crypto";
-
-let apiKeyWriteVersion = 0;
+import { isEncryptedKey } from "@/utils/ai/crypto";
+import { createConfigApiKey } from "./configApiKey";
 
 export const DEFAULT_AI_CONTEXT_COMPACTION_THRESHOLD = 200_000;
 export const MIN_AI_CONTEXT_COMPACTION_THRESHOLD = 1_000;
@@ -397,6 +396,8 @@ export type ConfigState = {
     // 字段排序配置
     fieldSortConfig?: FieldSortConfig;
   };
+  // 运行时明文编辑值，不参与缓存与导出。
+  aiApiKeyInput: string;
   setConfig: <K extends keyof ConfigState["configs"]>(
     key: K,
     value: ConfigState["configs"][K],
@@ -427,142 +428,127 @@ export type ConfigState = {
   ) => void;
 };
 
-export const useConfigStore = create<ConfigState>()((set, get) => ({
-  // 设置
-  configs: { ...defaultConfigs },
-  setConfig(key, value) {
-    const previousValue = get().configs[key];
-    if (key === "aiApiKey") apiKeyWriteVersion++;
-
-    // 加密 API Key
-    if (
-      key === "aiApiKey" &&
-      typeof value === "string" &&
-      value &&
-      !value.startsWith("ENC:")
-    ) {
-      const writeVersion = apiKeyWriteVersion;
-      encryptApiKey(value)
-        .then((encrypted) => {
-          if (writeVersion !== apiKeyWriteVersion) return;
-          set((state) => {
-            const configuredKeys = new Set(state.configuredKeys);
-            configuredKeys.add(key as string);
-            return {
-              configs: { ...state.configs, [key]: encrypted },
-              configuredKeys,
-            };
-          });
-        })
-        .catch((error: unknown) => {
-          console.error("[Config] API Key 加密失败，未更新配置:", error);
-        });
-      return;
-    }
-
-    set((state) => {
-      const newConfigs = { ...state.configs, [key]: value };
-
-      // 标记为已配置
-      const configuredKeys = new Set(state.configuredKeys);
-      configuredKeys.add(key as string);
-
-      return {
-        configs: newConfigs,
-        configuredKeys,
-      };
-    });
-    if (previousValue !== value) {
-      if (key === "nodeStyle")
-        emitAchievementEvent("achievement:node_style_changed");
-      if (key === "fieldPanelMode")
-        emitAchievementEvent("achievement:panel_mode_changed");
-      if (key === "useDarkMode" && value === true)
-        emitAchievementEvent("achievement:dark_mode_enabled");
-    }
-  },
-  replaceConfig(configs, configuredKeys) {
-    apiKeyWriteVersion++;
-
-    set((state) => {
-      const keys = Object.keys(state.configs);
-      const newConfigs: Partial<ConfigState["configs"]> = {};
-      Object.keys(configs).forEach((key) => {
-        if (keys.includes(key)) {
-          const configKey = key as keyof ConfigState["configs"];
-          const value = configs[configKey];
-          if (
-            configKey === "aiApiKey" &&
-            (typeof value !== "string" ||
-              (value !== "" && !isEncryptedKey(value)))
-          ) {
-            return;
-          }
-          (newConfigs as Record<string, unknown>)[configKey] =
-            configKey === "liveScreenRefreshRate"
-              ? normalizeLiveScreenFrameRate(
-                  typeof value === "number" ? value : Number.NaN,
-                )
-              : value;
-        }
-      });
-
-      const mergedConfigs = { ...state.configs, ...newConfigs };
-
-      // 批量标记导入的 key 为已配置
-      const newConfiguredKeys = new Set(state.configuredKeys);
-      if (configuredKeys) {
-        for (const key of configuredKeys) {
-          newConfiguredKeys.add(key);
-        }
+export const useConfigStore = create<ConfigState>()((set, get) => {
+  const apiKey = createConfigApiKey(set);
+  return {
+    // 设置
+    configs: { ...defaultConfigs },
+    aiApiKeyInput: "",
+    setConfig(key, value) {
+      if (key === "aiApiKey" && typeof value === "string") {
+        apiKey.setInput(value);
+        return;
       }
-      Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
+      const previousValue = get().configs[key];
 
-      return { configs: mergedConfigs, configuredKeys: newConfiguredKeys };
-    });
-  },
-  // 已配置追踪
-  configuredKeys: new Set<string>(),
-  markAsConfigured(key) {
-    set((state) => {
-      if (state.configuredKeys.has(key)) return state;
-      const newKeys = new Set(state.configuredKeys);
-      newKeys.add(key);
-      return { configuredKeys: newKeys };
-    });
-  },
-  isConfigured(key) {
-    return get().configuredKeys.has(key);
-  },
-  // 恢复默认
-  resetConfig(key) {
-    if (key === "aiApiKey") apiKeyWriteVersion++;
-    const defaultValue = configDefaults[key];
-    set((state) => {
-      const newConfigs = { ...state.configs, [key]: defaultValue };
+      set((state) => {
+        const newConfigs = { ...state.configs, [key]: value };
 
-      return { configs: newConfigs };
-    });
-  },
-  resetAllConfigs() {
-    apiKeyWriteVersion++;
-    set({ configs: { ...defaultConfigs }, configuredKeys: new Set() });
-  },
-  // 状态
-  status: {
-    showConfigPanel: false,
-    showAIHistoryPanel: false,
-    showFileConfigPanel: false,
-    showLocalFilePanel: false,
-    showFieldSortModal: false,
-    rightPanelWidth: 350,
-  },
-  setStatus(key, value) {
-    set((state) => ({
-      status: { ...state.status, [key]: value },
-    }));
-  },
-}));
+        // 标记为已配置
+        const configuredKeys = new Set(state.configuredKeys);
+        configuredKeys.add(key as string);
+
+        return {
+          configs: newConfigs,
+          configuredKeys,
+        };
+      });
+      if (previousValue !== value) {
+        if (key === "nodeStyle")
+          emitAchievementEvent("achievement:node_style_changed");
+        if (key === "fieldPanelMode")
+          emitAchievementEvent("achievement:panel_mode_changed");
+        if (key === "useDarkMode" && value === true)
+          emitAchievementEvent("achievement:dark_mode_enabled");
+      }
+    },
+    replaceConfig(configs, configuredKeys) {
+      set((state) => {
+        const keys = Object.keys(state.configs);
+        const newConfigs: Partial<ConfigState["configs"]> = {};
+        Object.keys(configs).forEach((key) => {
+          if (keys.includes(key)) {
+            const configKey = key as keyof ConfigState["configs"];
+            const value = configs[configKey];
+            if (
+              configKey === "aiApiKey" &&
+              (typeof value !== "string" ||
+                (value !== "" && !isEncryptedKey(value)))
+            ) {
+              return;
+            }
+            (newConfigs as Record<string, unknown>)[configKey] =
+              configKey === "liveScreenRefreshRate"
+                ? normalizeLiveScreenFrameRate(
+                    typeof value === "number" ? value : Number.NaN,
+                  )
+                : value;
+          }
+        });
+
+        const mergedConfigs = { ...state.configs, ...newConfigs };
+
+        // 批量标记导入的 key 为已配置
+        const newConfiguredKeys = new Set(state.configuredKeys);
+        if (configuredKeys) {
+          for (const key of configuredKeys) {
+            newConfiguredKeys.add(key);
+          }
+        }
+        Object.keys(newConfigs).forEach((key) => newConfiguredKeys.add(key));
+
+        return { configs: mergedConfigs, configuredKeys: newConfiguredKeys };
+      });
+      if (
+        typeof configs.aiApiKey === "string" &&
+        (configs.aiApiKey === "" || isEncryptedKey(configs.aiApiKey))
+      ) {
+        apiKey.restoreInput(configs.aiApiKey);
+      }
+    },
+    // 已配置追踪
+    configuredKeys: new Set<string>(),
+    markAsConfigured(key) {
+      set((state) => {
+        if (state.configuredKeys.has(key)) return state;
+        const newKeys = new Set(state.configuredKeys);
+        newKeys.add(key);
+        return { configuredKeys: newKeys };
+      });
+    },
+    isConfigured(key) {
+      return get().configuredKeys.has(key);
+    },
+    // 恢复默认
+    resetConfig(key) {
+      if (key === "aiApiKey") apiKey.restoreInput("");
+      const defaultValue = configDefaults[key];
+      set((state) => {
+        const newConfigs = { ...state.configs, [key]: defaultValue };
+
+        return { configs: newConfigs };
+      });
+    },
+    resetAllConfigs() {
+      apiKey.restoreInput("");
+      set({ configs: { ...defaultConfigs }, configuredKeys: new Set() });
+    },
+    // 状态
+    status: {
+      showConfigPanel: false,
+      showAIHistoryPanel: false,
+      showFileConfigPanel: false,
+      showLocalFilePanel: false,
+      showFieldSortModal: false,
+      rightPanelWidth: 350,
+    },
+    setStatus(key, value) {
+      set((state) => ({
+        status: { ...state.status, [key]: value },
+      }));
+    },
+  };
+});
 
 const CONFIG_STORAGE_KEY = "_mpe_config";
 

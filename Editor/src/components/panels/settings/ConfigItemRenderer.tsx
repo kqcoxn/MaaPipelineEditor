@@ -29,6 +29,7 @@ const ConfigItemRenderer = memo(
     const value = useConfigStore((state) => {
       // 自定义项可能用虚拟 key，从 configs 中取不到值
       if (item.key.startsWith("__")) return undefined;
+      if (item.key === "aiApiKey") return state.aiApiKeyInput;
       return state.configs[item.key as keyof typeof state.configs];
     });
     const configs = useConfigStore((state) => state.configs);

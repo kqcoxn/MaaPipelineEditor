@@ -136,7 +136,10 @@ export const updateLogs: UpdateLogItem[] = [
     maafwVersion: "5.14.1",
     updates: {
       perfs: ["优化桌面端远程监测失败后的重试逻辑"],
-      fixes: ["修复桌面端重试更新后错误状态未及时更新的问题"],
+      fixes: [
+        "修复桌面端重试更新后错误状态未及时更新的问题",
+        "修复设置密文配置时会自动乱码无法输入的问题",
+      ],
     },
   },
   {
