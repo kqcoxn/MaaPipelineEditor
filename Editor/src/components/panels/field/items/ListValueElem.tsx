@@ -1,62 +1,10 @@
 import style from "../../../../styles/panels/FieldPanel.module.less";
-import { Input, InputNumber } from "antd";
+import { InputNumber } from "antd";
 import IconFont from "../../../iconfonts";
-import { JsonHelper } from "../../../../utils/data/jsonHelper";
-import { useState, useEffect, memo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { normalizeFieldList } from "./fieldValueUtils";
-
-const { TextArea } = Input;
-
-/**
- * 带本地状态的 TextArea，只在失焦时触发更新
- */
-const LocalTextArea = memo(
-  ({
-    value,
-    placeholder,
-    onCommit,
-  }: {
-    value: any;
-    placeholder: string;
-    onCommit: (newValue: any) => void;
-  }) => {
-    // 将值转为字符串显示：字符串直接显示，对象/数组转 JSON
-    const displayValue =
-      typeof value === "string" && placeholder !== FieldTypeEnum.IntOrStringList
-        ? value
-        : (JsonHelper.objToString(value) ?? String(value ?? ""));
-    const [localValue, setLocalValue] = useState(displayValue);
-
-    // 同步外部值变化
-    useEffect(() => {
-      setLocalValue(displayValue);
-    }, [displayValue]);
-
-    return (
-      <TextArea
-        placeholder={placeholder}
-        value={localValue}
-        autoSize={{ minRows: 1, maxRows: 4 }}
-        onChange={(e) => {
-          // 编辑时只更新本地状态，不触发父组件更新
-          setLocalValue(e.target.value);
-        }}
-        onBlur={() => {
-          // 失焦时尝试解析并提交
-          try {
-            // 尝试解析为 JSON 值
-            const parsed = JSON.parse(localValue);
-            onCommit(parsed);
-          } catch {
-            // 保留原始字符串
-            onCommit(localValue);
-          }
-        }}
-      />
-    );
-  },
-);
+import { FieldTextArea } from "./FieldTextArea";
 
 export function ListValueElem(
   key: string,
@@ -91,9 +39,12 @@ export function ListValueElem(
           }}
         />
       ) : (
-        <LocalTextArea
+        <FieldTextArea
           value={value}
           placeholder={placeholder}
+          parseJson={placeholder !== FieldTypeEnum.StringList}
+          stringifyStrings={placeholder === FieldTypeEnum.IntOrStringList}
+          parseObjectsOnly={placeholder === FieldTypeEnum.StringOrObjectList}
           onCommit={(newValue) => {
             const newList = [...valueList];
             newList[index] = newValue;

@@ -9,6 +9,7 @@ import { FieldTypeEnum } from "../../../../core/fields";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { LazyFeature } from "../../../async/LazyFeature";
 import { ListValueElem } from "./ListValueElem";
+import { FieldTextArea } from "./FieldTextArea";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
 import { getROIValue, normalizeFieldList, parseROIValue } from "./fieldValueUtils";
@@ -668,7 +669,15 @@ export const ParamFieldListElem = memo(
             break;
           // Any 类型或字符串
           default:
-            InputElem = (
+            InputElem = paramType === FieldTypeEnum.Any ? (
+              <FieldTextArea
+                className={style.value}
+                value={value}
+                placeholder={String(paramType)}
+                stringifyStrings
+                onCommit={(value) => onChange(key, value)}
+              />
+            ) : (
               <TextArea
                 className={style.value}
                 value={key === "focus" && typeof value !== "string" ? JSON.stringify(value) : JsonHelper.objToString(value) ?? value}
@@ -676,18 +685,7 @@ export const ParamFieldListElem = memo(
                 autoSize={{ minRows: 1, maxRows: 4 }}
                 onChange={(e) => {
                   const inputValue = e.target.value;
-                  if (paramType === FieldTypeEnum.Any) {
-                    try {
-                      // 尝试解析为 JSON 值
-                      const parsed = JSON.parse(inputValue);
-                      onChange(key, parsed);
-                    } catch {
-                      // 保留原始字符串
-                      onChange(key, inputValue);
-                    }
-                  } else {
-                    onChange(key, inputValue);
-                  }
+                  onChange(key, inputValue);
                 }}
               />
             );

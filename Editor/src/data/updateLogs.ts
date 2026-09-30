@@ -139,6 +139,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复桌面端重试更新后错误状态未及时更新的问题",
         "修复设置密文配置时会自动乱码无法输入的问题",
+        "修复 any 与 string[] 类型字段会被过早错误解析问题",
       ],
     },
   },

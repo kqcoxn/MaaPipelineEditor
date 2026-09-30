@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { FieldTypeEnum } from "../../../../core/fields";
 import type { FieldType } from "../../../../core/fields";
 import { actionFieldSchema } from "../../../../core/fields/action/schema";
 import { recoFieldSchema } from "../../../../core/fields/recognition/schema";
@@ -14,7 +15,7 @@ vi.mock("../../../../hooks/useEmbedMode", () => ({
 }));
 vi.mock("../../../iconfonts", () => ({
   default: ({ name, onClick }: { name: string; onClick: () => void }) => (
-    <button aria-label={name} onClick={onClick} />
+    onClick ? <button aria-label={name} onClick={onClick} /> : <span aria-label={name} />
   ),
 }));
 vi.mock("./TemplatePreview", () => ({
@@ -60,6 +61,72 @@ function confirm(...args: unknown[]) {
 }
 
 describe("字段快捷工具的选择与回填", () => {
+  it("Any 字段保留 JSON 引号和空白，失焦后提交真实类型", () => {
+    let committed: unknown;
+    function Editor() {
+      const [value, setValue] = useState<unknown>(null);
+      return <ParamFieldListElem paramData={{ custom: value }} paramType={[{
+        key: "custom", type: FieldTypeEnum.Any, default: null, desc: "自定义参数",
+      }]} onChange={(_key, next) => { committed = next; setValue(next); }}
+        onDelete={vi.fn()} onListChange={vi.fn()} onListAdd={vi.fn()} onListDelete={vi.fn()} />;
+    }
+    render(<Editor />);
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: '"123"' } });
+    expect(input).toHaveValue('"123"');
+    expect(committed).toBeUndefined();
+    fireEvent.blur(input);
+    expect(committed).toBe("123");
+    fireEvent.change(input, { target: { value: '{\n  "enabled": true\n}\n' } });
+    expect(input).toHaveValue('{\n  "enabled": true\n}\n');
+    fireEvent.blur(input);
+    expect(committed).toEqual({ enabled: true });
+  });
+
+  it.each([recoFieldSchema.ocrExpected, recoFieldSchema.allOf])("$key 字符串列表保留数字、布尔值及引号文本，内联对象正常解析", (field) => {
+    let committed: unknown;
+    function Editor() {
+      const [value, setValue] = useState<unknown[]>([""]);
+      return <ParamFieldListElem paramData={{ [field.key]: value }} paramType={[field]}
+        onChange={vi.fn()} onDelete={vi.fn()}
+        onListChange={(_key, next) => { committed = next; setValue(next); }}
+        onListAdd={vi.fn()} onListDelete={vi.fn()} />;
+    }
+    render(<Editor />);
+    const input = screen.getByRole("textbox");
+    for (const text of ["123", "true", '"quoted"']) {
+      fireEvent.change(input, { target: { value: text } });
+      fireEvent.blur(input);
+      expect(committed).toEqual([text]);
+      expect(input).toHaveValue(text);
+    }
+    if (field.type === FieldTypeEnum.StringOrObjectList) {
+      fireEvent.change(input, { target: { value: '{"recognition":"OCR"}' } });
+      fireEvent.blur(input);
+      expect(committed).toEqual([{ recognition: "OCR" }]);
+    }
+  });
+
+  it("分类期望值中的整数与数字标签字符串保持不同类型", () => {
+    let committed: unknown;
+    function Editor() {
+      const [value, setValue] = useState<Array<string | number>>(["123"]);
+      return <ParamFieldListElem paramData={{ expected: value }} paramType={[recoFieldSchema.neuralNetworkExpected]}
+        onChange={vi.fn()} onDelete={vi.fn()}
+        onListChange={(_key, next) => { committed = next; setValue(next); }}
+        onListAdd={vi.fn()} onListDelete={vi.fn()} />;
+    }
+    render(<Editor />);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue('"123"');
+    fireEvent.change(input, { target: { value: "123" } });
+    fireEvent.blur(input);
+    expect(committed).toEqual([123]);
+    fireEvent.change(input, { target: { value: '"123"' } });
+    fireEvent.blur(input);
+    expect(committed).toEqual(["123"]);
+  });
+
   it("切换模板行时同时切换模板和阈值，空项不会回退到首图", () => {
     setup(
       { template: ["zero.png", "one.png", ""], threshold: [0.7, 0.8, 0.9] },
