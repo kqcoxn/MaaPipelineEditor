@@ -27,12 +27,19 @@ func handleLibDir(libDir string) error {
 	return nil
 }
 
-func openLibrary(name string) (uintptr, error) {
+// platformOpenLibrary opens a dynamic library using the platform loader.
+func platformOpenLibrary(name string) (uintptr, error) {
 	handle, err := syscall.LoadLibrary(name)
 	return uintptr(handle), err
 }
 
-func unloadLibrary(handle uintptr) error {
+// platformUnloadLibrary releases an open dynamic library handle.
+func platformUnloadLibrary(handle uintptr) error {
 	dllHandle := (syscall.Handle)(handle)
 	return syscall.FreeLibrary(dllHandle)
+}
+
+// platformLookupSymbol resolves a symbol from an open dynamic library handle.
+func platformLookupSymbol(handle uintptr, name string) (uintptr, error) {
+	return syscall.GetProcAddress((syscall.Handle)(handle), name)
 }

@@ -1,4 +1,3 @@
-// MPE modifications (2026-09-09): preserve mixed neural expected indices and labels.
 package maa
 
 import (
@@ -509,7 +508,8 @@ type InlineSubRecognition struct {
 
 func (n *InlineSubRecognition) UnmarshalJSON(data []byte) error {
 	type Alias struct {
-		SubName string `json:"sub_name,omitempty"`
+		SubName     string          `json:"sub_name,omitempty"`
+		Recognition json.RawMessage `json:"recognition,omitempty"`
 	}
 	var alias Alias
 	if err := unmarshalJSON(data, &alias); err != nil {
@@ -517,6 +517,9 @@ func (n *InlineSubRecognition) UnmarshalJSON(data []byte) error {
 	}
 	n.SubName = alias.SubName
 
+	if len(alias.Recognition) > 0 {
+		return unmarshalJSON(alias.Recognition, &n.Recognition)
+	}
 	if err := unmarshalJSON(data, &n.Recognition); err != nil {
 		return err
 	}

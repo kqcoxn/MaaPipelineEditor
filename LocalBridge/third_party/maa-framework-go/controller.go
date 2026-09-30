@@ -1,4 +1,3 @@
-// MPE modifications (2026-09-09): add ScreenshotTargetExpand support.
 package maa
 
 import (
@@ -27,6 +26,29 @@ func initControllerStore(handle uintptr) {
 
 type Controller struct {
 	handle uintptr
+	state  *handleState
+	owned  bool
+}
+
+func newOwnedController(handle uintptr) *Controller {
+	var state *handleState
+	state = newHandleState(handle, func(handle uintptr) {
+		store.CtrlStore.Lock()
+		value := store.CtrlStore.Get(handle)
+		unregisterCustomControllerCallbacks(value.CustomControllerCallbacksID)
+		for _, cbID := range value.SinkIDToEventCallbackID {
+			unregisterEventCallback(cbID)
+		}
+		store.CtrlStore.Del(handle)
+		store.CtrlStore.Unlock()
+		native.MaaControllerDestroy(handle)
+		controllerStates.CompareAndDelete(handle, state)
+	})
+	state.jobStatus = func(handle uintptr, id int64) Status {
+		return Status(native.MaaControllerStatus(handle, id))
+	}
+	controllerStates.Store(handle, state)
+	return &Controller{handle: handle, state: state, owned: true}
 }
 
 // NewAdbController creates a new ADB controller.
@@ -50,9 +72,7 @@ func NewAdbController(
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewPlayCoverController creates a new PlayCover controller.
@@ -66,9 +86,7 @@ func NewPlayCoverController(
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewWin32Controller creates a win32 controller instance.
@@ -90,26 +108,24 @@ func NewWin32Controller(
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
-// NewWlRootsController creates a WlRoots controller instance.
-func NewWlRootsController(
-	wlrSocketPath string,
-	useWin32VkCode bool,
-) (*Controller, error) {
-	handle := native.MaaWlRootsControllerCreate(wlrSocketPath, useWin32VkCode)
+// NewLinuxController creates a Linux controller from a JSON configuration.
+// configJson must specify screencap_method and input_method, plus the fields
+// required by the selected methods (such as wlr_socket_path for wlroots,
+// pw_node_id for PipeWire, or eis_socket_path for libei). See the MaaFramework
+// MaaLinuxControllerCreate documentation for the complete configuration format.
+// This controller is only available on Linux.
+func NewLinuxController(configJson string) (*Controller, error) {
+	handle := native.MaaLinuxControllerCreate(configJson)
 	if handle == 0 {
-		return nil, errors.New("failed to create WlRoots controller")
+		return nil, errors.New("failed to create Linux controller")
 	}
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewMacOSController creates a macOS controller for native macOS applications.
@@ -137,9 +153,7 @@ func NewMacOSController(
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewAndroidNativeController creates an Android native controller backed by MaaAndroidNativeControlUnit.
@@ -161,9 +175,7 @@ func NewAndroidNativeController(configJson string) (*Controller, error) {
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewReplayController creates a replay controller that replays recorded operations.
@@ -177,9 +189,7 @@ func NewReplayController(recordingPath string) (*Controller, error) {
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewRecordController creates a record controller that wraps an existing controller and records all operations.
@@ -192,16 +202,19 @@ func NewRecordController(inner *Controller, recordingPath string) (*Controller, 
 	if inner == nil {
 		return nil, errors.New("inner controller is nil")
 	}
-	handle := native.MaaRecordControllerCreate(inner.handle, recordingPath)
+	innerHandle, done, err := inner.state.begin()
+	if err != nil {
+		return nil, err
+	}
+	defer done()
+	handle := native.MaaRecordControllerCreate(innerHandle, recordingPath)
 	if handle == 0 {
 		return nil, errors.New("failed to create record controller")
 	}
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // GamepadType defines the type of virtual gamepad.
@@ -233,9 +246,7 @@ func NewGamepadController(
 
 	initControllerStore(handle)
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NewCustomController creates a custom controller instance.
@@ -263,9 +274,7 @@ func NewCustomController(
 		v.CustomControllerCallbacksID = ctrlID
 	})
 
-	return &Controller{
-		handle: handle,
-	}, nil
+	return newOwnedController(handle), nil
 }
 
 // NOTE: MaaDbgController (MaaDbgControllerCreate) is intentionally NOT implemented in the Go binding.
@@ -275,22 +284,24 @@ func NewCustomController(
 // Do NOT add a Go binding for MaaDbgControllerCreate or NewDbgController here.
 // The api-check CI tool also blacklists MaaDbgControllerCreate for the same reason.
 
-// Destroy frees the controller instance.
-func (c *Controller) Destroy() {
-	store.CtrlStore.Lock()
-	value := store.CtrlStore.Get(c.handle)
-	unregisterCustomControllerCallbacks(value.CustomControllerCallbacksID)
-	for _, cbID := range value.SinkIDToEventCallbackID {
-		unregisterEventCallback(cbID)
+// Destroy closes the controller once. It returns ErrBound while a tasker uses
+// it or an AgentClient retains it, ErrInUse while a call or job is active, and
+// ErrBorrowed when called on a getter or callback view.
+func (c *Controller) Destroy() error {
+	if c == nil || !c.owned {
+		return ErrBorrowed
 	}
-	store.CtrlStore.Del(c.handle)
-	store.CtrlStore.Unlock()
-
-	native.MaaControllerDestroy(c.handle)
+	return c.state.close()
 }
 
 // setOption sets options for controller instance.
 func (c *Controller) setOption(key native.MaaCtrlOption, value unsafe.Pointer, valSize uintptr) error {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if native.MaaControllerSetOption(c.handle, key, value, uint64(valSize)) {
 		return nil
 	}
@@ -383,6 +394,12 @@ func WithScreenshotResizeMethod(method ScreenshotResizeMethod) ScreenshotOption 
 // SetScreenshot applies screenshot options to controller instance.
 // Only the last option is applied when multiple options are provided.
 func (c *Controller) SetScreenshot(opts ...ScreenshotOption) error {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	cfg := screenshotOptionConfig{
 		kind: screenshotOptionUnset,
 	}
@@ -434,6 +451,12 @@ func (c *Controller) SetScreenshot(opts ...ScreenshotOption) error {
 // This is designed for TPS/FPS games that lock the mouse to their window in the background.
 // Only valid for Win32 controllers using message-based input methods.
 func (c *Controller) SetMouseLockFollow(enabled bool) error {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	return c.setOption(
 		native.MaaCtrlOption_MouseLockFollow,
 		unsafe.Pointer(&enabled),
@@ -443,78 +466,150 @@ func (c *Controller) SetMouseLockFollow(enabled bool) error {
 
 // PostConnect posts a connection.
 func (c *Controller) PostConnect() *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostConnection(c.handle)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostClick posts a click.
 func (c *Controller) PostClick(x, y int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostClick(c.handle, x, y)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostClickV2 posts a click with contact and pressure.
 // For adb controller, contact means finger id (0 for first finger, 1 for second finger, etc).
 // For win32 controller, contact means mouse button id (0 for left, 1 for right, 2 for middle).
 func (c *Controller) PostClickV2(x, y, contact, pressure int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostClickV2(c.handle, x, y, contact, pressure)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostSwipe posts a swipe.
 func (c *Controller) PostSwipe(x1, y1, x2, y2 int32, duration time.Duration) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostSwipe(c.handle, x1, y1, x2, y2, int32(duration.Milliseconds()))
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostSwipeV2 posts a swipe with contact and pressure.
 // For adb controller, contact means finger id (0 for first finger, 1 for second finger, etc).
 // For win32 controller, contact means mouse button id (0 for left, 1 for right, 2 for middle).
 func (c *Controller) PostSwipeV2(x1, y1, x2, y2 int32, duration time.Duration, contact, pressure int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostSwipeV2(c.handle, x1, y1, x2, y2, int32(duration.Milliseconds()), contact, pressure)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostClickKey posts a click key.
 func (c *Controller) PostClickKey(keycode int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostClickKey(c.handle, keycode)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostInputText posts an input text.
 func (c *Controller) PostInputText(text string) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostInputText(c.handle, text)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostStartApp posts a start app.
 func (c *Controller) PostStartApp(intent string) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostStartApp(c.handle, intent)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostStopApp posts a stop app.
 func (c *Controller) PostStopApp(intent string) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostStopApp(c.handle, intent)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostTouchDown posts a touch-down.
 func (c *Controller) PostTouchDown(contact, x, y, pressure int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostTouchDown(c.handle, contact, x, y, pressure)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostTouchMove posts a touch-move.
 func (c *Controller) PostTouchMove(contact, x, y, pressure int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostTouchMove(c.handle, contact, x, y, pressure)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostTouchUp posts a touch-up.
 func (c *Controller) PostTouchUp(contact int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostTouchUp(c.handle, contact)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostRelativeMove posts a relative cursor move.
@@ -522,49 +617,97 @@ func (c *Controller) PostTouchUp(contact int32) *Job {
 // This is currently only supported by Win32 controllers.
 // If the controller does not support relative move, the posted action will fail.
 func (c *Controller) PostRelativeMove(dx, dy int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostRelativeMove(c.handle, dx, dy)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 func (c *Controller) PostKeyDown(keycode int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostKeyDown(c.handle, keycode)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 func (c *Controller) PostKeyUp(keycode int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostKeyUp(c.handle, keycode)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostScreencap posts a screencap.
 func (c *Controller) PostScreencap() *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostScreencap(c.handle)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostScroll posts a scroll.
 func (c *Controller) PostScroll(dx, dy int32) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostScroll(c.handle, dx, dy)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostInactive posts an inactive request to restore controller/window state.
 // For Win32 controllers this restores window position (removes topmost) and unblocks user input.
 // For other controllers this is a no-op that typically succeeds.
 func (c *Controller) PostInactive() *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostInactive(c.handle)
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // PostShell posts a adb shell command.
 // This is only valid for ADB controllers. If the controller is not an ADB controller, the action will fail.
 func (c *Controller) PostShell(cmd string, timeout time.Duration) *Job {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaControllerPostShell(c.handle, cmd, timeout.Milliseconds())
-	return newJob(id, c.status, c.wait)
+	return newJob(id, c.status, c.wait, c.state)
 }
 
 // GetShellOutput gets the output of the last shell command.
 func (c *Controller) GetShellOutput() (string, error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	output := buffer.NewStringBuffer()
 	defer output.Destroy()
 
@@ -577,20 +720,44 @@ func (c *Controller) GetShellOutput() (string, error) {
 
 // status gets the status of a request identified by the given id.
 func (c *Controller) status(id int64) Status {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return StatusInvalid
+	}
+	defer done()
+
 	return Status(native.MaaControllerStatus(c.handle, id))
 }
 
 func (c *Controller) wait(id int64) Status {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return StatusInvalid
+	}
+	defer done()
+
 	return Status(native.MaaControllerWait(c.handle, id))
 }
 
 // Connected checks if the controller is connected.
 func (c *Controller) Connected() bool {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return false
+	}
+	defer done()
+
 	return native.MaaControllerConnected(c.handle)
 }
 
 // CacheImage gets the image buffer of the last screencap request.
 func (c *Controller) CacheImage() (image.Image, error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	img, err := c.CacheImageInto(nil)
 	if err != nil {
 		return nil, err
@@ -601,6 +768,12 @@ func (c *Controller) CacheImage() (image.Image, error) {
 // CacheImageInto gets the image buffer of the last screencap request and writes into dst when possible.
 // If dst is nil or size mismatched, a new *image.RGBA is allocated and returned.
 func (c *Controller) CacheImageInto(dst *image.RGBA) (*image.RGBA, error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	imgBuffer := buffer.NewImageBuffer()
 	defer imgBuffer.Destroy()
 
@@ -616,6 +789,12 @@ func (c *Controller) CacheImageInto(dst *image.RGBA) (*image.RGBA, error) {
 
 // GetUUID gets the UUID of the controller.
 func (c *Controller) GetUUID() (string, error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	uuid := buffer.NewStringBuffer()
 	defer uuid.Destroy()
 	got := native.MaaControllerGetUuid(c.handle, uuid.Handle())
@@ -630,6 +809,12 @@ func (c *Controller) GetUUID() (string, error) {
 // Note: This returns the actual device screen resolution before any scaling.
 // The screenshot obtained via CacheImage is scaled according to the screenshot target size settings.
 func (c *Controller) GetResolution() (width, height int32, err error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return 0, 0, useErr
+	}
+	defer done()
+
 	got := native.MaaControllerGetResolution(c.handle, &width, &height)
 	if !got {
 		return 0, 0, fmt.Errorf("failed to get resolution")
@@ -640,6 +825,12 @@ func (c *Controller) GetResolution() (width, height int32, err error) {
 // GetInfo gets controller information as a JSON string.
 // Returns controller-specific information including type, constructor parameters and current state.
 func (c *Controller) GetInfo() (string, error) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	got := native.MaaControllerGetInfo(c.handle, buf.Handle())
@@ -652,6 +843,15 @@ func (c *Controller) GetInfo() (string, error) {
 // AddSink adds a event callback sink and returns the sink ID.
 // The sink ID can be used to remove the sink later.
 func (c *Controller) AddSink(sink ControllerEventSink) int64 {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return 0
+	}
+	defer done()
+	if c.state.external {
+		return 0
+	}
+
 	id := registerEventCallback(sink)
 	sinkId := native.MaaControllerAddSink(
 		c.handle,
@@ -668,6 +868,15 @@ func (c *Controller) AddSink(sink ControllerEventSink) int64 {
 
 // RemoveSink removes a event callback sink by sink ID.
 func (c *Controller) RemoveSink(sinkId int64) {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return
+	}
+	defer done()
+	if c.state.external {
+		return
+	}
+
 	store.CtrlStore.Update(c.handle, func(v *store.CtrlStoreValue) {
 		unregisterEventCallback(v.SinkIDToEventCallbackID[sinkId])
 		delete(v.SinkIDToEventCallbackID, sinkId)
@@ -678,6 +887,15 @@ func (c *Controller) RemoveSink(sinkId int64) {
 
 // ClearSinks clears all event callback sinks.
 func (c *Controller) ClearSinks() {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return
+	}
+	defer done()
+	if c.state.external {
+		return
+	}
+
 	store.CtrlStore.Update(c.handle, func(v *store.CtrlStoreValue) {
 		for _, id := range v.SinkIDToEventCallbackID {
 			unregisterEventCallback(id)
@@ -714,6 +932,12 @@ func (a *ctrlEventSinkAdapter) OnControllerAction(
 func (c *Controller) OnControllerAction(
 	fn func(EventStatus, ControllerActionDetail),
 ) int64 {
+	_, done, useErr := c.state.begin()
+	if useErr != nil {
+		return 0
+	}
+	defer done()
+
 	sink := &ctrlEventSinkAdapter{onControllerAction: fn}
 	return c.AddSink(sink)
 }

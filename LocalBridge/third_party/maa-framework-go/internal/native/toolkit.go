@@ -2,11 +2,8 @@ package native
 
 import (
 	"fmt"
-	"path/filepath"
 	"runtime"
 	"unsafe"
-
-	"github.com/ebitengine/purego"
 )
 
 var maaToolkit uintptr
@@ -50,6 +47,29 @@ var (
 )
 
 var (
+	MaaToolkitGamescopeInstanceListCreate        func() uintptr
+	MaaToolkitGamescopeInstanceListDestroy       func(handle uintptr)
+	MaaToolkitGamescopeInstanceFindAll           func(buffer uintptr) bool
+	MaaToolkitGamescopeInstanceListSize          func(list uintptr) uint64
+	MaaToolkitGamescopeInstanceListAt            func(list uintptr, index uint64) uintptr
+	MaaToolkitGamescopeInstanceGetDisplayNo      func(instance uintptr) uint32
+	MaaToolkitGamescopeInstanceGetPipeWireNodeId func(instance uintptr) uint32
+	MaaToolkitGamescopeInstanceGetEisSocketPath  func(instance uintptr) string
+)
+
+var (
+	MaaToolkitPortalHelperCreate            func() uintptr
+	MaaToolkitPortalHelperDestroy           func(helper uintptr)
+	MaaToolkitPortalHelperOpenStream        func(helper uintptr) bool
+	MaaToolkitPortalHelperGetPersist        func(helper uintptr) bool
+	MaaToolkitPortalHelperSetPersist        func(helper uintptr, enable bool)
+	MaaToolkitPortalHelperGetPipeWireFD     func(helper uintptr) int32
+	MaaToolkitPortalHelperGetPipeWireNodeID func(helper uintptr) uint32
+	MaaToolkitPortalHelperGetRestoreToken   func(helper uintptr) string
+	MaaToolkitPortalHelperSetRestoreToken   func(helper uintptr, token string)
+)
+
+var (
 	MaaToolkitMacOSCheckPermission          func(perm MaaMacOSPermission) bool
 	MaaToolkitMacOSRequestPermission        func(perm MaaMacOSPermission) bool
 	MaaToolkitMacOSRevealPermissionSettings func(perm MaaMacOSPermission) bool
@@ -77,63 +97,37 @@ var toolkitEntries = []Entry{
 	{&MaaToolkitDesktopWindowGetHandle, "MaaToolkitDesktopWindowGetHandle"},
 	{&MaaToolkitDesktopWindowGetClassName, "MaaToolkitDesktopWindowGetClassName"},
 	{&MaaToolkitDesktopWindowGetWindowName, "MaaToolkitDesktopWindowGetWindowName"},
+	{&MaaToolkitGamescopeInstanceListCreate, "MaaToolkitGamescopeInstanceListCreate"},
+	{&MaaToolkitGamescopeInstanceListDestroy, "MaaToolkitGamescopeInstanceListDestroy"},
+	{&MaaToolkitGamescopeInstanceFindAll, "MaaToolkitGamescopeInstanceFindAll"},
+	{&MaaToolkitGamescopeInstanceListSize, "MaaToolkitGamescopeInstanceListSize"},
+	{&MaaToolkitGamescopeInstanceListAt, "MaaToolkitGamescopeInstanceListAt"},
+	{&MaaToolkitGamescopeInstanceGetDisplayNo, "MaaToolkitGamescopeInstanceGetDisplayNo"},
+	{&MaaToolkitGamescopeInstanceGetPipeWireNodeId, "MaaToolkitGamescopeInstanceGetPipeWireNodeId"},
+	{&MaaToolkitGamescopeInstanceGetEisSocketPath, "MaaToolkitGamescopeInstanceGetEisSocketPath"},
+	{&MaaToolkitPortalHelperCreate, "MaaToolkitPortalHelperCreate"},
+	{&MaaToolkitPortalHelperDestroy, "MaaToolkitPortalHelperDestroy"},
+	{&MaaToolkitPortalHelperOpenStream, "MaaToolkitPortalHelperOpenStream"},
+	{&MaaToolkitPortalHelperGetPersist, "MaaToolkitPortalHelperGetPersist"},
+	{&MaaToolkitPortalHelperSetPersist, "MaaToolkitPortalHelperSetPersist"},
+	{&MaaToolkitPortalHelperGetPipeWireFD, "MaaToolkitPortalHelperGetPipeWireFD"},
+	{&MaaToolkitPortalHelperGetPipeWireNodeID, "MaaToolkitPortalHelperGetPipeWireNodeID"},
+	{&MaaToolkitPortalHelperGetRestoreToken, "MaaToolkitPortalHelperGetRestoreToken"},
+	{&MaaToolkitPortalHelperSetRestoreToken, "MaaToolkitPortalHelperSetRestoreToken"},
 	{&MaaToolkitMacOSCheckPermission, "MaaToolkitMacOSCheckPermission"},
 	{&MaaToolkitMacOSRequestPermission, "MaaToolkitMacOSRequestPermission"},
 	{&MaaToolkitMacOSRevealPermissionSettings, "MaaToolkitMacOSRevealPermissionSettings"},
-}
-
-func initToolkit(libDir string) error {
-	libName := getMaaToolkitLibrary()
-	libPath := filepath.Join(libDir, libName)
-
-	handle, err := openLibrary(libPath)
-	if err != nil {
-		return &LibraryLoadError{
-			LibraryName: maaToolkitName,
-			LibraryPath: libPath,
-			Err:         err,
-		}
-	}
-
-	maaToolkit = handle
-
-	registerToolkit()
-
-	return nil
 }
 
 func getMaaToolkitLibrary() string {
 	switch runtime.GOOS {
 	case "darwin":
 		return "libMaaToolkit.dylib"
-	case "linux":
+	case "linux", "android":
 		return "libMaaToolkit.so"
 	case "windows":
 		return "MaaToolkit.dll"
 	default:
 		panic(fmt.Errorf("GOOS=%s is not supported", runtime.GOOS))
-	}
-}
-
-func registerToolkit() {
-	for _, entry := range toolkitEntries {
-		purego.RegisterLibFunc(entry.ptrToFunc, maaToolkit, entry.name)
-	}
-}
-
-func releaseToolkit() error {
-	err := unloadLibrary(maaToolkit)
-	if err != nil {
-		return err
-	}
-
-	unregisterToolkit()
-
-	return nil
-}
-
-func unregisterToolkit() {
-	for _, entry := range toolkitEntries {
-		clearFuncVar(entry.ptrToFunc)
 	}
 }

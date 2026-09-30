@@ -302,6 +302,7 @@ type MultiSwipeActionResult struct {
 
 type ClickKeyActionResult struct {
 	Keycode []int `json:"keycode"`
+	AutoUp  bool  `json:"auto_up"`
 }
 
 type LongPressKeyActionResult struct {
@@ -328,6 +329,7 @@ type TouchActionResult struct {
 	Contact  int   `json:"contact"`
 	Point    Point `json:"point"`
 	Pressure int   `json:"pressure"`
+	AutoUp   bool  `json:"auto_up"`
 }
 
 type ShellActionResult struct {
@@ -345,7 +347,7 @@ type ScreencapActionResult struct {
 }
 
 func parseActionResult(action, detailJson string) (*ActionResult, error) {
-	if detailJson == "" || detailJson == "{}" {
+	if detailJson == "" || detailJson == "{}" || detailJson == "null" {
 		return nil, nil
 	}
 

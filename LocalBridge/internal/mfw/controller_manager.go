@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -473,15 +474,27 @@ func waitControllerJob(job *maa.Job, timeout, pollInterval time.Duration) (maa.S
 	}
 }
 
-func destroyController(info *ControllerInfo) {
+func destroyController(info *ControllerInfo) error {
 	if info == nil {
-		return
+		return nil
 	}
 	info.lifecycleMu.Lock()
 	defer info.lifecycleMu.Unlock()
 	if ctrl, ok := info.Controller.(*maa.Controller); ok && ctrl != nil {
-		ctrl.Destroy()
+		// beta.19 不再等待未完成的原生操作；超时连接仍需在后台等到可释放。
+		for {
+			err := ctrl.Destroy()
+			if errors.Is(err, maa.ErrInUse) {
+				time.Sleep(25 * time.Millisecond)
+				continue
+			}
+			if err != nil {
+				logger.Warn("MFW", "销毁控制器失败: %v", err)
+			}
+			return err
+		}
 	}
+	return nil
 }
 
 // 断开控制器
@@ -500,7 +513,12 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 	cm.mu.Unlock()
 
 	// 等待正在进行的连接或操作结束后再销毁底层实例。
-	destroyController(info)
+	if err := destroyController(info); err != nil {
+		cm.mu.Lock()
+		cm.controllers[controllerID] = info
+		cm.mu.Unlock()
+		return fmt.Errorf("断开控制器失败: %w", err)
+	}
 
 	logger.Info("MFW", "控制器已断开: %s", controllerID)
 	return nil
@@ -729,43 +747,36 @@ func (cm *ControllerManager) ListControllers() []*ControllerInfo {
 func (cm *ControllerManager) CleanupInactive(timeout time.Duration) {
 	cm.mu.Lock()
 	now := time.Now()
-	stale := make([]*ControllerInfo, 0)
+	stale := make([]string, 0)
 	for id, info := range cm.controllers {
 		if !cm.reserved[id] && now.Sub(info.LastActiveAt) > timeout {
-			delete(cm.controllers, id)
-			stale = append(stale, info)
+			stale = append(stale, id)
 			logger.Debug("MFW", "清理非活跃控制器: %s", id)
 		}
 	}
 	cm.mu.Unlock()
 
-	for _, info := range stale {
-		destroyController(info)
+	for _, id := range stale {
+		_ = cm.DisconnectController(id)
 	}
 }
 
 // 断开所有控制器
 func (cm *ControllerManager) DisconnectAll() {
 	cm.mu.Lock()
-	controllers := make([]struct {
-		id   string
-		info *ControllerInfo
-	}, 0, len(cm.controllers))
-	for id, info := range cm.controllers {
-		controllers = append(controllers, struct {
-			id   string
-			info *ControllerInfo
-		}{id: id, info: info})
+	controllers := make([]string, 0, len(cm.controllers))
+	for id := range cm.controllers {
+		controllers = append(controllers, id)
 	}
-	cm.controllers = make(map[string]*ControllerInfo)
 	cm.mu.Unlock()
 
-	for _, item := range controllers {
-		destroyController(item.info)
-		logger.Debug("MFW", "断开控制器: %s", item.id)
+	for _, id := range controllers {
+		if err := cm.DisconnectController(id); err != nil {
+			logger.Warn("MFW", "断开控制器 %s 失败: %v", id, err)
+		}
 	}
 
-	logger.Debug("MFW", "所有控制器已断开")
+	logger.Debug("MFW", "控制器清理完成")
 }
 
 // Gamepad 专用操作方法

@@ -89,7 +89,9 @@ func (rm *ResourceManager) UnloadResource(resourceID string) error {
 
 	// 销毁资源实例
 	if res, ok := info.Resource.(*maa.Resource); ok && res != nil {
-		res.Destroy()
+		if err := res.Destroy(); err != nil {
+			return err
+		}
 	}
 
 	delete(rm.resources, resourceID)
@@ -106,12 +108,14 @@ func (rm *ResourceManager) UnloadAll() {
 	for id, info := range rm.resources {
 		// 销毁资源实例
 		if res, ok := info.Resource.(*maa.Resource); ok && res != nil {
-			res.Destroy()
+			if err := res.Destroy(); err != nil {
+				logger.Warn("MFW", "卸载资源 %s 失败: %v", id, err)
+				continue
+			}
 		}
+		delete(rm.resources, id)
 		logger.Info("MFW", "卸载资源: %s", id)
 	}
 
-	// 清空资源列表
-	rm.resources = make(map[string]*ResourceInfo)
-	logger.Info("MFW", "所有资源已卸载")
+	logger.Info("MFW", "资源清理完成，剩余 %d 个", len(rm.resources))
 }

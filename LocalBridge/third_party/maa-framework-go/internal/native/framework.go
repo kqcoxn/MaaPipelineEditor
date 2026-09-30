@@ -1,18 +1,12 @@
-// MPE modifications (2026-09-09): bind MaaLinuxControllerCreate.
 package native
 
 import (
 	"fmt"
-	"path/filepath"
 	"runtime"
 	"unsafe"
-
-	"github.com/ebitengine/purego"
 )
 
 var maaFramework uintptr
-
-var MaaLinuxControllerCreate func(configJSON string) uintptr
 
 const maaFrameworkName = "MaaFramework"
 
@@ -220,7 +214,7 @@ var (
 	MaaAdbControllerCreate           func(adbPath, address string, screencapMethods uint64, inputMethods uint64, config, agentPath string) uintptr
 	MaaPlayCoverControllerCreate     func(address, uuid string) uintptr
 	MaaWin32ControllerCreate         func(hWnd unsafe.Pointer, screencapMethods uint64, mouseMethod, keyboardMethod uint64) uintptr
-	MaaWlRootsControllerCreate       func(wlrSocketPath string, useWin32VkCode bool) uintptr
+	MaaLinuxControllerCreate         func(configJson string) uintptr
 	MaaCustomControllerCreate        func(controller unsafe.Pointer, controllerArg uintptr) uintptr
 	MaaGamepadControllerCreate       func(hWnd unsafe.Pointer, gamepadType MaaGamepadType, screencapMethod uint64) uintptr
 	MaaMacOSControllerCreate         func(windowID uint32, screencapMethod MaaMacOSScreencapMethod, inputMethod MaaMacOSInputMethod) uintptr
@@ -449,7 +443,6 @@ var frameworkEntries = []Entry{
 	{&MaaAdbControllerCreate, "MaaAdbControllerCreate"},
 	{&MaaPlayCoverControllerCreate, "MaaPlayCoverControllerCreate"},
 	{&MaaWin32ControllerCreate, "MaaWin32ControllerCreate"},
-	{&MaaWlRootsControllerCreate, "MaaWlRootsControllerCreate"},
 	{&MaaLinuxControllerCreate, "MaaLinuxControllerCreate"},
 	{&MaaCustomControllerCreate, "MaaCustomControllerCreate"},
 	{&MaaGamepadControllerCreate, "MaaGamepadControllerCreate"},
@@ -552,58 +545,15 @@ var frameworkEntries = []Entry{
 	{&MaaGlobalLoadPlugin, "MaaGlobalLoadPlugin"},
 }
 
-func initFramework(libDir string) error {
-	libName := getMaaFrameworkLibrary()
-	libPath := filepath.Join(libDir, libName)
-
-	handle, err := openLibrary(libPath)
-	if err != nil {
-		return &LibraryLoadError{
-			LibraryName: maaFrameworkName,
-			LibraryPath: libPath,
-			Err:         err,
-		}
-	}
-
-	maaFramework = handle
-
-	registerFramework()
-
-	return nil
-}
-
 func getMaaFrameworkLibrary() string {
 	switch runtime.GOOS {
 	case "darwin":
 		return "libMaaFramework.dylib"
-	case "linux":
+	case "linux", "android":
 		return "libMaaFramework.so"
 	case "windows":
 		return "MaaFramework.dll"
 	default:
 		panic(fmt.Errorf("GOOS=%s is not supported", runtime.GOOS))
-	}
-}
-
-func registerFramework() {
-	for _, entry := range frameworkEntries {
-		purego.RegisterLibFunc(entry.ptrToFunc, maaFramework, entry.name)
-	}
-}
-
-func releaseFramework() error {
-	err := unloadLibrary(maaFramework)
-	if err != nil {
-		return err
-	}
-
-	unregisterFramework()
-
-	return nil
-}
-
-func unregisterFramework() {
-	for _, entry := range frameworkEntries {
-		clearFuncVar(entry.ptrToFunc)
 	}
 }

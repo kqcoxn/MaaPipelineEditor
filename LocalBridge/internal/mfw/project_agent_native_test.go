@@ -26,7 +26,11 @@ func TestNativeProjectAgentTCP(t *testing.T) {
 	if err := maa.Init(maa.WithLibDir(lib), maa.WithLogDir(t.TempDir()), maa.WithStdoutLevel(maa.LoggingLevelOff)); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = maa.Release() })
+	t.Cleanup(func() {
+		if err := maa.Release(); err != nil {
+			t.Errorf("release: %v", err)
+		}
+	})
 	if identifier := os.Getenv("MPE_TEST_PROJECT_AGENT_IDENTIFIER"); identifier != "" {
 		if err := maa.AgentServerRegisterCustomAction("ProjectAgentProbe", maa.CustomActionFunc(func(*maa.Context, *maa.CustomActionArg) bool { return true })); err != nil {
 			t.Fatal(err)
@@ -43,13 +47,21 @@ func TestNativeProjectAgentTCP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(resource.Destroy)
+	t.Cleanup(func() {
+		if err := resource.Destroy(); err != nil {
+			t.Errorf("destroy: %v", err)
+		}
+	})
 	// 即使本机为 macOS/Linux，也走 Windows 的自动 TCP 创建分支。
 	client, identifier, err := newProjectAgentClient("", "windows")
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(client.Destroy)
+	t.Cleanup(func() {
+		if err := client.Destroy(); err != nil {
+			t.Errorf("destroy: %v", err)
+		}
+	})
 	port, err := strconv.ParseUint(identifier, 10, 16)
 	if err != nil || port == 0 {
 		t.Fatalf("expected allocated TCP port, got %q: %v", identifier, err)

@@ -133,15 +133,17 @@ export const updateLogs: UpdateLogItem[] = [
     version: "2.0.5",
     date: "2026-9-30",
     type: "fix",
-    maafwVersion: "5.14.0",
+    maafwVersion: "5.14.2",
     updates: {
       perfs: [
         "优化桌面端远程监测失败后的重试逻辑",
         "优化保存前持久化内容的新值读取逻辑",
+        "提升调试与 Agent 运行的稳定性，降低 LocalBridge 异常退出的风险（MFW-Go-Binding）",
       ],
       fixes: [
         "修复桌面端重试更新后错误状态未及时更新的问题",
         "修复设置密文配置时会自动乱码无法输入的问题",
+        "修复设备连接超时后资源未正常释放的问题（MFW-Go-Binding）",
         "修复 any 与 string[] 类型字段会被过早错误解析问题",
         "修复节点编辑器节点对象或缩进设置变化后丢失稿件状态的问题",
         "修复创建文件弹窗源文件变化后正在输入的文件名会恢复成默认值的问题",

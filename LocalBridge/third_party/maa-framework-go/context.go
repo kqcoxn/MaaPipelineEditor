@@ -12,9 +12,11 @@ import (
 
 // Context provides the runtime context for custom actions/recognitions
 // and exposes task, recognition, action, and pipeline operations.
+// A Context received in a callback, including a Clone, is valid only until
+// that callback returns. Keep results rather than retaining the Context.
 type Context struct {
 	handle uintptr
-	tasker *Tasker
+	state  *contextState
 }
 
 func isNilOverride(v any) bool {
@@ -60,7 +62,10 @@ func (ctx *Context) runTask(entry, override string) (*TaskDetail, error) {
 	if taskId == 0 {
 		return nil, errors.New("failed to run task")
 	}
-	tasker := ctx.GetTasker()
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return nil, ErrClosed
+	}
 	return tasker.GetTaskDetail(taskId)
 }
 
@@ -92,6 +97,12 @@ func (ctx *Context) runTask(entry, override string) (*TaskDetail, error) {
 //
 //	ctx.RunTask("Task", `{"Task":{"action":"Click","target":[100, 200, 100, 100]}}`)
 func (ctx *Context) RunTask(entry string, override ...any) (*TaskDetail, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	return ctx.runTask(entry, ctx.handleOverride(override...))
 }
 
@@ -107,7 +118,10 @@ func (ctx *Context) runRecognition(
 	if recId == 0 {
 		return nil, errors.New("failed to run recognition")
 	}
-	tasker := ctx.GetTasker()
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return nil, ErrClosed
+	}
 	recognitionDetail, err := tasker.GetRecognitionDetail(recId)
 	return recognitionDetail, err
 }
@@ -144,6 +158,12 @@ func (ctx *Context) RunRecognition(
 	img image.Image,
 	override ...any,
 ) (*RecognitionDetail, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	return ctx.runRecognition(entry, ctx.handleOverride(override...), img)
 }
 
@@ -166,7 +186,10 @@ func (ctx *Context) runAction(
 	if actId == 0 {
 		return nil, errors.New("failed to run action")
 	}
-	tasker := ctx.GetTasker()
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return nil, ErrClosed
+	}
 	actionDetail, err := tasker.GetActionDetail(actId)
 	return actionDetail, err
 }
@@ -206,6 +229,12 @@ func (ctx *Context) RunAction(
 	recognitionDetail string,
 	override ...any,
 ) (*ActionDetail, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	return ctx.runAction(
 		entry,
 		ctx.handleOverride(override...),
@@ -228,6 +257,12 @@ func (ctx *Context) RunRecognitionDirect(
 	recoParam RecognitionParam,
 	img image.Image,
 ) (*RecognitionDetail, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	imgBuf := buffer.NewImageBuffer()
 	imgBuf.Set(img)
 	defer imgBuf.Destroy()
@@ -246,7 +281,10 @@ func (ctx *Context) RunRecognitionDirect(
 	if recId == 0 {
 		return nil, errors.New("failed to run recognition direct")
 	}
-	tasker := ctx.GetTasker()
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return nil, ErrClosed
+	}
 	recognitionDetail, err := tasker.GetRecognitionDetail(recId)
 	return recognitionDetail, err
 }
@@ -267,6 +305,12 @@ func (ctx *Context) RunActionDirect(
 	box Rect,
 	recoDetail *RecognitionDetail,
 ) (*ActionDetail, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	rectBuf := buffer.NewRectBuffer()
 	rectBuf.Set(box)
 	defer rectBuf.Destroy()
@@ -290,7 +334,10 @@ func (ctx *Context) RunActionDirect(
 	if actId == 0 {
 		return nil, errors.New("failed to run action direct")
 	}
-	tasker := ctx.GetTasker()
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return nil, ErrClosed
+	}
 	actionDetail, err := tasker.GetActionDetail(actId)
 	return actionDetail, err
 }
@@ -327,6 +374,12 @@ func (ctx *Context) overridePipeline(override string) error {
 //
 //	ctx.OverridePipeline(`{"Task":{"action":"Click","target":[100,200,100,100]}}`)
 func (ctx *Context) OverridePipeline(override any) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	switch v := override.(type) {
 	case string:
 		return ctx.overridePipeline(v)
@@ -348,6 +401,12 @@ func (ctx *Context) OverridePipeline(override any) error {
 // OverrideNext overrides the next list of a node by name.
 // If the underlying call fails (e.g., node not found or list invalid), it returns an error.
 func (ctx *Context) OverrideNext(name string, nextList []NextItem) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	list := buffer.NewStringListBuffer()
 	defer list.Destroy()
 	size := len(nextList)
@@ -370,6 +429,12 @@ func (ctx *Context) OverrideNext(name string, nextList []NextItem) error {
 
 // OverrideImage overrides an image by name.
 func (ctx *Context) OverrideImage(imageName string, image image.Image) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	img := buffer.NewImageBuffer()
 	defer img.Destroy()
 	img.Set(image)
@@ -381,6 +446,15 @@ func (ctx *Context) OverrideImage(imageName string, image image.Image) error {
 
 // GetNodeJSON gets the node JSON by name.
 func (ctx *Context) GetNodeJSON(name string) (string, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+	return ctx.getNodeJSONActive(name)
+}
+
+func (ctx *Context) getNodeJSONActive(name string) (string, error) {
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	ok := native.MaaContextGetNodeData(ctx.handle, name, buf.Handle())
@@ -393,7 +467,13 @@ func (ctx *Context) GetNodeJSON(name string) (string, error) {
 // GetNode returns the node definition by name.
 // It fetches the node JSON via GetNodeJSON and unmarshals it into a Node struct.
 func (ctx *Context) GetNode(name string) (*Node, error) {
-	raw, err := ctx.GetNodeJSON(name)
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
+	raw, err := ctx.getNodeJSONActive(name)
 	if err != nil {
 		return nil, err
 	}
@@ -412,7 +492,16 @@ func (ctx *Context) GetNode(name string) (*Node, error) {
 
 // GetTaskJob returns current task job.
 func (ctx *Context) GetTaskJob() *TaskJob {
-	tasker := ctx.GetTasker()
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return newFailedTaskJob(useErr)
+	}
+	defer done()
+
+	tasker := ctx.getTaskerActive()
+	if tasker == nil {
+		return newFailedTaskJob(ErrClosed)
+	}
 	taskId := native.MaaContextGetTaskId(ctx.handle)
 	return newTaskJob(
 		taskId,
@@ -421,17 +510,24 @@ func (ctx *Context) GetTaskJob() *TaskJob {
 		tasker.GetTaskDetail,
 		tasker.overridePipeline,
 		nil,
+		tasker.state.handleState,
 	)
 }
 
-// GetTasker returns the current Tasker.
+// GetTasker returns a borrowed view of the current Tasker. Destroy must not be
+// called on the returned value.
 func (ctx *Context) GetTasker() *Tasker {
-	if ctx.tasker != nil {
-		return ctx.tasker
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil
 	}
+	defer done()
+	return ctx.getTaskerActive()
+}
+
+func (ctx *Context) getTaskerActive() *Tasker {
 	handle := native.MaaContextGetTasker(ctx.handle)
-	ctx.tasker = &Tasker{handle: handle}
-	return ctx.tasker
+	return borrowTaskerForContext(handle, ctx.state)
 }
 
 // WaitFreezes waits until the screen stabilizes (no significant changes).
@@ -445,6 +541,12 @@ func (ctx *Context) WaitFreezes(
 	box *Rect,
 	waitFreezesParam *WaitFreezesParam,
 ) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	var boxHandle uintptr
 	if box != nil {
 		rectBuf := buffer.NewRectBuffer()
@@ -466,14 +568,29 @@ func (ctx *Context) WaitFreezes(
 	return nil
 }
 
-// Clone clones current Context.
+// Clone clones the current Context. The clone has the same callback lifetime.
 func (ctx *Context) Clone() *Context {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return nil
+	}
+	defer done()
+
 	handle := native.MaaContextClone(ctx.handle)
-	return &Context{handle: handle}
+	if handle == 0 {
+		return nil
+	}
+	return &Context{handle: handle, state: ctx.state}
 }
 
 // SetAnchor sets an anchor by name.
 func (ctx *Context) SetAnchor(anchorName, nodeName string) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if !native.MaaContextSetAnchor(ctx.handle, anchorName, nodeName) {
 		return errors.New("failed to set anchor")
 	}
@@ -482,6 +599,12 @@ func (ctx *Context) SetAnchor(anchorName, nodeName string) error {
 
 // GetAnchor gets an anchor by name.
 func (ctx *Context) GetAnchor(anchorName string) (string, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	ok := native.MaaContextGetAnchor(ctx.handle, anchorName, buf.Handle())
@@ -493,6 +616,12 @@ func (ctx *Context) GetAnchor(anchorName string) (string, error) {
 
 // GetHitCount gets the hit count of a node by name.
 func (ctx *Context) GetHitCount(nodeName string) (uint64, error) {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return 0, useErr
+	}
+	defer done()
+
 	var count uint64
 	ok := native.MaaContextGetHitCount(ctx.handle, nodeName, &count)
 	if !ok {
@@ -503,6 +632,12 @@ func (ctx *Context) GetHitCount(nodeName string) (uint64, error) {
 
 // ClearHitCount clears the hit count of a node by name.
 func (ctx *Context) ClearHitCount(nodeName string) error {
+	done, useErr := ctx.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if !native.MaaContextClearHitCount(ctx.handle, nodeName) {
 		return errors.New("failed to clear hit count")
 	}

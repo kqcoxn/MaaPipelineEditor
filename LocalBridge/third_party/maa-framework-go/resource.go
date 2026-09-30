@@ -18,6 +18,8 @@ import (
 // A Resource must be created with NewResource and should be destroyed with Destroy when no longer needed.
 type Resource struct {
 	handle uintptr
+	state  *handleState
+	owned  bool
 }
 
 // NewResource creates a new resource.
@@ -35,31 +37,48 @@ func NewResource() (*Resource, error) {
 	})
 	store.ResStore.Unlock()
 
-	return &Resource{
-		handle: handle,
-	}, nil
+	var state *handleState
+	state = newHandleState(handle, func(handle uintptr) {
+		store.ResStore.Lock()
+		value := store.ResStore.Get(handle)
+		for _, id := range value.SinkIDToEventCallbackID {
+			unregisterEventCallback(id)
+		}
+		for _, id := range value.CustomRecognizersCallbackID {
+			unregisterCustomRecognition(id)
+		}
+		for _, id := range value.CustomActionsCallbackID {
+			unregisterCustomAction(id)
+		}
+		store.ResStore.Del(handle)
+		store.ResStore.Unlock()
+		native.MaaResourceDestroy(handle)
+		resourceStates.CompareAndDelete(handle, state)
+	})
+	state.jobStatus = func(handle uintptr, id int64) Status {
+		return Status(native.MaaResourceStatus(handle, id))
+	}
+	resourceStates.Store(handle, state)
+	return &Resource{handle: handle, state: state, owned: true}, nil
 }
 
-// Destroy frees the resource.
-func (r *Resource) Destroy() {
-	store.ResStore.Lock()
-	value := store.ResStore.Get(r.handle)
-	for _, id := range value.SinkIDToEventCallbackID {
-		unregisterEventCallback(id)
+// Destroy closes the resource once. It returns ErrBound while a tasker uses it
+// or an AgentClient retains it, ErrInUse while a call or job is active, and
+// ErrBorrowed when called on a getter or callback view.
+func (r *Resource) Destroy() error {
+	if r == nil || !r.owned {
+		return ErrBorrowed
 	}
-	for _, id := range value.CustomRecognizersCallbackID {
-		unregisterCustomRecognition(id)
-	}
-	for _, id := range value.CustomActionsCallbackID {
-		unregisterCustomAction(id)
-	}
-	store.ResStore.Del(r.handle)
-	store.ResStore.Unlock()
-
-	native.MaaResourceDestroy(r.handle)
+	return r.state.close()
 }
 
 func (r *Resource) setOption(key native.MaaResOption, value unsafe.Pointer, valSize uintptr) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if native.MaaResourceSetOption(
 		r.handle,
 		key,
@@ -72,6 +91,12 @@ func (r *Resource) setOption(key native.MaaResOption, value unsafe.Pointer, valS
 }
 
 func (r *Resource) setInferenceDevice(device native.MaaInferenceDevice) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if err := r.setOption(
 		native.MaaResOption_InferenceDevice,
 		unsafe.Pointer(&device),
@@ -83,6 +108,12 @@ func (r *Resource) setInferenceDevice(device native.MaaInferenceDevice) error {
 }
 
 func (r *Resource) setInferenceExecutionProvider(ep native.MaaInferenceExecutionProvider) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if err := r.setOption(
 		native.MaaResOption_InferenceExecutionProvider,
 		unsafe.Pointer(&ep),
@@ -94,6 +125,12 @@ func (r *Resource) setInferenceExecutionProvider(ep native.MaaInferenceExecution
 }
 
 func (r *Resource) setInference(ep native.MaaInferenceExecutionProvider, deviceID native.MaaInferenceDevice) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if err := r.setInferenceExecutionProvider(ep); err != nil {
 		return err
 	}
@@ -105,6 +142,12 @@ func (r *Resource) setInference(ep native.MaaInferenceExecutionProvider, deviceI
 
 // UseCPU uses CPU for inference.
 func (r *Resource) UseCPU() error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	return r.setInference(native.MaaInferenceExecutionProvider_CPU, native.MaaInferenceDevice_CPU)
 }
 
@@ -120,17 +163,35 @@ const (
 // UseDirectml uses DirectML for inference.
 // deviceID is the device id; use InferenceDeviceAuto for auto selection.
 func (r *Resource) UseDirectml(deviceID InferenceDevice) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	return r.setInference(native.MaaInferenceExecutionProvider_DirectML, deviceID)
 }
 
 // UseCoreml uses CoreML for inference.
 // coremlFlag is the CoreML flag; use InferenceDeviceAuto for auto selection.
 func (r *Resource) UseCoreml(coremlFlag InferenceDevice) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	return r.setInference(native.MaaInferenceExecutionProvider_CoreML, coremlFlag)
 }
 
 // UseAutoExecutionProvider automatically selects the inference execution provider and device.
 func (r *Resource) UseAutoExecutionProvider() error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	return r.setInference(native.MaaInferenceExecutionProvider_Auto, native.MaaInferenceDevice_Auto)
 }
 
@@ -170,6 +231,15 @@ func (r *Resource) UseAutoExecutionProvider() error {
 // registrations. Use GetCustomRecognitionList to inspect the currently
 // registered names.
 func (r *Resource) RegisterCustomRecognition(name string, recognition CustomRecognitionRunner) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	id := registerCustomRecognition(recognition)
 
 	ok := native.MaaResourceRegisterCustomRecognition(
@@ -202,6 +272,15 @@ func (r *Resource) RegisterCustomRecognition(name string, recognition CustomReco
 
 // UnregisterCustomRecognition unregisters a custom recognition runner from the resource.
 func (r *Resource) UnregisterCustomRecognition(name string) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	var (
 		found bool
 		id    uint64
@@ -228,6 +307,15 @@ func (r *Resource) UnregisterCustomRecognition(name string) error {
 
 // ClearCustomRecognition clears all custom recognitions runner registered from the resource.
 func (r *Resource) ClearCustomRecognition() error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	if !native.MaaResourceClearCustomRecognition(r.handle) {
 		return errors.New("failed to clear custom recognition")
 	}
@@ -280,6 +368,15 @@ func (r *Resource) ClearCustomRecognition() error {
 // Use UnregisterCustomAction or ClearCustomAction to remove registrations.
 // Use GetCustomActionList to inspect the currently registered names.
 func (r *Resource) RegisterCustomAction(name string, action CustomActionRunner) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	id := registerCustomAction(action)
 
 	ok := native.MaaResourceRegisterCustomAction(
@@ -312,6 +409,15 @@ func (r *Resource) RegisterCustomAction(name string, action CustomActionRunner) 
 
 // UnregisterCustomAction unregisters a custom action runner from the resource.
 func (r *Resource) UnregisterCustomAction(name string) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	var (
 		found bool
 		id    uint64
@@ -338,6 +444,15 @@ func (r *Resource) UnregisterCustomAction(name string) error {
 
 // ClearCustomAction clears all custom actions runners registered from the resource.
 func (r *Resource) ClearCustomAction() error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+	if r.state.external {
+		return ErrBorrowed
+	}
+
 	if !native.MaaResourceClearCustomAction(r.handle) {
 		return errors.New("failed to clear custom action")
 	}
@@ -358,34 +473,64 @@ func (r *Resource) ClearCustomAction() error {
 // PostBundle asynchronously loads resource paths and returns a Job.
 // This is an async operation that immediately returns a Job, which can be queried via status/wait.
 func (r *Resource) PostBundle(path string) *Job {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaResourcePostBundle(r.handle, path)
-	return newJob(id, r.status, r.wait)
+	return newJob(id, r.status, r.wait, r.state)
 }
 
 // PostOcrModel asynchronously loads an OCR model directory and returns a Job.
 // This is an async operation that immediately returns a Job, which can be queried via status/wait.
 func (r *Resource) PostOcrModel(path string) *Job {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaResourcePostOcrModel(r.handle, path)
-	return newJob(id, r.status, r.wait)
+	return newJob(id, r.status, r.wait, r.state)
 }
 
 // PostPipeline asynchronously loads a pipeline and returns a Job.
 // Supports loading a directory or a single json/jsonc file.
 // This is an async operation that immediately returns a Job, which can be queried via status/wait.
 func (r *Resource) PostPipeline(path string) *Job {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaResourcePostPipeline(r.handle, path)
-	return newJob(id, r.status, r.wait)
+	return newJob(id, r.status, r.wait, r.state)
 }
 
 // PostImage asynchronously loads image resources and returns a Job.
 // Supports loading a directory or a single image file.
 // This is an async operation that immediately returns a Job, which can be queried via status/wait.
 func (r *Resource) PostImage(path string) *Job {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return newFailedJob(useErr)
+	}
+	defer done()
+
 	id := native.MaaResourcePostImage(r.handle, path)
-	return newJob(id, r.status, r.wait)
+	return newJob(id, r.status, r.wait, r.state)
 }
 
 func (r *Resource) overridePipeline(override string) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if native.MaaResourceOverridePipeline(r.handle, override) {
 		return nil
 	}
@@ -395,6 +540,12 @@ func (r *Resource) overridePipeline(override string) error {
 // OverridePipeline overrides the pipeline.
 // override can be a JSON string or any value that can be marshaled to JSON.
 func (r *Resource) OverridePipeline(override any) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	switch v := override.(type) {
 	case string:
 		return r.overridePipeline(v)
@@ -412,6 +563,12 @@ func (r *Resource) OverridePipeline(override any) error {
 // OverrideNext overrides the next list of a task by name.
 // It sets the list directly and will create the node if it doesn't exist.
 func (r *Resource) OverrideNext(name string, nextList []NextItem) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	list := buffer.NewStringListBuffer()
 	defer list.Destroy()
 	size := len(nextList)
@@ -434,6 +591,12 @@ func (r *Resource) OverrideNext(name string, nextList []NextItem) error {
 
 // OverrideImage overrides the image data for the specified image name.
 func (r *Resource) OverrideImage(imageName string, image image.Image) error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	img := buffer.NewImageBuffer()
 	defer img.Destroy()
 	img.Set(image)
@@ -445,6 +608,12 @@ func (r *Resource) OverrideImage(imageName string, image image.Image) error {
 
 // GetNodeJSON gets the task definition JSON by name.
 func (r *Resource) GetNodeJSON(name string) (string, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	ok := native.MaaResourceGetNodeData(r.handle, name, buf.Handle())
@@ -457,6 +626,12 @@ func (r *Resource) GetNodeJSON(name string) (string, error) {
 // GetNode returns the node definition by name.
 // It fetches the node JSON via GetNodeJSON and unmarshals it into a Node struct.
 func (r *Resource) GetNode(name string) (*Node, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	raw, err := r.GetNodeJSON(name)
 	if err != nil {
 		return nil, err
@@ -476,6 +651,12 @@ func (r *Resource) GetNode(name string) (*Node, error) {
 // Clear clears loaded content.
 // This method fails if resources are currently loading.
 func (r *Resource) Clear() error {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return useErr
+	}
+	defer done()
+
 	if native.MaaResourceClear(r.handle) {
 		return nil
 	}
@@ -484,20 +665,44 @@ func (r *Resource) Clear() error {
 
 // status returns the loading status of a resource identified by id.
 func (r *Resource) status(resId int64) Status {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return StatusInvalid
+	}
+	defer done()
+
 	return Status(native.MaaResourceStatus(r.handle, resId))
 }
 
 func (r *Resource) wait(resId int64) Status {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return StatusInvalid
+	}
+	defer done()
+
 	return Status(native.MaaResourceWait(r.handle, resId))
 }
 
 // Loaded checks if resources are loaded.
 func (r *Resource) Loaded() bool {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return false
+	}
+	defer done()
+
 	return native.MaaResourceLoaded(r.handle)
 }
 
 // GetHash returns the hash of the resource.
 func (r *Resource) GetHash() (string, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return "", useErr
+	}
+	defer done()
+
 	hash := buffer.NewStringBuffer()
 	defer hash.Destroy()
 
@@ -510,6 +715,12 @@ func (r *Resource) GetHash() (string, error) {
 
 // GetNodeList returns the node list of the resource.
 func (r *Resource) GetNodeList() ([]string, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	nodeList := buffer.NewStringListBuffer()
 	defer nodeList.Destroy()
 
@@ -524,6 +735,12 @@ func (r *Resource) GetNodeList() ([]string, error) {
 
 // GetCustomRecognitionList returns the custom recognition list of the resource.
 func (r *Resource) GetCustomRecognitionList() ([]string, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	recognitionList := buffer.NewStringListBuffer()
 	defer recognitionList.Destroy()
 
@@ -537,6 +754,12 @@ func (r *Resource) GetCustomRecognitionList() ([]string, error) {
 
 // GetCustomActionList returns the custom action list of the resource.
 func (r *Resource) GetCustomActionList() ([]string, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	actionList := buffer.NewStringListBuffer()
 	defer actionList.Destroy()
 
@@ -552,6 +775,12 @@ func (r *Resource) GetCustomActionList() ([]string, error) {
 // recoType is a recognition type (e.g., RecognitionTypeOCR, RecognitionTypeTemplateMatch).
 // Returns the parsed RecognitionParam interface.
 func (r *Resource) GetDefaultRecognitionParam(recoType RecognitionType) (RecognitionParam, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	ok := native.MaaResourceGetDefaultRecognitionParam(r.handle, string(recoType), buf.Handle())
@@ -603,6 +832,12 @@ func (r *Resource) GetDefaultRecognitionParam(recoType RecognitionType) (Recogni
 // actionType is an action type (e.g., ActionTypeClick, ActionTypeSwipe).
 // Returns the parsed ActionParam interface.
 func (r *Resource) GetDefaultActionParam(actionType ActionType) (ActionParam, error) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return nil, useErr
+	}
+	defer done()
+
 	buf := buffer.NewStringBuffer()
 	defer buf.Destroy()
 	ok := native.MaaResourceGetDefaultActionParam(r.handle, string(actionType), buf.Handle())
@@ -675,6 +910,15 @@ func (r *Resource) GetDefaultActionParam(actionType ActionType) (ActionParam, er
 // AddSink adds a event callback sink and returns the sink ID.
 // The sink ID can be used to remove the sink later.
 func (r *Resource) AddSink(sink ResourceEventSink) int64 {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return 0
+	}
+	defer done()
+	if r.state.external {
+		return 0
+	}
+
 	id := registerEventCallback(sink)
 	sinkId := native.MaaResourceAddSink(
 		r.handle,
@@ -691,6 +935,15 @@ func (r *Resource) AddSink(sink ResourceEventSink) int64 {
 
 // RemoveSink removes a event callback sink by sink ID.
 func (r *Resource) RemoveSink(sinkId int64) {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return
+	}
+	defer done()
+	if r.state.external {
+		return
+	}
+
 	store.ResStore.Update(r.handle, func(v *store.ResStoreValue) {
 		unregisterEventCallback(v.SinkIDToEventCallbackID[sinkId])
 		delete(v.SinkIDToEventCallbackID, sinkId)
@@ -701,6 +954,15 @@ func (r *Resource) RemoveSink(sinkId int64) {
 
 // ClearSinks clears all event callback sinks.
 func (r *Resource) ClearSinks() {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return
+	}
+	defer done()
+	if r.state.external {
+		return
+	}
+
 	store.ResStore.Update(r.handle, func(v *store.ResStoreValue) {
 		for _, id := range v.SinkIDToEventCallbackID {
 			unregisterEventCallback(id)
@@ -731,6 +993,12 @@ func (a *resourceEventSinkAdapter) OnResourceLoading(res *Resource, status Event
 // OnResourceLoading registers a callback sink that only handles Resource.Loading events and returns the sink ID.
 // The sink ID can be used to remove the sink later.
 func (r *Resource) OnResourceLoading(fn func(EventStatus, ResourceLoadingDetail)) int64 {
+	_, done, useErr := r.state.begin()
+	if useErr != nil {
+		return 0
+	}
+	defer done()
+
 	sink := &resourceEventSinkAdapter{onResourceLoading: fn}
 	return r.AddSink(sink)
 }

@@ -348,7 +348,7 @@ func ActMultiSwipe(swipes ...MultiSwipeItem) *Action {
 
 // TouchDownParam defines parameters for touch down action.
 type TouchDownParam struct {
-	// AutoUp releases the held contact on task stop/completion or controller destruction. Default: false.
+	// AutoUp releases held input on task stop/completion or controller destruction.
 	AutoUp bool `json:"auto_up,omitempty"`
 	// Target specifies the touch target position.
 	Target Target `json:"target,omitzero"`
@@ -459,7 +459,7 @@ func ActLongPressKey(p LongPressKeyParam) *Action {
 
 // KeyDownParam defines parameters for key down action.
 type KeyDownParam struct {
-	// AutoUp releases the held key on task stop/completion or controller destruction. Default: false.
+	// AutoUp releases held input on task stop/completion or controller destruction.
 	AutoUp bool `json:"auto_up,omitempty"`
 	// Key specifies the virtual key code to press down. Required.
 	Key int `json:"key,omitempty"`

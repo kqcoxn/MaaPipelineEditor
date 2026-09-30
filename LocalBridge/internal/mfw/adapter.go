@@ -453,7 +453,10 @@ func (a *MaaFWAdapter) InitTasker() error {
 
 	// 清理旧 Tasker
 	if a.tasker != nil {
-		a.tasker.Destroy()
+		if err := a.tasker.Destroy(); err != nil {
+			_ = tasker.Destroy()
+			return fmt.Errorf("释放旧 Tasker 失败: %w", err)
+		}
 	}
 
 	a.tasker = tasker
@@ -468,7 +471,10 @@ func (a *MaaFWAdapter) DestroyTasker() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.tasker != nil {
-		a.tasker.Destroy()
+		if err := a.tasker.Destroy(); err != nil {
+			logger.Warn("MaaFW", "释放 Tasker 失败: %v", err)
+			return
+		}
 		a.tasker = nil
 	}
 	a.initialized = false
@@ -816,28 +822,40 @@ func (a *MaaFWAdapter) Destroy() {
 	// 断开 Agent
 	if a.agentClient != nil {
 		_ = a.agentClient.Disconnect()
-		a.agentClient.Destroy()
+		if err := a.agentClient.Destroy(); err != nil {
+			logger.Warn("MaaFW", "释放 Agent 失败: %v", err)
+			return
+		}
 		a.agentClient = nil
 	}
 	a.agentConnected = false
 
 	// 销毁 Tasker
 	if a.tasker != nil {
-		a.tasker.Destroy()
+		if err := a.tasker.Destroy(); err != nil {
+			logger.Warn("MaaFW", "释放 Tasker 失败: %v", err)
+			return
+		}
 		a.tasker = nil
 	}
 	a.initialized = false
 
 	// 销毁 Resource（只销毁自己拥有的）
 	if a.resource != nil && a.ownsResource {
-		a.resource.Destroy()
+		if err := a.resource.Destroy(); err != nil {
+			logger.Warn("MaaFW", "释放 Resource 失败: %v", err)
+			return
+		}
 	}
 	a.resource = nil
 	a.resourceLoaded = false
 
 	// 只销毁自己拥有的 Controller，借用的不销毁
 	if a.controller != nil && a.ownsController {
-		a.controller.Destroy()
+		if err := a.controller.Destroy(); err != nil {
+			logger.Warn("MaaFW", "释放 Controller 失败: %v", err)
+			return
+		}
 	}
 	a.controller = nil
 	a.controllerConnected = false

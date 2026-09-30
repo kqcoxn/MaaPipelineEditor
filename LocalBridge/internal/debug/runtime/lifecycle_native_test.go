@@ -25,14 +25,22 @@ func TestNativeRuntimeStopDrainsCallbacks(t *testing.T) {
 	if err := maa.Init(maa.WithLibDir(lib), maa.WithLogDir(t.TempDir()), maa.WithStdoutLevel(maa.LoggingLevelOff)); err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { _ = maa.Release() })
+	t.Cleanup(func() {
+		if err := maa.Release(); err != nil {
+			t.Errorf("release: %v", err)
+		}
+	})
 	t.Logf("loaded %s", maa.Version())
 
 	controller, err := maa.NewCustomController(&maa.BlankController{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(controller.Destroy)
+	t.Cleanup(func() {
+		if err := controller.Destroy(); err != nil {
+			t.Errorf("destroy: %v", err)
+		}
+	})
 	if !controller.PostConnect().Wait().Success() {
 		t.Fatal("connect failed")
 	}
@@ -40,7 +48,11 @@ func TestNativeRuntimeStopDrainsCallbacks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(resource.Destroy)
+	t.Cleanup(func() {
+		if err := resource.Destroy(); err != nil {
+			t.Errorf("destroy: %v", err)
+		}
+	})
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "pipeline"), 0755); err != nil {
 		t.Fatal(err)

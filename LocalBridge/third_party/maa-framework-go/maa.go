@@ -2,13 +2,17 @@ package maa
 
 import (
 	"errors"
+	"fmt"
+	"sync"
 	"unsafe"
 
 	"github.com/MaaXYZ/maa-framework-go/v4/internal/native"
 )
 
 var (
-	inited bool
+	inited                  bool
+	lifecycleMu             sync.RWMutex
+	shutdownNativeLibraries = native.Shutdown
 
 	ErrSetLogDir              = errors.New("failed to set log directory")
 	ErrSetSaveDraw            = errors.New("failed to set save draw option")
@@ -25,6 +29,16 @@ var (
 // This error type provides detailed information about which library failed to load,
 // including the library name, the full path attempted, and the underlying system error.
 type LibraryLoadError = native.LibraryLoadError
+
+// SymbolLookupError reports a MaaFramework library that lacks a symbol required
+// by this binding. Use errors.As to inspect the library, symbol, and version
+// expectation after Init fails.
+type SymbolLookupError = native.SymbolLookupError
+
+// ErrLibraryInUse reports an attempt to release the libraries while native
+// objects remain alive, the Agent Server has not been shut down, or its service
+// thread has been detached.
+var ErrLibraryInUse = errors.New("maa: cannot release libraries while native objects or the agent server are active")
 
 // initConfig contains configuration options for initializing the MAA framework.
 // It specifies various settings that control the framework's behavior,
@@ -140,9 +154,12 @@ func WithJSONDecoder(decoder JSONDecoder) InitOption {
 
 // Init loads the dynamic library related to the MAA framework and registers its related functions.
 // It must be called before invoking any other MAA-related functions.
-// It must not be called concurrently with Release or other MAA-related functions.
+// Calls to Init and Release are serialized. Other MAA-related functions must
+// not run concurrently with Init or Release.
 // Note: If this function is not called before other MAA functions, it will trigger a null pointer panic.
-func Init(opts ...InitOption) error {
+func Init(opts ...InitOption) (err error) {
+	lifecycleMu.Lock()
+	defer lifecycleMu.Unlock()
 
 	if inited {
 		return nil
@@ -161,7 +178,9 @@ func Init(opts ...InitOption) error {
 	success := false
 	defer func() {
 		if !success {
-			_ = native.Shutdown()
+			if shutdownErr := shutdownNativeLibraries(); shutdownErr != nil {
+				err = errors.Join(err, fmt.Errorf("failed to roll back native initialization: %w", shutdownErr))
+			}
 		}
 	}()
 
@@ -208,22 +227,35 @@ func Init(opts ...InitOption) error {
 }
 
 // IsInited checks if the MAA framework has been initialized.
-// It must not be called concurrently with Init or Release.
+// It is safe to call concurrently with Init and Release.
 func IsInited() bool {
+	lifecycleMu.RLock()
+	defer lifecycleMu.RUnlock()
 	return inited
 }
 
 // Release releases the dynamic library resources of the MAA framework and unregisters its related functions.
-// It must not be called concurrently with Init or other MAA-related functions.
+// It returns ErrLibraryInUse while native objects remain alive or the Agent
+// Server has not been shut down. After AgentServerDetach, Release remains
+// blocked for the rest of the process, even after AgentServerJoin or
+// AgentServerShutDown, because native thread exit cannot be confirmed.
+// Calls to Init and Release are serialized.
+// Other MAA-related functions must not run concurrently with Init or Release.
+// If unloading fails, IsInited becomes false; call Release again to retry
+// cleanup before calling Init.
 func Release() error {
+	lifecycleMu.Lock()
+	defer lifecycleMu.Unlock()
 
-	if err := native.Shutdown(); err != nil {
-		return err
+	if liveNativeObjects.Load() != 0 || agentServerState.Load() != uint32(agentServerStopped) {
+		return ErrLibraryInUse
 	}
 
+	// A failed shutdown can already have cleared some native function variables.
+	// Mark the package unavailable even when cleanup must be retried.
+	err := shutdownNativeLibraries()
 	inited = false
-
-	return nil
+	return err
 }
 
 func setGlobalOption(key native.MaaGlobalOption, value unsafe.Pointer, valSize uintptr) bool {
