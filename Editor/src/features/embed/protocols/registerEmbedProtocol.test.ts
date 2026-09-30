@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { act, cleanup as cleanupView, fireEvent, render, screen } from "@testing-library/react";
+import { FieldTextArea } from "../../../components/panels/field/items/FieldTextArea";
 import { useEmbedStore } from "@/stores/embed/embedStore";
 import { useConfigStore } from "@/stores/app/configStore";
 import { useFlowStore } from "../../../stores/flow";
@@ -31,6 +34,7 @@ describe("registerEmbedProtocol", () => {
   });
 
   afterEach(() => {
+    cleanupView();
     cleanup?.();
     cleanup = undefined;
     vi.restoreAllMocks();
@@ -192,6 +196,50 @@ describe("registerEmbedProtocol", () => {
       "*",
     );
   });
+
+  it.each(["integrated", "separated"] as const)(
+    "commits the focused field before a %s host save",
+    async (mode) => {
+      cleanup = registerEmbedProtocol();
+      dispatchParentMessage("mpe:init", { capabilities: {}, ui: {} });
+      useConfigStore.getState().setConfig("configHandlingMode", mode);
+      dispatchParentMessage("mpe:loadPipeline", {
+        data: { Start: { recognition: "Custom", custom_recognition: "test", custom_recognition_param: "old" } },
+      });
+      await vi.waitFor(() => expect(useFlowStore.getState().nodes).toHaveLength(1));
+      const nodeId = useFlowStore.getState().nodes[0].id;
+      render(createElement(FieldTextArea, {
+        value: "old",
+        placeholder: "custom parameter",
+        stringifyStrings: true,
+        onCommit: (value: unknown) => useFlowStore.getState().setNodeData(
+          nodeId, "recognition", "custom_recognition_param", value,
+        ),
+      }));
+      const input = screen.getByRole("textbox");
+      act(() => input.focus());
+      fireEvent.change(input, { target: { value: '{ "enabled": true }' } });
+      expect(input).toHaveValue('{ "enabled": true }');
+      expect(input).toHaveFocus();
+
+      // 模拟快捷键请求及宿主回传；第二次由宿主直接发起保存。
+      fireEvent.keyDown(input, { key: "s", ctrlKey: true });
+      const request = postMessage.mock.calls.map(([message]) => message)
+        .find((message) => message.type === "mpe:saveRequest");
+      expect(request).toBeDefined();
+      act(() => dispatchParentMessage("mpe:save", {}, request.requestId));
+      let saved = postMessage.mock.calls.map(([message]) => message)
+        .filter((message) => message.type === "mpe:saveData").at(-1);
+      expect(JSON.stringify(saved.payload)).toContain('"custom_recognition_param":{"enabled":true}');
+
+      act(() => input.focus());
+      fireEvent.change(input, { target: { value: '"123"' } });
+      act(() => dispatchParentMessage("mpe:save", {}, "host-save"));
+      saved = postMessage.mock.calls.map(([message]) => message)
+        .filter((message) => message.type === "mpe:saveData").at(-1);
+      expect(JSON.stringify(saved.payload)).toContain('"custom_recognition_param":"123"');
+    },
+  );
 
   it("sends separated pipeline and MPE config when configured", () => {
     useConfigStore.getState().setConfig("configHandlingMode", "separated");

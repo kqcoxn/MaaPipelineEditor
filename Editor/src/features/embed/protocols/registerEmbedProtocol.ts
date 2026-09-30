@@ -195,6 +195,10 @@ export function registerEmbedProtocol(): Cleanup {
     }),
     onParentMessage("mpe:save", (_payload, requestId) => {
       try {
+        // 快捷键和宿主保存不会自然失焦，先提交活动输入框的草稿再导出。
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const mode = isMseHost(useEmbedStore.getState().host)
           ? "integrated"
           : useConfigStore.getState().configs.configHandlingMode;

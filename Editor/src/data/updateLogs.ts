@@ -131,11 +131,14 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.5",
-    date: "2026-10",
+    date: "2026-9-30",
     type: "fix",
-    maafwVersion: "5.14.1",
+    maafwVersion: "5.14.0",
     updates: {
-      perfs: ["优化桌面端远程监测失败后的重试逻辑"],
+      perfs: [
+        "优化桌面端远程监测失败后的重试逻辑",
+        "优化保存前持久化内容的新值读取逻辑",
+      ],
       fixes: [
         "修复桌面端重试更新后错误状态未及时更新的问题",
         "修复设置密文配置时会自动乱码无法输入的问题",
