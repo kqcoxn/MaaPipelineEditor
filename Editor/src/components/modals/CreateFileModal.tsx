@@ -1,5 +1,5 @@
 import { message } from "@/utils/ui/antdAppApi";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Modal, Form, Input, Select, Tooltip } from "antd";
 import { FolderOutlined, FileOutlined, HomeFilled } from "@ant-design/icons";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
@@ -21,6 +21,7 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   const [previewFileName, setPreviewFileName] = useState<string>("");
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isValidFileName, setIsValidFileName] = useState(false);
+  const initialized = useRef(false);
 
   const rootPath = useLocalFileStore((state) => state.rootPath);
   const files = useLocalFileStore((state) => state.files);
@@ -138,7 +139,23 @@ export const CreateFileModal: React.FC<CreateFileModalProps> = ({
   );
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      initialized.current = false;
+      return;
+    }
+    if (initialized.current) {
+      // 目录异步到达时，只补充尚未编辑且为空的目录。
+      if (!form.isFieldTouched("directory") && !form.getFieldValue("directory")) {
+        form.setFieldsValue({ directory: directories[0] || "" });
+      }
+      const fileName = form.getFieldValue("fileName");
+      setIsDuplicate(
+        validateFileName(fileName) &&
+          checkDuplicateFileName(fileName, form.getFieldValue("directory")),
+      );
+      return;
+    }
+    initialized.current = true;
 
     form.resetFields();
     setPreviewFileName("");
