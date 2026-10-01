@@ -96,6 +96,11 @@ func TestServiceDiscoveryAndContextResolution(t *testing.T) {
 	if status.State != StateReady {
 		t.Fatalf("expected ready, got %#v", status)
 	}
+	service.Reload("interface.json")
+	status = service.Status()
+	if len(status.Candidates) != 1 || status.Candidates[0] != filepath.Join(root, "interface.json") {
+		t.Fatalf("explicit entry must retain discovered choices: %#v", status.Candidates)
+	}
 	snapshot, err := service.Snapshot("zh_cn")
 	if err != nil {
 		t.Fatal(err)

@@ -1,4 +1,5 @@
 import { PiFileList } from "@/features/pi-editor/PiFileList";
+import { InterfaceEntryBar } from "@/features/project-interface/InterfaceEntryBar";
 import { usePiEditorStore } from "@/features/pi-editor/store";
 import { createPiFileDialog } from "@/features/pi-editor/dialogs";
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
@@ -68,7 +69,7 @@ export const LocalFileListPanel: React.FC = () => {
     }
     wasOpen.current = showLocalFilePanel;
   }, [showLocalFilePanel, view]);
-  const displayedRoot = fileType === 'pipeline' ? rootPath : project?.entryPath.replace(/[\\/][^\\/]+$/, '') || '';
+  const displayedRoot = fileType === 'pipeline' ? rootPath : project?.entryPath.replace(/[\\/][^\\/]+$/, '') || rootPath;
   const scopedFiles = useMemo(() => filterLocalFilesByFolderFilter(files, folderFilter), [files, folderFilter]);
 
   // 过滤文件列表
@@ -168,20 +169,23 @@ export const LocalFileListPanel: React.FC = () => {
         </div>
       </div>
 
+      <div className={styles.projectLocation}>
+        {displayedRoot && (
+          <div className={styles.rootPath}>
+            <Tooltip title={displayedRoot}>
+              <div className={styles.rootPathText}>{displayedRoot}</div>
+            </Tooltip>
+          </div>
+        )}
+        <InterfaceEntryBar active={showLocalFilePanel} rootPath={rootPath} />
+      </div>
+
       <div className={styles.typeSwitch}>
         <Segmented block value={fileType} onChange={value => setFileType(value as typeof fileType)} options={[
           { value: 'pipeline', label: <span className={styles.typeLabel}>Pipeline <span className={styles.count}>{scopedFiles.length}</span></span> },
           { value: 'interface', label: <span className={styles.typeLabel}>Interface <span className={styles.count}>{project?.documents.length ?? 0}</span></span> },
         ]} />
       </div>
-
-      {displayedRoot && (
-        <div className={styles.rootPath}>
-          <Tooltip title={displayedRoot}>
-            <div className={styles.rootPathText}>{displayedRoot}</div>
-          </Tooltip>
-        </div>
-      )}
 
       <div className={styles.searchBar}>
         <Input

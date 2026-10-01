@@ -132,11 +132,14 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.6",
     date: "2026-10-2",
-    type: "fix",
+    type: "perf",
     maafwVersion: "5.14.2",
     updates: {
-      features: ["分组新增自适应内容大小功能"],
-      perfs: ["优化混合排版效果", "Interface 入口持久化支持分项目保存"],
+      features: [
+        "🫂 分组新增自适应内容大小功能",
+        "📂 Interface 入口持久化支持分项目保存，可在导入面板与配置面板快捷选择",
+      ],
+      perfs: ["优化混合排版效果"],
       fixes: [
         "修复 Pipeline 导入面板在 Windows 系统下路径异常的问题",
         "修复有分组时自动排序会造成节点混乱的问题",

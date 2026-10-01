@@ -94,7 +94,7 @@ func (s *Service) Refresh() {
 	configured := s.configuredPath
 	previous := s.status
 	s.mu.RUnlock()
-	status := Status{ConfiguredPath: configured, Mode: "auto"}
+	status := Status{ConfiguredPath: configured, Mode: "auto", Candidates: s.discover()}
 	var entry string
 	if configured != "" {
 		status.Mode = "explicit"
@@ -111,8 +111,7 @@ func (s *Service) Refresh() {
 		entry = abs
 		status.EffectivePath = entry
 	} else {
-		candidates := s.discover()
-		status.Candidates = candidates
+		candidates := status.Candidates
 		switch len(candidates) {
 		case 0:
 			status.State = StateNotFound

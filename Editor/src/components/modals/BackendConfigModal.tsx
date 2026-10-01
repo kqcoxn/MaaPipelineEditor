@@ -1,4 +1,5 @@
 import { modal } from "@/utils/ui/antdAppApi";
+import { InterfaceEntryInput } from "@/features/project-interface/InterfaceEntryInput";
 import {
   Modal,
   Form,
@@ -409,7 +410,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
             label="入口路径"
             extra="按当前运行项目的根目录独立保存，切换项目后自动切换。留空自动检索；可填写绝对路径或相对于当前项目根目录的路径。"
           >
-            <Input placeholder="留空自动检索，例如：../assets/interface.json" />
+            <InterfaceEntryInput status={interfaceStatus} rootPath={runtimeConfig?.file_root} />
           </Form.Item>
           {interfaceStatus && (
             <Form.Item label="当前状态">

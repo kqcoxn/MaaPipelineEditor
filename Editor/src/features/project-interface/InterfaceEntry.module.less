@@ -1,0 +1,22 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 0 8px;
+  flex-shrink: 0;
+}
+.label {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--files-muted);
+}
+.select { flex: 1; min-width: 0; }
+.path {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.error { color: var(--files-muted); font-size: 12px; margin-bottom: 8px; }
