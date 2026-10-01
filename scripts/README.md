@@ -14,6 +14,8 @@
 | 版本维护 | `migrate`、`proto` |
 | Git 操作 | `release`（创建并推送版本标签）、`retag`（删除本地版本标签）、`reset`（软重置上一次提交） |
 
+`yarn desk` 先执行 `desk:prepare` 检查运行时、构建并安装本地 Editor 与 LocalBridge，再启动桌面开发界面；任一步失败即停止。执行前需停止正在运行的 mpelb 服务。
+
 检查、测试及低频工具直接从对应子目录运行，也可在根目录使用 `--cwd`：
 
 | 子项目 | 调用方式 |

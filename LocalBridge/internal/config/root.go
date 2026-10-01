@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/utils"
 )
 
 // RootSource 表示当前文件根目录的来源。
@@ -81,6 +83,8 @@ func resolveFileRoot(
 }
 
 func resolvePathFromBase(path, baseDir string) (string, error) {
+	path = utils.NormalizeWindowsPath(path)
+	baseDir = utils.NormalizeWindowsPath(baseDir)
 	if filepath.VolumeName(path) != "" && !filepath.IsAbs(path) {
 		return "", fmt.Errorf("不支持带盘符的相对路径: %s", path)
 	}

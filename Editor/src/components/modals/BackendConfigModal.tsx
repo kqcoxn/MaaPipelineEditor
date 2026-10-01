@@ -407,7 +407,7 @@ const BackendConfigModal = ({ open, onClose }: BackendConfigModalProps) => {
           <Form.Item
             name="interface_path"
             label="入口路径"
-            extra="留空时在文件根目录内自动检索；显式入口可使用根目录外的绝对路径，或相对于文件根目录的路径。"
+            extra="按当前运行项目的根目录独立保存，切换项目后自动切换。留空自动检索；可填写绝对路径或相对于当前项目根目录的路径。"
           >
             <Input placeholder="留空自动检索，例如：../assets/interface.json" />
           </Form.Item>

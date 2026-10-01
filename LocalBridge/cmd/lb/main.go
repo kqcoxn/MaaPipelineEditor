@@ -129,7 +129,8 @@ func init() {
 	configCmd.AddCommand(setInterfaceCmd)
 	configCmd.AddCommand(openLogDirCmd)
 
-	configCmd.Flags().StringVar(&configPath, "config", "", "配置文件路径")
+	configCmd.PersistentFlags().StringVar(&configPath, "config", "", "配置文件路径")
+	setInterfaceCmd.Flags().StringVar(&rootDir, "root", "", "要配置入口的项目根目录")
 	configCmd.PersistentFlags().BoolVar(&portableMode, "portable", false, "便携模式")
 }
 
@@ -581,6 +582,11 @@ func setInterfacePath(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	if err := cfg.OverrideFromFlags(rootDir, "", "", "", 0, cmd.Flags().Changed("root"), false); err != nil {
+		fmt.Fprintf(os.Stderr, "解析项目根目录失败: %v\n", err)
+		return
+	}
+	fmt.Printf("当前项目: %s\n", cfg.EffectiveRoot())
 	var value string
 	if len(args) > 0 {
 		value = strings.TrimSpace(args[0])

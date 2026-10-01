@@ -39,9 +39,10 @@ type MaaFWConfig struct {
 	Enabled bool `mapstructure:"enabled" json:"enabled"`
 }
 
-// InterfaceConfig 配置 Project Interface V2 入口。Path 为空时自动检索。
+// InterfaceConfig 按项目保存入口，Path 仅表示当前进程使用的入口。
 type InterfaceConfig struct {
-	Path string `mapstructure:"path" json:"path"`
+	Path     string             `mapstructure:"-" json:"path,omitempty"`
+	Projects []InterfaceProject `mapstructure:"projects" json:"projects,omitempty"`
 }
 
 // 全局配置
@@ -132,7 +133,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("maafw.enabled", false)
 
 	// Project Interface 配置
-	v.SetDefault("interface.path", "")
+	v.SetDefault("interface.projects", []InterfaceProject{})
 }
 
 // normalizePersistent 只规范化磁盘配置，不解析运行时文件根目录。
@@ -169,6 +170,7 @@ func (c *Config) OverrideFromFlags(
 		return err
 	}
 	c.runtime = runtime
+	c.Interface.Path = c.projectInterfacePath()
 
 	if logDir != "" {
 		c.Log.Dir = logDir
@@ -212,6 +214,7 @@ func (c *Config) Save() error {
 	}
 
 	persistent := *c
+	persistent.Interface.Path = ""
 	persistent.File.Root = normalizeConfiguredRoot(persistent.File.Root)
 	data, err := json.MarshalIndent(&persistent, "", "    ")
 	if err != nil {
@@ -227,7 +230,9 @@ func (c *Config) Save() error {
 
 // SetInterfacePath 设置 PI 入口；空值恢复自动检索。
 func (c *Config) SetInterfacePath(interfacePath string) error {
-	c.Interface.Path = strings.TrimSpace(interfacePath)
+	if err := c.UpdateInterfacePath(interfacePath); err != nil {
+		return err
+	}
 	return c.Save()
 }
 

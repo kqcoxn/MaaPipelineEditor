@@ -139,7 +139,10 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 
 	if interfaceConfig, ok := dataMap["interface"].(map[string]interface{}); ok {
 		if path, ok := interfaceConfig["path"].(string); ok {
-			cfg.Interface.Path = path
+			if err := cfg.UpdateInterfacePath(path); err != nil {
+				h.sendConfigError(conn, "INVALID_INTERFACE", "更新项目入口失败", err.Error())
+				return
+			}
 			updated = true
 		}
 	}

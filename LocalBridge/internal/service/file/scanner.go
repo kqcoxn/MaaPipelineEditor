@@ -297,7 +297,7 @@ func isWithinPath(root, path string) bool {
 		root = rootResolved
 		path = pathResolved
 	}
-	rel, err := filepath.Rel(root, path)
+	rel, err := filepath.Rel(utils.NormalizeWindowsPath(root), utils.NormalizeWindowsPath(path))
 	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 

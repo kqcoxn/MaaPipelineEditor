@@ -30,6 +30,6 @@
     "enabled": false
   },
   "interface": {
-    "path": ""
+    "projects": []
   }
 }

@@ -11,7 +11,7 @@
     "lb:update": "node scripts/development/update-mfw.mjs",
     "desk:install": "yarn --cwd Desktop install --frozen-lockfile",
     "desk:prepare": "node scripts/development/prepare-desktop.mjs",
-    "desk": "yarn --cwd Desktop tauri dev",
+    "desk": "yarn desk:prepare && yarn --cwd Desktop tauri dev",
     "desk:build": "yarn --cwd Desktop tauri build",
     "revision": "node scripts/development/bump-desktop-revision.mjs",
     "doc": "yarn --cwd DocumentStation dev",
