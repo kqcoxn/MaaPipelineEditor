@@ -143,6 +143,7 @@ export const updateLogs: UpdateLogItem[] = [
       fixes: [
         "修复 Pipeline 导入面板在 Windows 系统下路径异常的问题",
         "修复有分组时自动排序会造成节点混乱的问题",
+        "修复节点图片过多时预览裁剪问题",
       ],
     },
   },
