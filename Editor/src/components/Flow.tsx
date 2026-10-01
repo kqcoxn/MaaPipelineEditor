@@ -1,3 +1,4 @@
+import { ViewportMonitor } from "./flow/ViewportMonitor";
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { getShortcut } from "@/utils/shortcuts";
 import style from "../styles/layout/Flow.module.less";
@@ -16,14 +17,12 @@ import {
   ReactFlow,
   Controls,
   Background,
-  useOnViewportChange,
   useReactFlow,
   type NodeChange,
   type EdgeChange,
   type Connection,
   type FinalConnectionState,
   type OnConnectStartParams,
-  type Viewport,
   type OnSelectionChangeParams,
   useKeyPress,
 } from "@xyflow/react";
@@ -38,7 +37,6 @@ import { edgeTypes } from "./flow/edges";
 import { AvoidanceRoutingProvider } from "./flow/avoidanceRoutingContext";
 import { SelectionContextMenu } from "./flow/components/SelectionContextMenu";
 import { CanvasNodeContextMenu } from "./flow/nodes/components/CanvasNodeContextMenu";
-import { useFileStore } from "@/stores/project/fileStore";
 import NodeAddPanel, {
   type QuickCreateConnection,
 } from "./panels/main/NodeAddPanel";
@@ -144,19 +142,6 @@ const InstanceMonitor = memo(() => {
   useEffect(() => {
     updateInstance(instance);
   }, [instance, updateInstance]);
-  return null;
-});
-// 视口监视器
-const ViewportChangeMonitor = memo(() => {
-  const updateViewport = useFlowStore((state) => state.updateViewport);
-  const setFileConfig = useFileStore((state) => state.setFileConfig);
-  useOnViewportChange({
-    onEnd: (viewport: Viewport) => {
-      updateViewport(viewport);
-      // 保存视口位置到当前文件配置
-      setFileConfig("savedViewport", { ...viewport });
-    },
-  });
   return null;
 });
 // 节点添加面板控制器
@@ -728,7 +713,7 @@ function MainFlow() {
             <Background bgColor={backgroundColor} />
             <Controls orientation="vertical" />
             <InstanceMonitor />
-            <ViewportChangeMonitor />
+            <ViewportMonitor />
             {canvasActive && <>
               <KeyListener targetRef={selfElem} allowCopy={allowCopy} />
               <NodeAddPanelController

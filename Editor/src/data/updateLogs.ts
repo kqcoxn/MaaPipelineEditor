@@ -130,6 +130,15 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.7",
+    date: "2026-10",
+    type: "perf",
+    maafwVersion: "5.14.2",
+    updates: {
+      perfs: ["优化重载文件与切换文件时的视口定位"],
+    },
+  },
+  {
     version: "2.0.6",
     date: "2026-10-2",
     type: "perf",

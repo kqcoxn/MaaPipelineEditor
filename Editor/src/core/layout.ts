@@ -20,15 +20,15 @@ export enum AlignmentEnum {
 export class LayoutHelper {
   private static requestId = 0;
 
-  static async auto(userInitiated = false): Promise<void> {
-    await LayoutHelper.performLayout({}, userInitiated);
+  static async auto(userInitiated = false, fitView = true): Promise<void> {
+    await LayoutHelper.performLayout({}, userInitiated, fitView);
   }
 
   static async autoPartial(selectedNodes: NodeType[]): Promise<void> {
     await LayoutHelper.performLayout({ ids: selectedNodes.map((node) => node.id) }, true);
   }
 
-  private static async performLayout(request: LayoutRequest, userInitiated: boolean) {
+  private static async performLayout(request: LayoutRequest, userInitiated: boolean, fitView = true) {
     const token = ++LayoutHelper.requestId;
     const initial = useFlowStore.getState();
     if (!initial.nodes.length) return;
@@ -64,7 +64,7 @@ export class LayoutHelper {
         }
         if (nodes === snapshot.nodes) return;
         update({ detail: "正在应用新布局", progress: 84 });
-        current.replace(nodes, snapshot.edges, { isFitView: !request.ids, skipHistory: true, preserveSelection: true });
+        current.replace(nodes, snapshot.edges, { isFitView: fitView && !request.ids, skipHistory: true, preserveSelection: true });
         current.saveHistory(0, { category: "graph", action: "update", description: "自动布局" });
         if (userInitiated && nodes.length >= 3) emitAchievementEvent("achievement:layout_completed");
       });

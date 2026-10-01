@@ -96,6 +96,7 @@ export type FlowToOptions = {
 
 // 导入选项
 export type PipelineToFlowOptions = {
+  viewportPolicy?: "preserve" | "fit";
   pString?: string; // Pipeline JSON 字符串
   mpeConfig?: MpeConfigType; // 外部 MPE 配置
 };

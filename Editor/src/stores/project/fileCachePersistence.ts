@@ -63,6 +63,10 @@ export function initializeFileCachePersistence(): () => void {
   const commitBeforeLeave = () => {
     if (graphTimer) clearTimeout(graphTimer);
     graphTimer = null;
+    const flow = useFlowStore.getState();
+    const viewport = flow.pendingViewport ?? (flow.instance?.viewportInitialized
+      ? flow.instance.getViewport() : undefined);
+    if (viewport) useFileStore.getState().setFileConfig("savedViewport", { ...viewport });
     saveFlow();
     scheduleCurrentFiles();
     flushFileCacheSync();

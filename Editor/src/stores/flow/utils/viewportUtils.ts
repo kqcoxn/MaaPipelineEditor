@@ -1,6 +1,22 @@
 import type { ReactFlowInstance, Viewport } from "@xyflow/react";
 import type { NodeType } from "../types";
 
+let fitTimer: ReturnType<typeof setTimeout> | undefined;
+
+export function cancelPendingFitView() {
+  clearTimeout(fitTimer);
+  fitTimer = undefined;
+}
+
+export function validViewport(viewport: Viewport | undefined): Viewport | undefined {
+  if (
+    !viewport ||
+    ![viewport.x, viewport.y, viewport.zoom].every(Number.isFinite) ||
+    viewport.zoom <= 0
+  ) return undefined;
+  return { ...viewport, zoom: Math.min(2.5, Math.max(0.2, viewport.zoom)) };
+}
+
 /**
  * 规范化视口数据，将坐标取整，缩放值保留两位小数
  * @param viewport 原始视口数据
@@ -29,7 +45,9 @@ export function fitFlowView(
     maxZoom?: number;
   }
 ) {
-  setTimeout(() => {
+  cancelPendingFitView();
+  fitTimer = setTimeout(() => {
+    fitTimer = undefined;
     const fitView = instance?.fitView;
     if (!fitView) return;
 

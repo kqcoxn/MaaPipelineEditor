@@ -1,3 +1,4 @@
+import { validViewport } from "@/stores/flow/utils/viewportUtils";
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
 import { fileSignature } from "./fileDirtyState";
 import { recordPipelineExport } from "@/features/achievements/exportEvents";
@@ -497,7 +498,11 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       saveFlow();
       const flowStore = useFlowStore.getState();
       // 保存当前文件的视口位置到files数组中
-      const currentViewport = flowStore.viewport;
+      const currentViewport = flowStore.pendingViewport ?? (
+        flowStore.instance?.viewportInitialized
+          ? flowStore.instance.getViewport()
+          : flowStore.viewport
+      );
       const currentFileIndex = findFileIndex(currentFile.fileName);
       if (currentFileIndex >= 0) {
         state.files[currentFileIndex].config.savedViewport = {
@@ -511,17 +516,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       });
       // 初始化历史记录
       flowStore.initHistory(targetFile.nodes, targetFile.edges);
-      // 恢复目标文件的视口位置
-      if (targetFile.config.savedViewport) {
-        setTimeout(() => {
-          const instance = flowStore.instance;
-          if (instance) {
-            instance.setViewport(targetFile.config.savedViewport!, {
-              duration: 300,
-            });
-          }
-        }, 50);
-      }
+      flowStore.requestViewport(targetFile.config.savedViewport);
       return { currentFile: targetFile };
     });
 
@@ -586,9 +581,13 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
       const currentFile =
         files.find((file) => file.fileName === currentFileName) ?? files[0];
       set({ files, currentFile });
-      useFlowStore
-        .getState()
-        .replace(currentFile.nodes, currentFile.edges, { skipSave: true });
+      const flowStore = useFlowStore.getState();
+      const savedViewport = validViewport(currentFile.config.savedViewport);
+      flowStore.requestViewport(savedViewport);
+      flowStore.replace(currentFile.nodes, currentFile.edges, {
+        skipSave: true,
+        isFitView: !savedViewport,
+      });
       // 初始化历史记录
       useFlowStore.getState().initHistory(currentFile.nodes, currentFile.edges);
       lastSyncedGraphRevision = useFlowStore.getState().graphRevision;
@@ -662,7 +661,10 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
         const before = useFlowStore.getState();
         const previousContent = hasAchievementListeners() && existingFile.config.isModifiedExternally
           ? localFileContentSignature(before.nodes, before.edges) : undefined;
-        const imported = await pipelineToFlow({ pString: finalContentString });
+        const imported = await pipelineToFlow({
+          pString: finalContentString,
+          viewportPolicy: "preserve",
+        });
         if (!imported) return false;
         syncFlowStoreToFileStore(configUpdates);
         const after = useFlowStore.getState();
@@ -681,20 +683,9 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
         currentFile.edges.length === 0 &&
         !currentFile.config.filePath
       ) {
-        const savedViewport = currentFile.config.savedViewport;
         await pipelineToFlow({ pString: finalContentString });
         syncFlowStoreToFileStore({ ...configUpdates, filePath });
-        // 设置文件名
         useFileStore.getState().setFileName(realFileName);
-        // 恢复视口
-        if (savedViewport) {
-          setTimeout(() => {
-            const instance = useFlowStore.getState().instance;
-            if (instance) {
-              instance.setViewport(savedViewport, { duration: 300 });
-            }
-          }, 50);
-        }
         markCurrentFileSaved();
         return true;
       }
@@ -971,7 +962,7 @@ export const useFileStore = create<FileState>()(subscribeWithSelector((set) => (
 
       // 切换到该文件并重新加载
       useFileStore.getState().switchFile(targetFile.fileName);
-      await pipelineToFlow({ pString: contentString });
+      await pipelineToFlow({ pString: contentString, viewportPolicy: "preserve" });
 
       // 同步 FlowStore 数据到 FileStore，清除修改标记
       syncFlowStoreToFileStore({

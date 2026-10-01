@@ -20,8 +20,8 @@
     "web:build": "yarn --cwd Landing build",
     "migrate": "node scripts/development/migrate-version.mjs",
     "proto": "node scripts/development/proto-version.mjs",
-    "release": "git tag -a v2.0.6 -m \"v2.0.6\" && git push origin v2.0.6",
-    "retag": "git tag -d v2.0.6",
+    "release": "git tag -a v2.0.7 -m \"v2.0.7\" && git push origin v2.0.7",
+    "retag": "git tag -d v2.0.7",
     "reset": "git reset --soft HEAD~1"
   }
 }

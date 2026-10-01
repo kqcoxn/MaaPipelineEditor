@@ -1,4 +1,5 @@
 import { useWorkspaceStore } from "@/stores/ui/workspaceStore";
+import { cancelPendingFitView } from "@/stores/flow/utils/viewportUtils";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import { modal } from "@/utils/ui/antdAppApi";
 import { parse as parseJsonc, visit } from "jsonc-parser";
@@ -177,6 +178,7 @@ function migratePipelineV5(
 export async function pipelineToFlow(
   options?: PipelineToFlowOptions,
 ): Promise<boolean> {
+  if (options?.viewportPolicy === "preserve") cancelPendingFitView();
   return pipelineToFlowInternal(options, true);
 }
 
@@ -576,7 +578,7 @@ async function pipelineToFlowInternal(
 
     // 再替换画布（跳过历史，已在 importHistory 中处理）
     useFlowStore.getState().replace(nodes, edges, {
-      isFitView: isIncludePos,
+      isFitView: isIncludePos && options?.viewportPolicy !== "preserve",
       skipHistory: true,
     });
 
@@ -594,7 +596,7 @@ async function pipelineToFlowInternal(
     if (nodes.some((node) => node.type === NodeTypeEnum.Pipeline)) emitAchievementEvent("achievement:pipeline_imported");
 
     // 自动布局
-    if (!isIncludePos) void LayoutHelper.auto();
+    if (!isIncludePos) void LayoutHelper.auto(false, options?.viewportPolicy !== "preserve");
 
     useWorkspaceStore.getState().showCanvas();
     return true;

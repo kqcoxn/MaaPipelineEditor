@@ -1,6 +1,7 @@
 import type { StateCreator } from "zustand";
 import type { ReactFlowInstance, Viewport } from "@xyflow/react";
 import type { FlowStore, FlowViewState } from "../types";
+import { cancelPendingFitView, validViewport } from "../utils/viewportUtils";
 
 export const createViewSlice: StateCreator<FlowStore, [], [], FlowViewState> = (
   set,
@@ -8,6 +9,11 @@ export const createViewSlice: StateCreator<FlowStore, [], [], FlowViewState> = (
   // 初始状态
   instance: null,
   viewport: { x: 0, y: 0, zoom: 1 },
+  pendingViewport: null,
+  requestViewport(viewport) {
+    cancelPendingFitView();
+    set({ pendingViewport: validViewport(viewport) ?? null });
+  },
   size: { width: 0, height: 0 },
 
   // 更新 ReactFlow 实例

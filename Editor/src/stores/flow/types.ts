@@ -246,6 +246,8 @@ export type NodeSemanticSummary = {
 export interface FlowViewState {
   instance: ReactFlowInstance | null;
   viewport: Viewport;
+  pendingViewport: Viewport | null;
+  requestViewport: (viewport?: Viewport) => void;
   size: { width: number; height: number };
   updateInstance: (instance: ReactFlowInstance) => void;
   updateViewport: (viewport: Viewport) => void;
