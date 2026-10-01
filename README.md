@@ -19,7 +19,7 @@ _✨ 可视化构建 MaaFramework Pipeline 的下一代工作流编辑器 ✨_</
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/blob/main/LICENSE.md" target="_blank"><img alt="committs" src="https://img.shields.io/github/license/kqcoxn/MaaPipelineEditor"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/stargazers" target="_blank"><img alt="stars" src="https://img.shields.io/github/stars/kqcoxn/MaaPipelineEditor?style=social"></a>
   <a href="https://github.com/kqcoxn/MaaPipelineEditor/commits/main/" target="_blank"><img alt="committs" src="https://img.shields.io/github/commit-activity/m/kqcoxn/MaaPipelineEditor?color=%23ff69b4"></a>
-  <a href="https://deepwiki.com/kqcoxn/MaaPipelineEditor" target="_blank"><img alt="Ask DeepWiki" src="https://deepwiki.com/badge.svg"></a>
+  <a href="https://deepwiki.com/kqcoxn/MaaPipelineEditor" target="_blank"><img alt="Ask DeepWiki" src="./.github/assets/readme/deepwiki.svg"></a>
 </p>
 
 <div align="center">
@@ -148,4 +148,6 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 - `2025.5-8`：[MNMA](https://github.com/kqcoxn/MaaNewMoonAccompanying) 实践（思路修补）
 - `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)（项目原型）
 
-[![Star History Chart](https://star-history.dera.page/svg?repos=kqcoxn/MaaPipelineEditor&type=Date)](https://star-history.dera.page/#kqcoxn/MaaPipelineEditor&Date)
+[![Star History Chart](./.github/assets/readme/star-history.svg)](https://github.com/kqcoxn/MaaPipelineEditor/stargazers)
+
+图表每周更新，按当前仍保留的 Star 的添加日期累计，不包含已取消的 Star。

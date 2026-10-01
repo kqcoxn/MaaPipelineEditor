@@ -1,0 +1,48 @@
+name: Update Star History
+
+on:
+  schedule:
+    # Every Monday at 09:23 Asia/Shanghai.
+    - cron: "23 1 * * 1"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/ci/star-history.mjs
+      - scripts/ci/star-history.test.mjs
+      - .github/workflows/star-history.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history
+  cancel-in-progress: false
+
+jobs:
+  update:
+    if: github.repository == 'kqcoxn/MaaPipelineEditor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test generator
+        run: node --test scripts/ci/star-history.test.mjs
+      - name: Generate chart from GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/ci/star-history.mjs
+      - name: Commit updated chart
+        run: |
+          git add .github/assets/readme/star-history.svg
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: update star history chart"
+          git pull --rebase origin main
+          git push origin HEAD:main
