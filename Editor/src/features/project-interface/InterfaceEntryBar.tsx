@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Modal, Select } from "antd";
 import { configProtocol, interfaceProtocol } from "@/services/server";
 import { useWSStore } from "@/stores/connection/wsStore";
-import { useBackendConfigRequests } from "@/components/modals/useBackendConfigRequests";
+import { useBackendConfigRequests } from "@/components/panels/settings/useBackendConfigRequests";
 import { piDirty, usePiEditorStore } from "@/features/pi-editor/store";
 import { message } from "@/utils/ui/antdAppApi";
 import { InterfaceEntryInput } from "./InterfaceEntryInput";

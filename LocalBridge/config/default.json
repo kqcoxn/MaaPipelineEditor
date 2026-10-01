@@ -26,9 +26,6 @@
     "dir": "./logs",
     "push_to_client": true
   },
-  "maafw": {
-    "enabled": false
-  },
   "interface": {
     "projects": []
   }

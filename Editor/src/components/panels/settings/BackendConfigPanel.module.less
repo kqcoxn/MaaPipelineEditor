@@ -1,0 +1,90 @@
+@import (reference) "../../../styles/panels/settingsSectionTitle.less";
+
+.panel {
+  width: 100%;
+  min-width: 0;
+  margin-top: 12px;
+  container-type: inline-size;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.description,
+.configPath {
+  margin: 0 0 8px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.groupTitle {
+  .settings-section-title();
+  margin: 12px 0 8px;
+}
+
+.field {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: 8px;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+}
+
+.label {
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.control {
+  flex: 0 1 360px;
+  min-width: 0;
+}
+
+.compact {
+  flex: 0 0 120px;
+  min-width: 0;
+}
+
+.toggle {
+  flex: 0 0 auto;
+}
+
+.extra {
+  margin-top: 6px;
+  color: var(--ant-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+@container (max-width: 380px) {
+  .fieldRow:has(.control) {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .control {
+    flex-basis: 100%;
+    overflow-wrap: anywhere;
+  }
+}

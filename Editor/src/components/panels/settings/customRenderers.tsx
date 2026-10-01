@@ -10,10 +10,9 @@ import { useCustomTemplateStore } from "@/stores/project/customTemplateStore";
 import { useAchievementStore } from "@/stores/achievement/achievementStore";
 import { reevaluateAchievements } from "@/features/achievements/listeners";
 import { useFlowStore } from "../../../stores/flow";
-import { localServer } from "../../../services";
 import { AIClient } from "@/utils/ai/aiClient";
 import { SYSTEM_PROMPTS } from "@/utils/ai/aiPrompts";
-import BackendConfigModal from "../../modals/BackendConfigModal";
+import BackendConfigPanel from "./BackendConfigPanel";
 import FieldSortModal from "../../modals/FieldSortModal";
 import { HANDLE_DIRECTION_OPTIONS } from "../../flow/nodes/constants";
 
@@ -71,55 +70,6 @@ const FieldSortRenderer = memo(() => {
         配置排序
       </Button>
       <FieldSortModal />
-    </>
-  );
-});
-
-/**本地服务配置（醒目卡片） */
-const BackendConfigRenderer = memo(() => {
-  const [open, setOpen] = useState(false);
-  const isConnected = localServer.isConnected();
-
-  return (
-    <>
-      <div
-        style={{
-          padding: "10px 14px",
-          borderRadius: 8,
-          border: `1px solid ${isConnected ? "var(--ant-color-border-secondary)" : "var(--ant-color-warning-border)"}`,
-          background: isConnected
-            ? "var(--ant-color-bg-layout)"
-            : "var(--ant-color-warning-bg)",
-          cursor: "pointer",
-          width: "100%",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        onClick={() => {
-          if (!isConnected) {
-            message.warning("请先连接本地服务");
-            return;
-          }
-          setOpen(true);
-        }}
-      >
-        <div style={{ fontWeight: 500 }}>编辑后端配置</div>
-        {!isConnected && (
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--ant-color-text-secondary)",
-              marginTop: 4,
-            }}
-          >
-            需要先连接本地服务才能打开
-          </div>
-        )}
-      </div>
-      <BackendConfigModal open={open} onClose={() => setOpen(false)} />
     </>
   );
 });
@@ -293,7 +243,7 @@ const ResetDefaultsRenderer = memo(() => {
 export const customRenderers: Record<string, React.FC> = {
   applyToAll: ApplyToAllRenderer,
   fieldSort: FieldSortRenderer,
-  backendConfig: BackendConfigRenderer,
+  backendConfig: BackendConfigPanel,
   testConnection: TestConnectionRenderer,
   exportConfig: ExportConfigRenderer,
   importConfig: ImportConfigRenderer,

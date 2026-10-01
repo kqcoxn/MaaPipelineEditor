@@ -6,7 +6,6 @@ import { emptyPreferences } from "./projectPreferences";
 import type { ProjectInterfaceRuntimePlan } from "./types";
 
 vi.mock("@/services/server", () => ({}));
-vi.mock("@/components/modals/BackendConfigModal", () => ({ default: () => null }));
 vi.mock("./ProjectHomeHeader", () => ({ ProjectHomeHeader: () => null }));
 vi.mock("./ProjectTaskList", () => ({ ProjectTaskList: () => null }));
 vi.mock("./ProjectTaskNavigation", () => ({ ProjectTaskNavigation: () => null }));

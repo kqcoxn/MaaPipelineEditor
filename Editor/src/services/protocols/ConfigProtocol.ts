@@ -23,9 +23,6 @@ export interface BackendConfig {
     dir: string;
     push_to_client: boolean;
   };
-  maafw: {
-    enabled: boolean;
-  };
   interface: {
     path: string;
   };

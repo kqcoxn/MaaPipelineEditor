@@ -113,9 +113,6 @@ mpelb --root D:/MaaProject --port 9066 --log-level DEBUG --log-dir ./logs
     "dir": "./logs",
     "push_to_client": false
   },
-  "maafw": {
-    "enabled": false
-  },
   "interface": {
     "path": ""
   }

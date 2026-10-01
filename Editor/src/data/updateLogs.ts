@@ -139,7 +139,7 @@ export const updateLogs: UpdateLogItem[] = [
         "🫂 分组新增自适应内容大小功能",
         "📂 Interface 入口持久化支持分项目保存，可在导入面板与配置面板快捷选择",
       ],
-      perfs: ["优化混合排版效果"],
+      perfs: ["优化混合排版效果", "优化配置交互体验"],
       fixes: [
         "修复 Pipeline 导入面板在 Windows 系统下路径异常的问题",
         "修复有分组时自动排序会造成节点混乱的问题",

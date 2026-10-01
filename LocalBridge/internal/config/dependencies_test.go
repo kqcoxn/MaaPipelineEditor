@@ -37,13 +37,11 @@ func TestLegacyDependencyPathsAreIgnoredAndRemovedOnSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var result struct {
-		MaaFW map[string]any `json:"maafw"`
-	}
+	var result map[string]any
 	if err := json.Unmarshal(saved, &result); err != nil {
 		t.Fatal(err)
 	}
-	if len(result.MaaFW) != 1 || result.MaaFW["enabled"] != true {
-		t.Fatalf("saved dependency config = %#v, want only enabled", result.MaaFW)
+	if value, exists := result["maafw"]; exists {
+		t.Fatalf("saved config contains removed maafw settings: %#v", value)
 	}
 }

@@ -31,6 +31,8 @@ export interface ConfigItemDef {
   key: keyof ConfigState["configs"] | string;
   /**所属 Tab 分区 */
   category: ConfigCategory;
+  /**子分类标题；独立区块自行提供标题时留空 */
+  section?: string;
   /**显示名称 */
   label: string;
   /**提示标题 */
@@ -75,6 +77,8 @@ export interface ConfigItemDef {
   controlWidth?: number;
   /**是否隐藏左侧标签（自定义区块占满整行时使用） */
   hideLabel?: boolean;
+  /**自定义区块自行提供布局，不使用单项卡片容器 */
+  standalone?: boolean;
 }
 
 /** 各 Provider 类型对应的配置示例 */
@@ -113,6 +117,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "configHandlingMode",
     category: "export",
+    section: "保存与协议",
     label: "配置保存方案",
     tipTitle: "配置保存方案",
     tipContent:
@@ -132,6 +137,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "pipelineProtocolVersion",
     category: "export",
+    section: "保存与协议",
     label: "Pipeline 导出版本",
     tipTitle: "Pipeline 导出版本",
     tipContent:
@@ -149,6 +155,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "nodeAttrExportStyle",
     category: "export",
+    section: "导出内容与校验",
     label: "节点属性导出形式",
     tipTitle: "节点属性导出形式",
     tipContent:
@@ -163,6 +170,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "exportDefaultRecoAction",
     category: "export",
+    section: "导出内容与校验",
     label: "导出默认识别/动作",
     tipTitle: "导出默认识别/动作",
     tipContent:
@@ -175,6 +183,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "exportEmptyParam",
     category: "export",
+    section: "导出内容与校验",
     label: "子字段为空时占位",
     tipTitle: "子字段为空时占位",
     tipContent:
@@ -187,6 +196,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "jsonIndent",
     category: "export",
+    section: "文件格式",
     label: "JSON 行缩进",
     tipTitle: "JSON 行缩进",
     tipContent:
@@ -200,6 +210,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "skipFieldValidation",
     category: "export",
+    section: "导出内容与校验",
     label: "忽略字段校验",
     tipTitle: "忽略字段校验",
     tipContent:
@@ -212,6 +223,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__fieldSort",
     category: "export",
+    section: "文件格式",
     label: "字段排序配置",
     tipTitle: "字段排序配置",
     tipContent: "自定义导出时的字段排序顺序",
@@ -224,6 +236,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "nodeStyle",
     category: "node",
+    section: "节点外观",
     label: "节点风格",
     tipTitle: "节点风格",
     tipContent:
@@ -239,6 +252,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showNodeShadows",
     category: "node",
+    section: "节点外观",
     label: "显示节点阴影",
     tipTitle: "显示节点阴影",
     tipContent:
@@ -251,6 +265,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showNodeDetailFields",
     category: "node",
+    section: "显示内容",
     label: "节点显示二级字段",
     tipTitle: "节点显示二级字段",
     tipContent:
@@ -263,6 +278,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showNodeTemplateImages",
     category: "node",
+    section: "显示内容",
     label: "显示模板图片",
     tipTitle: "显示模板图片",
     tipContent:
@@ -275,6 +291,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showNodeFlowSection",
     category: "node",
+    section: "显示内容",
     label: "显示后续目标节点",
     tipTitle: "显示后续目标节点",
     tipContent: "开启时，节点底部会显示 next 和 on_error 的目标节点。",
@@ -286,6 +303,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "defaultHandleDirection",
     category: "node",
+    section: "端点位置",
     label: "默认端点位置",
     tipTitle: "默认端点位置",
     tipContent:
@@ -297,6 +315,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__applyToAll",
     category: "node",
+    section: "端点位置",
     label: "一键更改端点位置",
     tipTitle: "一键更改",
     tipContent: "将所有节点的端点位置更改为当前选中的默认位置",
@@ -307,6 +326,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "enableNodeSnap",
     category: "node",
+    section: "磁吸对齐",
     label: "节点磁吸对齐",
     tipTitle: "节点磁吸对齐",
     tipContent:
@@ -319,6 +339,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "snapOnlyInViewport",
     category: "node",
+    section: "磁吸对齐",
     label: "仅磁吸可视节点",
     tipTitle: "仅磁吸可视节点",
     tipContent: "开启时仅与可视范围内的节点进行磁吸对齐",
@@ -333,6 +354,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "edgePathMode",
     category: "connection",
+    section: "连线外观",
     label: "边走线模式",
     tipTitle: "边走线模式",
     tipContent:
@@ -348,6 +370,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showEdgeLabel",
     category: "connection",
+    section: "连线外观",
     label: "显示边标签",
     tipTitle: "显示边标签",
     tipContent:
@@ -360,6 +383,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showEdgeControlPoint",
     category: "connection",
+    section: "连线交互",
     label: "边拖拽手柄",
     tipTitle: "边拖拽手柄",
     tipContent:
@@ -372,6 +396,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "enableEdgeAnimation",
     category: "connection",
+    section: "连线外观",
     label: "连线流动动画",
     tipTitle: "连线流动动画",
     tipContent:
@@ -384,6 +409,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "fieldPanelMode",
     category: "component",
+    section: "编辑面板",
     label: "字段/连接面板模式",
     tipTitle: "字段/连接面板模式",
     tipContent:
@@ -399,6 +425,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "inlinePanelScale",
     category: "component",
+    section: "编辑面板",
     label: "内嵌面板缩放比例",
     tipTitle: "内嵌面板缩放比例",
     tipContent:
@@ -413,6 +440,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "quickCreateNodeOnConnectBlank",
     category: "connection",
+    section: "连线交互",
     label: "连接空白处时创建",
     tipTitle: "连接空白处时创建",
     tipContent:
@@ -427,6 +455,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "canvasBackgroundMode",
     category: "canvas",
+    section: "主题与背景",
     label: "画布背景",
     tipTitle: "画布背景",
     tipContent:
@@ -441,6 +470,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "isAutoFocus",
     category: "canvas",
+    section: "视口与聚焦",
     label: "自动聚焦",
     tipTitle: "自动聚焦",
     tipContent: "开启时若出现新节点则自动移动视口以聚焦",
@@ -452,6 +482,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "focusOpacity",
     category: "canvas",
+    section: "视口与聚焦",
     label: "非聚焦节点不透明度",
     tipTitle: "非聚焦节点不透明度",
     tipContent:
@@ -465,6 +496,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "enableCanvasMotionPause",
     category: "canvas",
+    section: "交互性能",
     label: "交互期间暂停画布动画",
     tipTitle: "交互期间暂停画布动画",
     tipContent:
@@ -477,6 +509,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "hideEdgesOnDrag",
     category: "canvas",
+    section: "交互性能",
     label: "拖动时隐藏所有边",
     tipTitle: "拖动时隐藏所有边",
     tipContent:
@@ -489,6 +522,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "enableLiveScreen",
     category: "component",
+    section: "设备画面",
     label: "实时画面预览",
     tipTitle: "实时画面预览",
     tipContent:
@@ -501,6 +535,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "liveScreenRefreshRate",
     category: "component",
+    section: "设备画面",
     label: "画面刷新率",
     tipTitle: "画面刷新率",
     tipContent:
@@ -517,6 +552,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "historyLimit",
     category: "component",
+    section: "编辑历史",
     label: "历史记录上限",
     tipTitle: "历史记录上限",
     tipContent:
@@ -531,6 +567,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "saveFilesBeforeDebug",
     category: "component",
+    section: "调试行为",
     label: "调试前保存文件",
     tipTitle: "调试前保存文件",
     tipContent: "开启后，在调试前会自动保存当前文件",
@@ -542,6 +579,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "autoFocusNodeOnDebugRun",
     category: "component",
+    section: "调试行为",
     label: "调试运行时自动居中节点",
     tipTitle: "调试运行时自动居中节点",
     tipContent:
@@ -554,6 +592,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showJsonPreviewButton",
     category: "component",
+    section: "工具栏",
     label: "显示 JSON 预览按钮",
     tipTitle: "显示 JSON 预览按钮",
     tipContent: "控制右上角工具栏是否显示 JSON 预览按钮。",
@@ -565,6 +604,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "showOpenLocalButton",
     category: "component",
+    section: "工具栏",
     label: "显示在本地打开按钮",
     tipTitle: "显示在本地打开按钮",
     tipContent: "控制右上角工具栏是否显示在本地打开按钮；仅在连接 LocalBridge 且当前文件有本地路径时生效。",
@@ -576,6 +616,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "useDarkMode",
     category: "canvas",
+    section: "主题与背景",
     label: "深色模式",
     tipTitle: "深色模式",
     tipContent: "切换编辑器的深色/浅色主题",
@@ -587,19 +628,9 @@ export const settingsDefinitions: ConfigItemDef[] = [
 
   // ==================== 本地服务 (local-service) ====================
   {
-    key: "__backendConfig",
-    category: "local-service",
-    label: "本地服务配置",
-    tipTitle: "本地服务配置",
-    tipContent:
-      "查看和修改后端服务的配置，包括服务器、文件、日志、MaaFramework 等设置",
-    type: "custom",
-    customRender: "backendConfig",
-    order: 1,
-  },
-  {
     key: "wsPort",
     category: "local-service",
+    section: "服务与设备连接",
     label: "连接端口",
     tipTitle: "WebSocket 端口",
     tipContent: "本地服务端口，修改端口后需要重新连接",
@@ -611,6 +642,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "wsAutoConnect",
     category: "local-service",
+    section: "服务与设备连接",
     label: "自动连接",
     tipTitle: "自动连接",
     tipContent: "开启后，进入页面时会自动尝试连接本地通信服务",
@@ -622,6 +654,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "autoConnectLastController",
     category: "local-service",
+    section: "服务与设备连接",
     label: "自动连接上次控制器",
     tipTitle: "自动连接上次控制器",
     tipContent:
@@ -634,6 +667,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "fileAutoReload",
     category: "local-service",
+    section: "文件与搜索",
     label: "自动重载变更文件",
     tipTitle: "自动重载变更文件",
     tipContent:
@@ -646,6 +680,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "enableCrossFileSearch",
     category: "local-service",
+    section: "文件与搜索",
     label: "启用跨文件搜索",
     tipTitle: "启用跨文件搜索",
     tipContent: "开启后，搜索时将在所有已打开的文件中搜索匹配项",
@@ -657,6 +692,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "crossFileSearchFolderFilter",
     category: "local-service",
+    section: "文件与搜索",
     label: "文件夹过滤",
     tipTitle: "文件夹过滤",
     tipContent:
@@ -668,6 +704,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "screenshotResolutionMode",
     category: "local-service",
+    section: "截图设置",
     label: "截图分辨率",
     tipTitle: "截图分辨率",
     tipContent:
@@ -686,6 +723,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "screenshotResolutionValue",
     category: "local-service",
+    section: "截图设置",
     label: "分辨率长度",
     tipTitle: "分辨率长度",
     tipContent:
@@ -703,6 +741,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   ...(["Width", "Height"] as const).map((dimension) => ({
     key: `screenshotExpand${dimension}` as "screenshotExpandWidth" | "screenshotExpandHeight",
     category: "local-service" as const,
+    section: "截图设置",
     label: dimension === "Width" ? "Expand 参考宽度" : "Expand 参考高度",
     tipTitle: "Expand 参考分辨率",
     tipContent: "保持截图宽高比，使输出宽高均不小于参考分辨率；不裁剪，不拉伸。",
@@ -710,10 +749,24 @@ export const settingsDefinitions: ConfigItemDef[] = [
     min: 1, max: 8192, addonAfter: "px", order: 9,
     visible: (configs: ConfigState["configs"]) => configs.screenshotResolutionMode === "expand",
   })),
+  {
+    key: "__backendConfig",
+    category: "local-service",
+    label: "后端配置",
+    tipTitle: "本地服务配置",
+    tipContent:
+      "查看和修改后端服务的配置，包括监听端口、主机、文件根目录、排除目录、文件类型、最大扫描深度、最大文件数量、日志级别、日志目录、推送日志、Project Interface 入口路径等设置",
+    type: "custom",
+    customRender: "backendConfig",
+    standalone: true,
+    hideLabel: true,
+    order: 10,
+  },
   // ==================== AI (ai) ====================
   {
     key: "aiProviderType",
     category: "ai",
+    section: "服务与模型",
     label: "API 类型",
     tipTitle: "API 服务类型",
     tipContent:
@@ -726,6 +779,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiApiUrl",
     category: "ai",
+    section: "服务与模型",
     label: "API URL",
     tipTitle: "API URL",
     tipContent:
@@ -738,6 +792,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiApiKey",
     category: "ai",
+    section: "服务与模型",
     label: "API Key",
     tipTitle: "API Key",
     tipContent: "API Key 会使用 AES-GCM 加密后保存在浏览器本地，不会随配置导出。",
@@ -749,6 +804,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiModel",
     category: "ai",
+    section: "服务与模型",
     label: "模型",
     tipTitle: "模型名称",
     tipContent: "填写 Provider 对应的模型名称。",
@@ -760,6 +816,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiTemperature",
     category: "ai",
+    section: "服务与模型",
     label: "温度",
     tipTitle: "温度参数",
     tipContent: "控制 AI 输出的随机性，范围为 0 到 1。",
@@ -772,6 +829,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiUseProxy",
     category: "ai",
+    section: "请求与连接",
     label: "LocalBridge 代理",
     tipTitle: "LocalBridge 代理",
     tipContent:
@@ -784,6 +842,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiContextCompactionThreshold",
     category: "ai",
+    section: "上下文与工具",
     label: "上下文压缩阈值",
     tipTitle: "Harness 上下文压缩阈值",
     tipContent:
@@ -799,6 +858,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiToolCallBudget",
     category: "ai",
+    section: "上下文与工具",
     label: "工具调用预算",
     tipTitle: "单次 Harness Run 工具调用预算",
     tipContent:
@@ -814,6 +874,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "aiRequestTimeoutMinutes",
     category: "ai",
+    section: "请求与连接",
     label: "请求超时",
     tipTitle: "单次模型请求超时",
     tipContent:
@@ -829,6 +890,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__testConnection",
     category: "ai",
+    section: "请求与连接",
     label: "连接测试",
     tipTitle: "测试 AI 连接",
     tipContent: "使用当前配置发送一条最小请求，检查 API 配置和传输链路。",
@@ -841,6 +903,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__exportConfig",
     category: "management",
+    section: "配置备份",
     label: "导出配置",
     tipTitle: "导出/导入配置",
     tipContent:
@@ -852,6 +915,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__importConfig",
     category: "management",
+    section: "配置备份",
     label: "导入配置",
     tipTitle: "导出/导入配置",
     tipContent:
@@ -863,6 +927,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   {
     key: "__resetDefaults",
     category: "management",
+    section: "恢复设置",
     label: "重置默认值",
     tipTitle: "重置默认值",
     tipContent: "将所有配置项恢复为默认值",

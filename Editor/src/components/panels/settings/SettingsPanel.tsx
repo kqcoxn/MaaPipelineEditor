@@ -17,7 +17,7 @@ import { useConfigStore } from "@/stores/app/configStore";
 import type { ConfigCategory } from "@/stores/app/configStore";
 import { settingsDefinitions, settingsTabs } from "./settingsDefinitions";
 import type { ConfigItemDef } from "./settingsDefinitions";
-import ConfigItemRenderer from "./ConfigItemRenderer";
+import SettingsSections from "./SettingsSections";
 import { WikiAnchor } from "../../wiki/WikiAnchor";
 import style from "../../../styles/panels/SettingsPanel.module.less";
 
@@ -67,6 +67,7 @@ function SettingsPanel() {
       items = items.filter(
         (item) =>
           item.label.toLowerCase().includes(keyword) ||
+          item.section?.toLowerCase().includes(keyword) ||
           item.tipContent.toLowerCase().includes(keyword) ||
           item.tipTitle.toLowerCase().includes(keyword),
       );
@@ -155,17 +156,13 @@ function SettingsPanel() {
                         <div className={style.configGroupTitle}>
                           {tab?.label ?? category}
                         </div>
-                        {items.map((item) => (
-                          <ConfigItemRenderer key={item.key} item={item} />
-                        ))}
+                        <SettingsSections items={items} />
                       </div>
                     );
                   })
                 ) : (
                   // 正常模式：当前 Tab 的配置项
-                  filteredItems.map((item) => (
-                    <ConfigItemRenderer key={item.key} item={item} />
-                  ))
+                  <SettingsSections items={filteredItems} />
                 )}
               </div>
             </div>

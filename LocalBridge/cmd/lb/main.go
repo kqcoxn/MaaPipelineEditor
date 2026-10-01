@@ -418,15 +418,6 @@ func runServer(cmd *cobra.Command, args []string) error {
 		}
 		piSvc.Reload(effectiveInterfacePath)
 
-		// 重载MFW服务（仅当启用且配置变化时）
-		if mfwSvc != nil && cfg.MaaFW.Enabled {
-			if err := mfwSvc.Reload(); err != nil {
-				logger.Error("Main", "MFW服务重载失败: %v", err)
-			} else {
-				logger.Info("Main", "MFW服务重载完成")
-			}
-		}
-
 		logger.Info("Main", "所有服务重载完成")
 	})
 

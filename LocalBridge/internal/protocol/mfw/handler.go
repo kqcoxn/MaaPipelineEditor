@@ -42,10 +42,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 	// 检查 MFW 服务是否已初始化
 	if !h.service.IsInitialized() {
 		logger.Warn("MFW", "服务未初始化，拒绝请求")
-		logger.Error("MFW", "MaaFramework 未初始化，请确认已启用 MaaFW；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
+		logger.Error("MFW", "MaaFramework 未初始化，请检查服务初始化日志；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
 		h.sendMFWError(conn, mfw.ErrCodeNotInitialized,
 			"MaaFramework 未初始化",
-			"请确认已启用 MaaFW；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
+			"请检查服务初始化日志；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
 		return nil
 	}
 

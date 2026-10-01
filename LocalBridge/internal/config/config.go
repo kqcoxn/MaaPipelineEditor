@@ -34,11 +34,6 @@ type LogConfig struct {
 	PushToClient bool   `mapstructure:"push_to_client" json:"push_to_client"`
 }
 
-// MaaFramework配置
-type MaaFWConfig struct {
-	Enabled bool `mapstructure:"enabled" json:"enabled"`
-}
-
 // InterfaceConfig 按项目保存入口，Path 仅表示当前进程使用的入口。
 type InterfaceConfig struct {
 	Path     string             `mapstructure:"-" json:"path,omitempty"`
@@ -50,7 +45,6 @@ type Config struct {
 	Server    ServerConfig    `mapstructure:"server" json:"server"`
 	File      FileConfig      `mapstructure:"file" json:"file"`
 	Log       LogConfig       `mapstructure:"log" json:"log"`
-	MaaFW     MaaFWConfig     `mapstructure:"maafw" json:"maafw"`
 	Interface InterfaceConfig `mapstructure:"interface" json:"interface"`
 
 	configFilePath string
@@ -128,9 +122,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("log.level", "INFO")
 	v.SetDefault("log.dir", paths.GetLogDir())
 	v.SetDefault("log.push_to_client", true)
-
-	// MaaFramework 配置
-	v.SetDefault("maafw.enabled", false)
 
 	// Project Interface 配置
 	v.SetDefault("interface.projects", []InterfaceProject{})

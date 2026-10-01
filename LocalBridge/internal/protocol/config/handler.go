@@ -129,14 +129,6 @@ func (h *ConfigHandler) handleSetConfig(conn *server.Connection, msg models.Mess
 		}
 	}
 
-	// 更新 MaaFramework 配置
-	if maafwConfig, ok := dataMap["maafw"].(map[string]interface{}); ok {
-		if enabled, ok := maafwConfig["enabled"].(bool); ok {
-			cfg.MaaFW.Enabled = enabled
-			updated = true
-		}
-	}
-
 	if interfaceConfig, ok := dataMap["interface"].(map[string]interface{}); ok {
 		if path, ok := interfaceConfig["path"].(string); ok {
 			if err := cfg.UpdateInterfacePath(path); err != nil {

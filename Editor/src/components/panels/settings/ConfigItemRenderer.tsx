@@ -210,6 +210,10 @@ const ConfigItemRenderer = memo(
       }
     };
 
+    if (item.type === "custom" && item.standalone) {
+      return renderControl();
+    }
+
     return (
       <div
         className={`config-card ${isConditional ? "config-card-conditional" : ""}`}

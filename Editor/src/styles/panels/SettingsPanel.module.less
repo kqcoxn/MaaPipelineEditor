@@ -1,3 +1,5 @@
+@import (reference) "./settingsSectionTitle.less";
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -182,4 +184,17 @@
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+.configSection {
+  margin-bottom: 12px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.configSectionTitle {
+  .settings-section-title();
+  margin: 0 0 8px;
 }

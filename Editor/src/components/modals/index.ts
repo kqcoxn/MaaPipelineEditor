@@ -5,4 +5,3 @@ export { TemplateModal } from "./TemplateModal";
 export { TemplateMatchModal } from "./TemplateMatchModal";
 export { ColorModal } from "./ColorModal";
 export { DeltaModal } from "./DeltaModal";
-export { default as BackendConfigModal } from "./BackendConfigModal";
