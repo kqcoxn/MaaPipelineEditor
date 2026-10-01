@@ -19,6 +19,7 @@ import {
 } from "@/stores/app/configStore";
 import { mfwProtocol } from "../../services/server";
 import { useCanvasViewport } from "../../hooks/useCanvasViewport";
+import { usePanelOccupancy } from "../../hooks/usePanelOccupancy";
 import styles from "@/styles/modals/ScreenshotModalBase.module.less";
 
 // 视口控制 Props
@@ -107,6 +108,7 @@ export const ScreenshotModalBase = memo(
     onReset,
   }: ScreenshotModalBaseProps) => {
     const { connectionStatus, controllerId } = useMFWStore();
+    const { activate: openConnectionPanel } = usePanelOccupancy("connection");
     const resolutionMode = useConfigStore(
       (state) => state.configs.screenshotResolutionMode,
     );
@@ -404,6 +406,7 @@ export const ScreenshotModalBase = memo(
                       position: "absolute",
                       inset: 0,
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
                       padding: 16,
@@ -415,6 +418,17 @@ export const ScreenshotModalBase = memo(
                         ? "等待截图..."
                         : "未连接设备，请点击上方“上传图片”选择本地图片作为底图"}
                     </span>
+                    {!isConnected && (
+                      <Button
+                        type="link"
+                        onClick={() => {
+                          handleClose();
+                          openConnectionPanel();
+                        }}
+                      >
+                        打开连接设备面板
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
