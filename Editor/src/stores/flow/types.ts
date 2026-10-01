@@ -383,6 +383,7 @@ export interface FlowGraphState {
     options?: {
       isFitView?: boolean;
       skipHistory?: boolean;
+      preserveSelection?: boolean;
       skipSave?: boolean;
     },
   ) => void;

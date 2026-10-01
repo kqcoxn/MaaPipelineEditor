@@ -1,11 +1,11 @@
 import { emitAchievementEvent } from "@/features/achievements/bus";
-import { type NodeChange } from "@xyflow/react";
-import ELK from "elkjs/lib/elk.bundled.js";
+import { message } from "@/utils/ui/antdAppApi";
+import { layoutGraph, type LayoutRequest } from "./groupLayout";
+import { dimensions, fitGroup, growAncestors, layoutRoots, parentId, requireSameParent } from "./layoutGeometry";
 
-import { useFlowStore, type EdgeType, type NodeType } from "../stores/flow";
+import { useFlowStore, type NodeType } from "../stores/flow";
 import {
   runWithProcess,
-  type ProcessUpdate,
 } from "../stores/ui/processStore";
 
 export enum AlignmentEnum {
@@ -17,155 +17,76 @@ export enum AlignmentEnum {
   Middle,
 }
 
-const elk = new ELK();
-
-const elkOptions = {
-  "elk.algorithm": "layered",
-  "elk.direction": "RIGHT",
-  "elk.layered.spacing.nodeNodeBetweenLayers": "100",
-  "elk.spacing.nodeNode": "80",
-  "elk.layered.crossingMinimization.strategy": "LAYER_SWEEP",
-  "elk.layered.crossingMinimization.semiInteractiveCrossingMinimization":
-    "true",
-  "elk.layered.nodePlacement.strategy": "NETWORK_SIMPLEX",
-  "elk.layered.cycleBreaking.strategy": "GREEDY",
-  "elk.compaction.postCompaction.strategy": "LEFT_RIGHT_CONSTRAINT_LOCKING",
-  "elk.layered.selfLoopPlacement": "NORTH",
-};
-
 export class LayoutHelper {
+  private static requestId = 0;
+
   static async auto(userInitiated = false): Promise<void> {
-    if (useFlowStore.getState().nodes.length === 0) return;
-    await runWithProcess("正在重排节点", (update) =>
-      LayoutHelper.performLayout(undefined, update, userInitiated),
-    );
+    await LayoutHelper.performLayout({}, userInitiated);
   }
 
   static async autoPartial(selectedNodes: NodeType[]): Promise<void> {
-    if (selectedNodes.length < 2) return;
-    await runWithProcess("正在重排节点", (update) =>
-      LayoutHelper.performLayout(selectedNodes, update, true),
-    );
+    await LayoutHelper.performLayout({ ids: selectedNodes.map((node) => node.id) }, true);
   }
 
-  private static async performLayout(
-    targetNodes?: NodeType[],
-    updateProcess: (update: ProcessUpdate) => void = () => undefined,
-    userInitiated = false,
-  ): Promise<void> {
-    const flowState = useFlowStore.getState();
-    const allNodes = flowState.nodes as NodeType[];
-    const allEdges = flowState.edges as EdgeType[];
-
-    const isPartial = !!targetNodes;
-    const nodes = isPartial ? targetNodes! : allNodes;
-
-    if (nodes.length === 0) return;
-
-    updateProcess({ detail: "正在读取节点尺寸", progress: 14 });
-    const allMeasured = nodes.every(
-      (node) => node.measured?.width && node.measured?.height,
-    );
-    if (!allMeasured) {
-      updateProcess({ detail: "正在等待节点完成测量", progress: 18 });
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      return LayoutHelper.performLayout(targetNodes, updateProcess, userInitiated);
-    }
-
-    updateProcess({ detail: "正在整理节点与连线", progress: 28 });
-    // 局部排版时，仅保留选中节点之间的边
-    const selectedNodeIds = isPartial ? new Set(nodes.map((n) => n.id)) : null;
-    const edges = isPartial
-      ? allEdges.filter(
-          (edge) =>
-            selectedNodeIds!.has(edge.source) &&
-            selectedNodeIds!.has(edge.target),
-        )
-      : allEdges;
-
-    // 局部排版时，记录原始包围盒
-    let originMinX = 0;
-    let originMinY = 0;
-    if (isPartial) {
-      originMinX = Math.min(...nodes.map((n) => n.position.x));
-      originMinY = Math.min(...nodes.map((n) => n.position.y));
-    }
-
-    const graph = {
-      id: "root",
-      layoutOptions: elkOptions,
-      children: nodes.map((node) => ({
-        id: node.id,
-        width: node.measured?.width ?? 200,
-        height: node.measured?.height ?? 100,
-      })),
-      edges: edges.map((edge) => ({
-        id: edge.id,
-        sources: [edge.source],
-        targets: [edge.target],
-      })),
+  private static async performLayout(request: LayoutRequest, userInitiated: boolean) {
+    const token = ++LayoutHelper.requestId;
+    const initial = useFlowStore.getState();
+    if (!initial.nodes.length) return;
+    const changedWhileMeasuring = () => {
+      const current = useFlowStore.getState();
+      return current.topologyRevision !== initial.topologyRevision ||
+        current.semanticRevision !== initial.semanticRevision ||
+        current.nodes.length !== initial.nodes.length ||
+        current.nodes.some((node, index) => {
+          const before = initial.nodes[index];
+          return node.id !== before.id || parentId(node) !== parentId(before) || node.position.x !== before.position.x || node.position.y !== before.position.y;
+        });
     };
-
     try {
-      updateProcess({ detail: "正在计算节点位置", progress: 46 });
-      const layoutedGraph = await elk.layout(graph);
-
-      if (!layoutedGraph?.children) return;
-      updateProcess({ detail: "正在应用新布局", progress: 84 });
-      const layoutedNodeById = new Map(
-        layoutedGraph.children.map((node) => [node.id, node]),
-      );
-
-      if (isPartial) {
-        // 局部排版：将布局结果偏移到原始包围盒位置
-        const layoutedMinX = Math.min(
-          ...layoutedGraph.children.map((n) => n.x ?? 0),
-        );
-        const layoutedMinY = Math.min(
-          ...layoutedGraph.children.map((n) => n.y ?? 0),
-        );
-        const offsetX = originMinX - layoutedMinX;
-        const offsetY = originMinY - layoutedMinY;
-
-        const selectedNodeMap = new Map(nodes.map((n) => [n.id, n]));
-        const updatedNodes = allNodes.map((node) => {
-          if (!selectedNodeMap.has(node.id)) return node;
-          const layoutedNode = layoutedNodeById.get(node.id);
-          if (!layoutedNode) return node;
-          return {
-            ...node,
-            position: {
-              x: (layoutedNode.x ?? 0) + offsetX,
-              y: (layoutedNode.y ?? 0) + offsetY,
-            },
-          };
-        });
-
-        flowState.replace(updatedNodes, allEdges, { isFitView: false });
-      } else {
-        // 全局排版
-        const layoutedNodes = allNodes.map((node) => {
-          const layoutedNode = layoutedNodeById.get(node.id);
-          if (!layoutedNode) return node;
-          return {
-            ...node,
-            position: {
-              x: layoutedNode.x ?? 0,
-              y: layoutedNode.y ?? 0,
-            },
-          };
-        });
-
-        flowState.replace(layoutedNodes, allEdges);
-      }
-      if (userInitiated && nodes.length >= 3) emitAchievementEvent("achievement:layout_completed");
-      updateProcess({ detail: "正在刷新画布", progress: 96 });
+      await runWithProcess("正在重排节点", async (update) => {
+        // 等待首轮测量有明确上限；每次读取最新快照，避免局部选择持有旧对象。
+        for (let attempt = 0; attempt < 20; attempt++) {
+          const current = useFlowStore.getState();
+          if (changedWhileMeasuring() || token !== LayoutHelper.requestId) return;
+          if (current.nodes.every((node) => node.measured?.width && node.measured?.height)) break;
+          update({ detail: "正在等待节点完成测量", progress: 18 });
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+        const snapshot = useFlowStore.getState();
+        if (changedWhileMeasuring() || token !== LayoutHelper.requestId) return;
+        update({ detail: "正在按分组计算布局", progress: 46 });
+        const nodes = await layoutGraph(snapshot.nodes, snapshot.edges, request);
+        const current = useFlowStore.getState();
+        if (token !== LayoutHelper.requestId) return;
+        if (current.nodes !== snapshot.nodes || current.edges !== snapshot.edges) {
+          message.info("画布已变化，本次布局已取消，请重试");
+          return;
+        }
+        if (nodes === snapshot.nodes) return;
+        update({ detail: "正在应用新布局", progress: 84 });
+        current.replace(nodes, snapshot.edges, { isFitView: !request.ids, skipHistory: true, preserveSelection: true });
+        current.saveHistory(0, { category: "graph", action: "update", description: "自动布局" });
+        if (userInitiated && nodes.length >= 3) emitAchievementEvent("achievement:layout_completed");
+      });
     } catch (error) {
-      console.error("Elkjs layout error:", error);
+      message.error(error instanceof Error ? error.message : "自动布局失败，请重试");
     }
+  }
+
+  static fitGroup(groupId: string) {
+    const state = useFlowStore.getState();
+    const nodes = growAncestors(fitGroup(state.nodes, groupId, true), [groupId]);
+    state.replace(nodes, state.edges, { isFitView: false, skipHistory: true, preserveSelection: true });
+    state.saveHistory(0, { category: "group", action: "update", description: "自适应内容大小", targetIds: [groupId] });
   }
 
   static align(direction: AlignmentEnum, nodes: NodeType[]) {
+    const state = useFlowStore.getState();
+    nodes = layoutRoots(state.nodes, nodes.map((node) => node.id));
+    try { requireSameParent(nodes); } catch (error) {
+      message.info((error as Error).message);
+      return;
+    }
     if (nodes.length < 2) return;
 
     const nextPositionById = new Map(
@@ -181,11 +102,11 @@ export class LayoutHelper {
       }
       case AlignmentEnum.Right: {
         const right = Math.max(
-          ...nodes.map((node) => node.position.x + (node.measured?.width ?? 0)),
+          ...nodes.map((node) => node.position.x + dimensions(node).width),
         );
         nodes.forEach((node) => {
           nextPositionById.get(node.id)!.x =
-            right - (node.measured?.width ?? 0);
+            right - dimensions(node).width;
         });
         break;
       }
@@ -199,24 +120,24 @@ export class LayoutHelper {
       case AlignmentEnum.Bottom: {
         const bottom = Math.max(
           ...nodes.map(
-            (node) => node.position.y + (node.measured?.height ?? 0),
+            (node) => node.position.y + dimensions(node).height,
           ),
         );
         nodes.forEach((node) => {
           nextPositionById.get(node.id)!.y =
-            bottom - (node.measured?.height ?? 0);
+            bottom - dimensions(node).height;
         });
         break;
       }
       case AlignmentEnum.Center: {
         const left = Math.min(...nodes.map((node) => node.position.x));
         const right = Math.max(
-          ...nodes.map((node) => node.position.x + (node.measured?.width ?? 0)),
+          ...nodes.map((node) => node.position.x + dimensions(node).width),
         );
         const center = (left + right) / 2;
         nodes.forEach((node) => {
           nextPositionById.get(node.id)!.x =
-            center - (node.measured?.width ?? 0) / 2;
+            center - dimensions(node).width / 2;
         });
         break;
       }
@@ -224,33 +145,27 @@ export class LayoutHelper {
         const top = Math.min(...nodes.map((node) => node.position.y));
         const bottom = Math.max(
           ...nodes.map(
-            (node) => node.position.y + (node.measured?.height ?? 0),
+            (node) => node.position.y + dimensions(node).height,
           ),
         );
         const middle = (top + bottom) / 2;
         nodes.forEach((node) => {
           nextPositionById.get(node.id)!.y =
-            middle - (node.measured?.height ?? 0) / 2;
+            middle - dimensions(node).height / 2;
         });
         break;
       }
     }
 
-    const changes = nodes.map((node) => ({
-      id: node.id,
-      type: "position",
-      position: nextPositionById.get(node.id)!,
-    })) as NodeChange[];
-    const previousNodes = nodes.flatMap((node) => {
-      const current = useFlowStore.getState().nodes.find((item) => item.id === node.id);
-      return current ? [{ id: current.id, position: { ...current.position } }] : [];
+    const changed = nodes.filter((node) => {
+      const next = nextPositionById.get(node.id)!;
+      return next.x !== node.position.x || next.y !== node.position.y;
     });
-    useFlowStore.getState().updateNodes(changes);
-    if (new Set(previousNodes.map((node) => node.id)).size >= 3 && previousNodes.some((before) => {
-      const after = useFlowStore.getState().nodeById.get(before.id);
-      return after && (before.position.x !== after.position.x || before.position.y !== after.position.y);
-    })) {
-      emitAchievementEvent("achievement:nodes_aligned");
-    }
+    if (!changed.length) return;
+    const updated = growAncestors(state.nodes.map((node) => nextPositionById.has(node.id)
+      ? { ...node, position: nextPositionById.get(node.id)! } : node), changed.map((node) => node.id));
+    state.replace(updated, state.edges, { isFitView: false, skipHistory: true, preserveSelection: true });
+    state.saveHistory(0, { category: "graph", action: "update", description: "对齐节点", targetIds: nodes.map((node) => node.id) });
+    if (nodes.length >= 3) emitAchievementEvent("achievement:nodes_aligned");
   }
 }

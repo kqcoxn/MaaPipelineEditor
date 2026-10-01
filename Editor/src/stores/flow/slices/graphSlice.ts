@@ -1,3 +1,5 @@
+import { shiftLayoutNodes } from "../../../core/layoutGeometry";
+import { message } from "@/utils/ui/antdAppApi";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import type { StateCreator } from "zustand";
 import { cloneDeep } from "lodash";
@@ -60,6 +62,7 @@ export const createGraphSlice: StateCreator<
     const {
       isFitView = true,
       skipHistory = false,
+      preserveSelection = false,
     } = options || {};
 
     set((state) => {
@@ -94,7 +97,15 @@ export const createGraphSlice: StateCreator<
         ),
       };
     });
-    get().clearSelection();
+    if (preserveSelection) {
+      const state = get();
+      state.updateSelection(
+        state.selectedNodes.flatMap((node) => state.nodeById.get(node.id) ?? []),
+        state.selectedEdges.flatMap((edge) => state.edgeById.get(edge.id) ?? []),
+      );
+    } else {
+      get().clearSelection();
+    }
 
     if (!skipHistory) {
       get().saveHistory(0, {
@@ -340,43 +351,17 @@ export const createGraphSlice: StateCreator<
     delta: number,
     targetNodeIds?: string[],
   ) {
+    let didChange = false;
     set((state) => {
-      if (state.nodes.length === 0) return {};
-
-      // 确定要调整的节点
-      const targetNodes = targetNodeIds
-        ? state.nodes.filter((node) => targetNodeIds.includes(node.id))
-        : state.nodes;
-      if (targetNodes.length === 0) return {};
-
-      // 找到最左上侧的节点位置作为基准点
-      const positions = targetNodes.map((node) =>
-        direction === "horizontal" ? node.position.x : node.position.y,
-      );
-      const minPosition = Math.min(...positions);
-      const targetNodeIdSet = new Set(targetNodes.map((n) => n.id));
-
-      // 根据距离基准点的距离计算移动量
-      const nodes = state.nodes.map((node) => {
-        if (!targetNodeIdSet.has(node.id)) {
-          return node;
-        }
-
-        const currentPosition =
-          direction === "horizontal" ? node.position.x : node.position.y;
-        const distanceFromBase = currentPosition - minPosition;
-
-        const scaleFactor = distanceFromBase / 100;
-        const offset = scaleFactor * delta;
-
-        const newPosition = { ...node.position };
-        if (direction === "horizontal") {
-          newPosition.x += offset;
-        } else {
-          newPosition.y += offset;
-        }
-        return { ...node, position: newPosition };
-      });
+      let nodes: NodeType[];
+      try {
+        nodes = shiftLayoutNodes(state.nodes, direction, delta, targetNodeIds);
+      } catch (error) {
+        message.info((error as Error).message);
+        return {};
+      }
+      if (nodes === state.nodes) return {};
+      didChange = true;
       const patches = createNodeIndexPatches(state.nodes, nodes).map(
         (patch) => ({ ...patch, semanticChanged: false }),
       );
@@ -387,6 +372,7 @@ export const createGraphSlice: StateCreator<
       };
     });
 
+    if (!didChange) return;
     // 保存历史记录
     get().saveHistory(0, {
       category: "graph",

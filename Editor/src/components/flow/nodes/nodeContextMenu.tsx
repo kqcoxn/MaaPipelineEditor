@@ -1,3 +1,4 @@
+import { LayoutHelper } from "../../../core/layout";
 import { getFullNodeName } from "@/utils/node/nodeNameHelper";
 import { message } from "@/utils/ui/antdAppApi";
 
@@ -296,6 +297,13 @@ export function getNodeContextMenuConfig(
           onClick: (node) => handleSetGroupColor(node, c.key),
           checked: (node) => (node.data as NodeDataWithColor).color === c.key,
         })),
+      },
+      {
+        key: "group-fit-content",
+        label: "自适应内容大小",
+        icon: "icon-shuipingsuoxiao",
+        iconSize: 16,
+        onClick: (node) => LayoutHelper.fitGroup(node.id),
       },
       {
         type: "divider",

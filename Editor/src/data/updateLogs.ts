@@ -130,6 +130,17 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.0.6",
+    date: "2026-10",
+    type: "fix",
+    maafwVersion: "5.14.2",
+    updates: {
+      features: ["分组新增自适应内容大小功能"],
+      perfs: ["优化混合排版效果"],
+      fixes: ["修复有分组时自动排序会造成节点混乱的问题"],
+    },
+  },
+  {
     version: "2.0.5",
     date: "2026-9-30",
     type: "fix",

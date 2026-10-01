@@ -6,6 +6,7 @@ import IconFont from "../../iconfonts";
 import { type IconNames } from "../../iconfonts";
 import { useFlowStore } from "../../../stores/flow";
 import { useFileStore } from "@/stores/project/fileStore";
+import { isGroup } from "../../../core/layoutGeometry";
 import { LayoutHelper, AlignmentEnum } from "../../../core/layout";
 import { rerouteEdgesToNearestReplica } from "../../../core/parser/edgeRerouter";
 import { saveNodesToImage } from "../../../utils/ui/snapper";
@@ -28,6 +29,9 @@ function LayoutPanel() {
   const debouncedSelectedNodes = useFlowStore(
     (state) => state.debouncedSelectedNodes,
   );
+  const singleGroup =
+    debouncedSelectedNodes.length === 1 &&
+    isGroup(debouncedSelectedNodes[0]);
   const nodeCount = useFlowStore((state) => state.nodes.length);
   const currentFileName = useFileStore((state) => state.currentFile.fileName);
   const shiftNodes = useFlowStore((state) => state.shiftNodes);
@@ -49,16 +53,15 @@ function LayoutPanel() {
       iconName,
       iconSize: 25,
       iconColor: "#487aaa",
-      disabled:
-        debouncedSelectedNodes.length >= 2 ? false : nodeCount === 0,
+      disabled: debouncedSelectedNodes.length === 1 || nodeCount === 0,
       onClick: () => {
         const targetIds =
-          debouncedSelectedNodes.length >= 2
+          debouncedSelectedNodes.length > 0
             ? debouncedSelectedNodes.map((n) => n.id)
             : undefined;
         shiftNodes(direction, delta, targetIds);
       },
-      onDisabledClick: () => message.error("没有可调整的节点"),
+      onDisabledClick: () => message.info("请选择两个以上同层节点，或取消选择调整顶层间距"),
     }),
     [debouncedSelectedNodes, nodeCount, shiftNodes],
   );
@@ -125,12 +128,16 @@ function LayoutPanel() {
         },
       },
       {
-        label: debouncedSelectedNodes.length >= 2 ? "局部自动布局" : "自动布局",
+        label: singleGroup
+          ? "组内自动布局"
+          : debouncedSelectedNodes.length >= 2
+            ? "局部自动布局"
+            : "自动布局",
         iconName: "icon-liuchengtu",
         iconSize: 30,
         disabled:
           !allowAutoLayout ||
-          debouncedSelectedNodes.length === 1 ||
+          (debouncedSelectedNodes.length === 1 && !singleGroup) ||
           nodeCount === 0,
         onClick: () => {
           if (!allowAutoLayout) {
@@ -140,7 +147,7 @@ function LayoutPanel() {
             });
             return;
           }
-          if (debouncedSelectedNodes.length >= 2) {
+          if (debouncedSelectedNodes.length > 0) {
             void LayoutHelper.autoPartial(debouncedSelectedNodes as any);
           } else {
             void LayoutHelper.auto(true);
@@ -153,7 +160,7 @@ function LayoutPanel() {
               message: "当前环境禁止自动布局",
             });
           } else {
-            message.error("请选择两个以上节点进行局部排版");
+            message.error("请选择一个分组或两个以上同层节点进行排版");
           }
         },
       },
@@ -178,6 +185,7 @@ function LayoutPanel() {
     createShiftTool,
     debouncedSelectedNodes,
     nodeCount,
+    singleGroup,
     resetEdgeControls,
   ]);
 
