@@ -103,7 +103,6 @@ export function renderChart(points, now = new Date()) {
   ${ticks}
   <polyline points="${line}" fill="none" stroke="#e97435" stroke-width="3" stroke-linejoin="round"/>
   <circle cx="846" cy="${y(total)}" r="4" fill="#e97435"/>
-  <text x="76" y="448">Source: GitHub API · Current stars by date starred; removed stars excluded</text>
 </svg>
 `;
 }

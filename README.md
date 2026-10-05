@@ -149,5 +149,3 @@ MPE 项目没有单独的交流群，您可以在 MaaFramework 集成/开发交�
 - `2025.5`：[YaMaaPE](https://github.com/kqcoxn/YAMaaPE)（项目原型）
 
 [![Star History Chart](./.github/assets/readme/star-history.svg)](https://github.com/kqcoxn/MaaPipelineEditor/stargazers)
-
-图表每周更新，按当前仍保留的 Star 的添加日期累计，不包含已取消的 Star。
