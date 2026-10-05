@@ -131,11 +131,12 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.0.7",
-    date: "2026-10",
+    date: "2026-10-5",
     type: "perf",
     maafwVersion: "5.14.2",
     updates: {
       perfs: ["优化重载文件与切换文件时的视口定位"],
+      fixes: ["修复退出 lb 进程后 adb 残留的问题"],
     },
   },
   {

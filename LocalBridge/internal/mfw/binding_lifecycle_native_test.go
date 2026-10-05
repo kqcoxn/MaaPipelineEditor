@@ -73,7 +73,8 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 		t.Fatal(err)
 	}
 	cm, rm := NewControllerManager(), NewResourceManager()
-	cm.controllers["ctrl"] = &ControllerInfo{Controller: ctrl}
+	releases := 0
+	cm.controllers["ctrl"] = &ControllerInfo{Controller: ctrl, releaseADB: func() { releases++ }}
 	rm.resources["res"] = &ResourceInfo{Resource: res}
 	if err := cm.DisconnectController("ctrl"); !errors.Is(err, maa.ErrBound) {
 		t.Fatalf("disconnect bound controller: %v", err)
@@ -83,6 +84,9 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 	}
 	cm.DisconnectAll()
 	rm.UnloadAll()
+	if releases != 0 {
+		t.Fatal("released ADB while native controller remained bound")
+	}
 	if _, err := cm.GetController("ctrl"); err != nil {
 		t.Fatalf("lost bound controller: %v", err)
 	}
@@ -94,6 +98,9 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 	}
 	if err := cm.DisconnectController("ctrl"); err != nil {
 		t.Fatal(err)
+	}
+	if releases != 1 {
+		t.Fatalf("ADB released %d times after destruction", releases)
 	}
 	if err := rm.UnloadResource("res"); err != nil {
 		t.Fatal(err)

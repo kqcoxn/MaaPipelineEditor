@@ -7,6 +7,7 @@ import (
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/adbprocess"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
 
@@ -31,6 +32,8 @@ func (dm *DeviceManager) RefreshAdbDevices() ([]AdbDeviceInfo, error) {
 	logger.Debug("MFW", "开始刷新 ADB 设备列表")
 
 	// FindAdbDevices API
+	releaseADB := adbprocess.Acquire("")
+	defer releaseADB()
 	devices, err := maa.FindAdbDevices()
 	if err != nil {
 		return nil, fmt.Errorf("查找 ADB 设备失败: %w", err)

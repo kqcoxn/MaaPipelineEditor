@@ -13,6 +13,7 @@ import (
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/macos"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
 	"github.com/google/uuid"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/adbprocess"
 	mpeconfig "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
@@ -67,12 +68,15 @@ func (cm *ControllerManager) CreateAdbController(adbPath, address string, screen
 	logger.Info("MFW", "ADB 输入方式候选: %v", inputMethod)
 
 	// 创建 ADB 控制器
+	releaseADB := adbprocess.Acquire(adbPath)
 	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
 	if err != nil {
+		releaseADB()
 		return "", NewMFWError(ErrCodeControllerCreateFail, "failed to create adb controller: "+err.Error(), nil)
 	}
 
 	info := &ControllerInfo{
+		releaseADB:   releaseADB,
 		ControllerID: controllerID,
 		Type:         "ADB",
 		Controller:   ctrl,
@@ -490,6 +494,9 @@ func destroyController(info *ControllerInfo) error {
 			}
 			if err != nil {
 				logger.Warn("MFW", "销毁控制器失败: %v", err)
+			} else if info.releaseADB != nil {
+				info.releaseADB()
+				info.releaseADB = nil
 			}
 			return err
 		}

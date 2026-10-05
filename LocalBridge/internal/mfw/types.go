@@ -59,6 +59,7 @@ type ControllerInfo struct {
 	Warning        string    `json:"warning,omitempty"`
 	screenshotGate screenshotGate
 	lifecycleMu    sync.Mutex
+	releaseADB     func()
 }
 
 // 资源实例信息

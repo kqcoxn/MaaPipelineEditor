@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/adbprocess"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	debugapi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/debug/api"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/diagnostics"
@@ -162,6 +163,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 		fmt.Println(Version)
 		return nil
 	}
+	defer adbprocess.CleanupForExit()
 	exe, err := os.Executable()
 	if err != nil {
 		return err

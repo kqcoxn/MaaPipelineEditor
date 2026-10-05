@@ -14,6 +14,7 @@ import (
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/adb"
 	"github.com/MaaXYZ/maa-framework-go/v4/controller/win32"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/adbprocess"
 	mpeconfig "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/config"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/logger"
 )
@@ -39,6 +40,7 @@ type MaaFWAdapter struct {
 
 	// 所有权标记
 	ownsController bool // 是否拥有控制器（true=自己创建的，false=借用的共享控制器）
+	releaseADB     func()
 	ownsResource   bool // 是否拥有资源（true=自己创建的，false=借用的共享资源）
 
 	// 元信息
@@ -87,29 +89,38 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 
 	// 创建 ADB 控制器
 	agentPath := (&mpeconfig.Config{}).ResolvedMaaFWAgentDir()
+	releaseADB := adbprocess.Acquire(adbPath)
 	ctrl, err := maa.NewAdbController(adbPath, address, scMethod, inMethod, config, agentPath)
 	if err != nil {
+		releaseADB()
 		return fmt.Errorf("创建 ADB 控制器失败: %w", err)
 	}
+	retained := false
+	defer func() {
+		if !retained {
+			// 失败连接也必须等原生对象释放后才能回收它使用的 ADB。
+			go destroyController(&ControllerInfo{Controller: ctrl, releaseADB: releaseADB})
+		}
+	}()
 
 	// 连接
 	connectJob := ctrl.PostConnect()
 	if connectJob == nil {
-		ctrl.Destroy()
 		return fmt.Errorf("发起连接失败")
 	}
 
 	connectJob.Wait()
 	if !connectJob.Success() {
-		ctrl.Destroy()
 		return fmt.Errorf("连接失败: %v", connectJob.Status())
 	}
 
 	// 清理旧控制器
-	if a.controller != nil {
-		a.controller.Destroy()
+	if err := a.destroyOwnedController(); err != nil {
+		return err
 	}
 
+	retained = true
+	a.releaseADB = releaseADB
 	a.controller = ctrl
 	a.controllerConnected = true
 	a.ownsController = true
@@ -155,8 +166,9 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	}
 
 	// 清理旧控制器
-	if a.controller != nil {
-		a.controller.Destroy()
+	if err := a.destroyOwnedController(); err != nil {
+		_ = ctrl.Destroy()
+		return err
 	}
 
 	a.controller = ctrl
@@ -174,15 +186,20 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 func (a *MaaFWAdapter) SetController(ctrl *maa.Controller, ctrlType, deviceInfo string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	// 同一实例重复设置时保留原所有权及 ADB 引用。
+	ownsController := a.controller == ctrl && a.ownsController
 
 	// 如果之前有自己创建的控制器，需要销毁
 	if a.controller != nil && a.controller != ctrl && a.ownsController {
-		a.controller.Destroy()
+		if err := a.destroyOwnedController(); err != nil {
+			logger.Warn("MaaFW", "替换控制器失败: %v", err)
+			return
+		}
 	}
 
 	a.controller = ctrl
 	a.controllerConnected = ctrl != nil && ctrl.Connected()
-	a.ownsController = false
+	a.ownsController = ownsController
 	a.controllerType = ctrlType
 	a.deviceInfo = deviceInfo
 	a.screenshotter.SetController(ctrl)
@@ -851,11 +868,9 @@ func (a *MaaFWAdapter) Destroy() {
 	a.resourceLoaded = false
 
 	// 只销毁自己拥有的 Controller，借用的不销毁
-	if a.controller != nil && a.ownsController {
-		if err := a.controller.Destroy(); err != nil {
-			logger.Warn("MaaFW", "释放 Controller 失败: %v", err)
-			return
-		}
+	if err := a.destroyOwnedController(); err != nil {
+		logger.Warn("MaaFW", "释放 Controller 失败: %v", err)
+		return
 	}
 	a.controller = nil
 	a.controllerConnected = false
@@ -865,6 +880,21 @@ func (a *MaaFWAdapter) Destroy() {
 	a.screenshotter.SetController(nil)
 
 	logger.Debug("MaaFW", "MaaFW 适配器已销毁")
+}
+
+// 调用方持有 a.mu；原生销毁失败时保留 ADB 引用以便重试。
+func (a *MaaFWAdapter) destroyOwnedController() error {
+	if a.controller == nil || !a.ownsController {
+		return nil
+	}
+	if err := a.controller.Destroy(); err != nil {
+		return err
+	}
+	if a.releaseADB != nil {
+		a.releaseADB()
+		a.releaseADB = nil
+	}
+	return nil
 }
 
 // GetStatus 获取当前状态摘要
