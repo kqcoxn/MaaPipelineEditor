@@ -1,0 +1,56 @@
+/* Window actions live inside the right workspace, without a titlebar surface. */
+.window-drag-region {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 52px;
+  z-index: 1;
+}
+.window-controls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 0 0 0 10px;
+  background: #42464d99;
+  backdrop-filter: blur(12px);
+  color: #fff;
+}
+.theme-light .window-controls {
+  background: #e2e3e6b3;
+  color: #30343b;
+}
+.window-controls button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  outline-offset: -3px;
+}
+.window-controls svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+.window-controls button:hover:not(:disabled) {
+  background: #ffffff24;
+}
+.theme-light .window-controls button:hover:not(:disabled) {
+  background: #00000012;
+}
+.app .window-controls .window-close:hover:not(:disabled) {
+  background: #c42b3b;
+  color: #fff;
+}
+/* Keep scrolling page content below the actions inside the management panel. */
+.workspace > .management-main {
+  padding-top: 48px !important;
+  scroll-padding-top: 48px;
+}

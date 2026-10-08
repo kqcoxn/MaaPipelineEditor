@@ -19,6 +19,7 @@ import { SkyWorkflow } from "./components/SkyWorkflow";
 import { BackgroundAmbience } from "./components/BackgroundAmbience";
 import { AmbientMotes } from "./components/AmbientMotes";
 import { LaunchDock } from "./components/LaunchDock";
+import { WindowControls } from "./components/WindowControls";
 import { Button } from "./components/ui/button";
 import { Home, Projects, Engine, SettingsPage } from "./pages";
 import { Logs } from "./pages/Logs";
@@ -168,6 +169,7 @@ function App() {
         </div>
       </aside>
       <div className="workspace">
+        <WindowControls busy={m.busy} />
         <LauncherFeedback model={m} />
         <main
           key={page}

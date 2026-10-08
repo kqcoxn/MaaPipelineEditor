@@ -3,6 +3,7 @@
 @import "sonner/dist/styles.css";
 @import "./styles/base.css";
 @import "./styles/shell.css";
+@import "./styles/window-controls.css";
 @import "./styles/cards.css";
 @import "./styles/pages.css";
 @import "./styles/dock.css";

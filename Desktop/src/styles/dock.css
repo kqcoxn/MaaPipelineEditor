@@ -1,7 +1,7 @@
-/* Homepage launch bar: four aligned sections, each information block has two lines. */
+/* Homepage launch bar: status details wrap and the dock grows with its content. */
 .launch-dock {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr) 168px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.5fr) 168px;
   align-items: center;
   flex: none;
   column-gap: 20px;
@@ -83,8 +83,7 @@
   line-height: 21px;
 }
 .launch-version strong > span,
-.launch-status strong,
-.launch-status small {
+.launch-status strong {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -122,7 +121,11 @@
   line-height: 21px;
 }
 .launch-status small {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
   font-size: var(--font-body);
+  font-variant-numeric: tabular-nums;
   margin: 0;
   line-height: 1.5;
   color: var(--muted);
@@ -187,7 +190,7 @@
 @media (max-width: 1120px) {
   .launch-dock {
     grid-template-columns:
-      minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr)
+      minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.5fr)
       144px;
     column-gap: 12px;
     padding: 12px 16px;

@@ -141,6 +141,7 @@ export const updateLogs: UpdateLogItem[] = [
       perfs: [
         "新增正则显示与编辑方式配置项，可调整按原始正则或 JSON 正则书写",
         "优化自环结构展示效果",
+        "优化桌面端启动器样式与交互体验",
       ],
     },
   },
