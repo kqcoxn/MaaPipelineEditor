@@ -4,6 +4,7 @@ import type { Settings } from "../types";
 export const builtinBackgrounds = [
   { id: "cloud-harbor", label: "云海黄昏", src: "/backgrounds/cloud-harbor-v6.png" },
   { id: "block-workshop", label: "方块工坊", src: "/backgrounds/block-workshop.png" },
+  { id: "forest-signal-station", label: "林间信号站", src: "/backgrounds/forest-signal-station.png" },
 ] as const;
 
 export function useBackground(settings: Settings | undefined) {

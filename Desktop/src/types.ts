@@ -12,7 +12,7 @@ export type Settings = {
   theme: string;
   background: boolean;
   backgroundMode: "carousel" | "random" | "fixed";
-  fixedBackground: "cloud-harbor" | "block-workshop";
+  fixedBackground: "cloud-harbor" | "block-workshop" | "forest-signal-station";
   ambientAnimations: boolean;
 };
 export type Snapshot = {

@@ -17,6 +17,7 @@ pub enum BuiltinBackground {
     #[default]
     CloudHarbor,
     BlockWorkshop,
+    ForestSignalStation,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

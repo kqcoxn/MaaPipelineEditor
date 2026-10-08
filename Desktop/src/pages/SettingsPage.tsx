@@ -170,8 +170,8 @@ export function SettingsPage({ model: m }: { model: Model }) {
               value={s.fixedBackground}
               disabled={m.busy}
               onValueChange={(value) => {
-                if (value === "cloud-harbor" || value === "block-workshop")
-                  void m.save({ fixedBackground: value });
+                const background = builtinBackgrounds.find(({ id }) => id === value);
+                if (background) void m.save({ fixedBackground: background.id });
               }}
             >
               <SelectTrigger className="theme-select" aria-labelledby="fixed-background-label">
