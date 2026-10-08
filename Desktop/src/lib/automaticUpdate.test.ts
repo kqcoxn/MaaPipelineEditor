@@ -262,23 +262,55 @@ describe("independent update preferences", () => {
       },
     );
     expect(completed).toEqual([
-      ...(mpe ? ["mpe"] : []),
       ...(desktop ? ["desktop"] : []),
+      ...(mpe ? ["mpe"] : []),
     ]);
   });
-  it("checks Desktop after MPE failure and targets newly enabled preferences only", async () => {
+  it("checks MPE after Desktop failure", async () => {
     const completed: string[] = [];
     const environment = async () => {
-      throw new Error("download failed");
+      completed.push("mpe");
     };
     const desktop = async () => {
       completed.push("desktop");
+      throw new Error("download failed");
     };
     await expect(
       runAutomaticUpdates(snapshot(), environment, desktop),
     ).rejects.toThrow("download failed");
-    await runAutomaticUpdates(snapshot(), environment, desktop, "desktop");
-    expect(completed).toEqual(["desktop", "desktop"]);
+    expect(completed).toEqual(["desktop", "mpe"]);
+  });
+  it.each(["mpe", "desktop"] as const)("only checks the requested %s target", async (target) => {
+    const completed: string[] = [];
+    await runAutomaticUpdates(
+      snapshot(),
+      async () => { completed.push("mpe"); },
+      async () => { completed.push("desktop"); },
+      target,
+    );
+    expect(completed).toEqual([target]);
+  });
+  it("waits for Desktop to finish before checking and installing MPE", async () => {
+    let finish!: () => void;
+    const desktop = new Promise<void>(resolve => { finish = resolve; });
+    const installed: string[] = [];
+    vi.mocked(invoke).mockReset();
+    vi.mocked(invoke).mockImplementation(async (command, args) => {
+      if (command === "release_versions") return result();
+      const { version } = args as { version: string };
+      installed.push(version);
+      return { ...snapshot().environment, version };
+    });
+    const pending = runAutomaticUpdates(
+      snapshot(),
+      () => updateEnvironment(snapshot(), () => {}, () => {}),
+      () => desktop,
+    );
+    await Promise.resolve();
+    expect(invoke).not.toHaveBeenCalled();
+    finish();
+    await pending;
+    expect(installed).toEqual(["2.0.1"]);
   });
   it("keeps MPE discovery during editing without updating Desktop", async () => {
     const state = snapshot();
@@ -314,9 +346,21 @@ describe("cancelling version checks", () => {
     expect(vi.mocked(invoke).mock.calls.map(([command]) => command)).toEqual(["release_versions"]);
   });
 
-  it("does not continue to desktop updates after cancellation", async () => {
+  it("does not start either check when already cancelled", async () => {
+    const environment = vi.fn();
     const desktop = vi.fn();
-    await runAutomaticUpdates(snapshot(), async () => {}, desktop, "all", () => true);
+    await runAutomaticUpdates(snapshot(), environment, desktop, "all", () => true);
     expect(desktop).not.toHaveBeenCalled();
+    expect(environment).not.toHaveBeenCalled();
+  });
+
+  it("does not continue to MPE updates after cancelling the Desktop check", async () => {
+    let cancelled = false;
+    const environment = vi.fn();
+    await runAutomaticUpdates(
+      snapshot(), environment, async () => { cancelled = true; },
+      "all", () => cancelled,
+    );
+    expect(environment).not.toHaveBeenCalled();
   });
 });

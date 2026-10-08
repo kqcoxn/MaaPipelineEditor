@@ -101,13 +101,8 @@ export async function runAutomaticUpdates(
   cancelled: () => boolean = () => false,
 ) {
   const failures: unknown[] = [];
-  if (target !== "desktop" && s.settings.autoCheckMpe) {
-    try {
-      await environment();
-    } catch (error) {
-      failures.push(error);
-    }
-  }
+  // Upgrade the host first so environment installation uses its latest logic.
+  // A successful desktop update restarts the app without returning here.
   if (
     !cancelled() &&
     target !== "mpe" &&
@@ -118,6 +113,13 @@ export async function runAutomaticUpdates(
   ) {
     try {
       await desktop();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (!cancelled() && target !== "desktop" && s.settings.autoCheckMpe) {
+    try {
+      await environment();
     } catch (error) {
       failures.push(error);
     }
