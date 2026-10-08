@@ -117,13 +117,13 @@ export const longTermPreview: ForecastSection = {
 };
 
 export const nextPreview: ForecastSection = {
-  title: "Next Version 至 v2.1.0",
+  title: "Next Version 至 v2.2.0",
   notice: "预告内容会随开发进度与实际需求调整，不代表最终承诺。",
   items: [
     {
-      theme: "PI",
-      title: "interface 功能优化",
-      description: "深度集成 interface",
+      theme: "随缘更新",
+      title: "随缘更新",
+      description: "如有需求请在群内或 issue 反馈",
     },
   ],
 };
