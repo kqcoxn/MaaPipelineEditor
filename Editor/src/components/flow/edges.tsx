@@ -6,9 +6,11 @@ import {
   BaseEdge,
   type EdgeProps,
   useReactFlow,
+  useStore,
   getSmoothStepPath,
   Position,
 } from "@xyflow/react";
+import { getSelfLoopPath } from "../../core/selfLoopPath";
 import classNames from "classnames";
 import { StableEdgeLabelRenderer } from "./StableEdgeLabelRenderer";
 
@@ -298,6 +300,13 @@ function MarkedEdge(props: EdgeProps) {
   const { beginCanvasMotionPause, endCanvasMotionPause } =
     useCanvasMotionContext();
 
+  const isSelfLoop = props.source === props.target;
+  // 仅自环订阅自身节点尺寸，确保折叠、调整大小和分组移动后仍绕过卡片。
+  const loopNode = useStore(useCallback(
+    (state) => isSelfLoop ? state.nodeLookup.get(props.source) : undefined,
+    [isSelfLoop, props.source],
+  ));
+
   const actualSourcePosition = props.sourcePosition.toLowerCase();
   const actualTargetPosition = props.targetPosition.toLowerCase();
 
@@ -327,6 +336,25 @@ function MarkedEdge(props: EdgeProps) {
 
   // 计算边的路径
   const [edgePath, labelX, labelY] = useMemo(() => {
+    if (isSelfLoop && loopNode) {
+      const { x, y } = loopNode.internals.positionAbsolute;
+      const result = getSelfLoopPath({
+        source: { x: props.sourceX, y: props.sourceY },
+        target: { x: props.targetX, y: props.targetY },
+        sourcePosition: actualSourcePosition,
+        bounds: {
+          minX: x, minY: y,
+          maxX: x + (loopNode.measured.width ?? loopNode.width ?? 200),
+          maxY: y + (loopNode.measured.height ?? loopNode.height ?? 100),
+        },
+        error: props.sourceHandleId === SourceHandleTypeEnum.Error,
+        jumpBack: props.targetHandleId === TargetHandleTypeEnum.JumpBack,
+        radius: edgePathMode === "smoothstep" ? 0 : 8,
+        offset: edgePathMode === "bezier" ? controlOffset : undefined,
+      });
+      return [result.path, result.labelX, result.labelY];
+    }
+
     // 避让模式：使用避让路径算法
     if (edgePathMode === "avoid") {
       return getAvoidanceEdgePath({
@@ -379,6 +407,10 @@ function MarkedEdge(props: EdgeProps) {
       targetPosition: actualTargetPosition,
     });
   }, [
+    isSelfLoop,
+    loopNode,
+    props.sourceHandleId,
+    props.targetHandleId,
     props.sourceX,
     props.sourceY,
     props.targetX,

@@ -294,7 +294,7 @@ function testPath(
  * @param points 路径点数组
  * @param cornerRadius 转角圆角半径
  */
-function buildPathString(points: Point[], cornerRadius: number): string {
+export function buildPathString(points: Point[], cornerRadius: number): string {
   if (points.length === 0) return "";
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
   if (points.length === 2)
