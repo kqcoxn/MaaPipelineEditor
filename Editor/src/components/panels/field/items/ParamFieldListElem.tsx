@@ -1,7 +1,7 @@
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import style from "../../../../styles/panels/FieldPanel.module.less";
 import { memo, useState, useCallback, useMemo } from "react";
-import { Popover, Input, InputNumber, Select, Switch } from "antd";
+import { Button, Popover, Input, InputNumber, Select, Switch } from "antd";
 import IconFont, { type IconNames } from "../../../iconfonts";
 import type { ParamType } from "../../../../stores/flow";
 import type { FieldType } from "../../../../core/fields";
@@ -9,6 +9,8 @@ import { FieldTypeEnum } from "../../../../core/fields";
 import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { LazyFeature } from "../../../async/LazyFeature";
 import { ListValueElem } from "./ListValueElem";
+import { TimeInput } from "./TimeInput";
+import { ListPasteButton } from "./ListPasteButton";
 import { FieldTextArea } from "./FieldTextArea";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
@@ -628,11 +630,15 @@ export const ParamFieldListElem = memo(
               paramType,
               type.step,
               renderQuickTool,
+              type,
             );
             break;
           // 整型
           case FieldTypeEnum.Int:
-            InputElem = (
+            InputElem = type.unit === "ms" ? (
+              <TimeInput className={style.value} value={value} label={key}
+                allowNegativeOne={type.allowNegativeOne} onCommit={(next) => onChange(key, next)} />
+            ) : (
               <InputNumber
                 className={style.value}
                 value={value}
@@ -690,6 +696,16 @@ export const ParamFieldListElem = memo(
               />
             );
         }
+      }
+      if (isListType) {
+        InputElem = <div style={{ flex: 1, minWidth: 0 }}>
+          {InputElem}
+          <div style={{ marginLeft: 12 }}>
+            {Array.isArray(value) && value.length === 0 && <Button type="text" size="small"
+              aria-label={`${key} 添加一项`} onClick={() => onListChange(key, [structuredClone(normalizeFieldList(type.default, paramType)[0] ?? "")])}>添加一项</Button>}
+            <ListPasteButton field={type} onApply={(next) => onListChange(key, next)} />
+          </div>
+        </div>;
       }
       // 使用 displayName 或 key 作为显示名称
       const displayText = type.displayName || key;

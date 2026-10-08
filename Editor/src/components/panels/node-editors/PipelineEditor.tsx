@@ -1,7 +1,7 @@
 import { modal } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/FieldPanel.module.less";
 import { memo, useMemo, useCallback, lazy, Suspense } from "react";
-import { Popover, Input, Select, Spin, InputNumber } from "antd";
+import { Popover, Input, Select, Spin } from "antd";
 import classNames from "classnames";
 import IconFont from "../../iconfonts";
 import { useFlowStore, type PipelineNodeType } from "../../../stores/flow";
@@ -14,6 +14,7 @@ import {
 } from "../../../core/fields";
 import { mergeFieldSortConfig } from "../../../core/sorting";
 import { JsonHelper } from "../../../utils/data/jsonHelper";
+import { TimeInput } from "../field/items/TimeInput";
 import { AddFieldElem, ParamFieldListElem } from "../field/items";
 
 const { TextArea } = Input;
@@ -562,17 +563,8 @@ export const PipelineEditor = lazy(() =>
                 ) : (
                   <>
                     <div className={style.value}>
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                        value={
-                          typeof currentPreWaitFreezes === "number"
-                            ? currentPreWaitFreezes
-                            : 0
-                        }
-                        onChange={(value) =>
-                          handleWaitFreezesIntChange("pre_wait_freezes", value)
-                        }
+                      <TimeInput label="pre_wait_freezes" value={currentPreWaitFreezes}
+                        onCommit={(value) => handleWaitFreezesIntChange("pre_wait_freezes", value)}
                       />
                     </div>
                     {currentNode && otherFieldSchema.preWaitFreezes.params ? (
@@ -666,17 +658,8 @@ export const PipelineEditor = lazy(() =>
                 ) : (
                   <>
                     <div className={style.value}>
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                        value={
-                          typeof currentPostWaitFreezes === "number"
-                            ? currentPostWaitFreezes
-                            : 0
-                        }
-                        onChange={(value) =>
-                          handleWaitFreezesIntChange("post_wait_freezes", value)
-                        }
+                      <TimeInput label="post_wait_freezes" value={currentPostWaitFreezes}
+                        onCommit={(value) => handleWaitFreezesIntChange("post_wait_freezes", value)}
                       />
                     </div>
                     {currentNode && otherFieldSchema.postWaitFreezes.params ? (
@@ -778,20 +761,8 @@ export const PipelineEditor = lazy(() =>
                 ) : (
                   <>
                     <div className={style.value}>
-                      <InputNumber
-                        style={{ width: "100%" }}
-                        placeholder="等待时间(毫秒)，或点击右侧添加详细参数"
-                        value={
-                          typeof currentRepeatWaitFreezes === "number"
-                            ? currentRepeatWaitFreezes
-                            : 0
-                        }
-                        onChange={(value) =>
-                          handleWaitFreezesIntChange(
-                            "repeat_wait_freezes",
-                            value,
-                          )
-                        }
+                      <TimeInput label="repeat_wait_freezes" value={currentRepeatWaitFreezes}
+                        onCommit={(value) => handleWaitFreezesIntChange("repeat_wait_freezes", value)}
                       />
                     </div>
                     {currentNode &&

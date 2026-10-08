@@ -2,6 +2,8 @@ import style from "../../../../styles/panels/FieldPanel.module.less";
 import { InputNumber } from "antd";
 import IconFont from "../../../iconfonts";
 import type { ReactNode } from "react";
+import { TimeInput } from "./TimeInput";
+import type { FieldType } from "../../../../core/fields";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { normalizeFieldList } from "./fieldValueUtils";
 import { RegexTextArea } from "./RegexTextArea";
@@ -16,6 +18,7 @@ export function ListValueElem(
   placeholder = "list",
   step = 0,
   quickToolRender?: (key: string, index: number) => ReactNode,
+  field?: FieldType,
 ) {
   valueList = normalizeFieldList(valueList, placeholder);
   const ListValue = valueList.map((value, index) => {
@@ -28,7 +31,10 @@ export function ListValueElem(
 
     // 输入框元素
     const inputElement =
-      step > 0 ? (
+      field?.unit === "ms" ? (
+        <TimeInput value={value} label={`${key} 第 ${index + 1} 项`} allowNegativeOne={field.allowNegativeOne}
+          onCommit={(next) => { const list = [...valueList]; list[index] = next; onChange(key, list); }} />
+      ) : step > 0 ? (
         <InputNumber
           placeholder={placeholder}
           style={{ flex: 1 }}

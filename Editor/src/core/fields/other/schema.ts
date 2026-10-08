@@ -7,6 +7,7 @@ import type { FieldType } from "../types";
 export const otherFieldSchema: Record<string, FieldType> = {
   rateLimit: {
     key: "rate_limit",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 1000,
     step: 500,
@@ -14,6 +15,8 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   timeout: {
     key: "timeout",
+    unit: "ms",
+    allowNegativeOne: true,
     type: FieldTypeEnum.Int,
     default: 20000,
     step: 1000,
@@ -45,6 +48,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   preDelay: {
     key: "pre_delay",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 0,
     step: 100,
@@ -52,6 +56,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   postDelay: {
     key: "post_delay",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 0,
     step: 100,
@@ -59,12 +64,14 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   preWaitFreezes: {
     key: "pre_wait_freezes",
+    unit: "ms",
     type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
     default: 0,
     desc: "识别到 到 执行动作前，等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 连续 pre_wait_freezes 毫秒 画面 没有较大变化 才会退出动作。 若为 object，可设置更多参数，详见 等待画面静止。 具体的顺序为 pre_wait_freezes - pre_delay - action - post_wait_freezes - post_delay 。",
     params: [
       {
         key: "time",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1,
         desc: "连续 time 毫秒画面没有较大变化才会退出动作。可选，默认 1。",
@@ -101,6 +108,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "rate_limit",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1000,
         step: 500,
@@ -109,6 +117,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "timeout",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 20000,
         step: 1000,
@@ -119,12 +128,14 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   postWaitFreezes: {
     key: "post_wait_freezes",
+    unit: "ms",
     type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
     default: 0,
     desc: "行动动作后 到 识别 next，等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 连续 pre_wait_freezes 毫秒 画面 没有较大变化 才会退出动作。 若为 object，可设置更多参数，详见 等待画面静止。 具体的顺序为 pre_wait_freezes - pre_delay - action - post_wait_freezes - post_delay 。",
     params: [
       {
         key: "time",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1,
         desc: "连续 time 毫秒画面没有较大变化才会退出动作。可选，默认 1。",
@@ -161,6 +172,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "rate_limit",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1000,
         step: 500,
@@ -169,6 +181,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "timeout",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 20000,
         step: 1000,
@@ -266,18 +279,21 @@ export const otherFieldSchema: Record<string, FieldType> = {
   },
   repeatDelay: {
     key: "repeat_delay",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 200,
     desc: "每次重复动作之间的延迟，毫秒。可选，默认 0 。 仅当 repeat > 1 时生效，在第二次及之后的每次动作执行前等待。",
   },
   repeatWaitFreezes: {
     key: "repeat_wait_freezes",
+    unit: "ms",
     type: [FieldTypeEnum.Int, FieldTypeEnum.Any],
     default: 200,
     desc: "每次重复动作之间等待画面不动了的时间，毫秒。可选，默认 0 ，即不等待。 仅当 repeat > 1 时生效，在第二次及之后的每次动作执行前等待画面静止。 若为 object，可设置更多参数，详见 等待画面静止。",
     params: [
       {
         key: "time",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1,
         desc: "连续 time 毫秒画面没有较大变化才会退出动作。可选，默认 1。",
@@ -314,6 +330,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "rate_limit",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 1000,
         step: 500,
@@ -322,6 +339,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
       },
       {
         key: "timeout",
+        unit: "ms",
         type: FieldTypeEnum.Int,
         default: 20000,
         step: 1000,

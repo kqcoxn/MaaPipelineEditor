@@ -14,7 +14,7 @@ it.each([
 ] as const)("%s / %s 文件导入、只改 ROI、重复保存不改变正则", async (mode, version) => {
   useConfigStore.setState({ configs: { ...configs, regexInputMode: mode, pipelineProtocolVersion: version } });
   const expected = [String.raw`(^|\D)0次`, String.raw`\\d+`, '"引号"\n'];
-  for (const replace of [[String.raw`\d+`, "$1"], [[String.raw`\d+`, String.raw`\path`], ["a,b", '"c"']]]) {
+  for (const replace of [[String.raw`\d+`, "$1"], [[String.raw`\d+`, String.raw`\path`], ["a,b， [c d]", '"c" “文本”']]]) {
     const param = { expected, replace, roi: [1,2,3,4] };
     let source = JSON.stringify({ Start: { ...(version === "v1" ? { recognition: "OCR", ...param } : { recognition: { type: "OCR", param } }), $__mpe_code: { position: { x: 0, y: 0 } } } });
     for (let round = 0; round < 3; round++) {

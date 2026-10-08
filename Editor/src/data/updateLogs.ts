@@ -135,6 +135,7 @@ export const updateLogs: UpdateLogItem[] = [
     type: "feature",
     maafwVersion: "5.14.2",
     updates: {
+      features: ["🍬 新增时间与数组粘贴语法糖，整理已有语法，详见[文档](https://mpe.codax.site/docs/guide/trait/parser.html#%E8%AF%AD%E6%B3%95%E7%B3%96)"],
       perfs: ["新增正则显示与编辑方式配置项，可调整按原始正则或 JSON 正则书写"],
     },
   },

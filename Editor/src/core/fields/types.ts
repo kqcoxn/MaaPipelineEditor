@@ -10,6 +10,8 @@ export type FieldType = {
   options?: any[];
   default: any;
   step?: number;
+  unit?: "ms";
+  allowNegativeOne?: boolean;
   desc: string;
   params?: FieldType[];  // 子字段参数列表,用于支持结构化字段(如 focus)
   displayName?: string;  // UI 显示名称,用于显示缩写

@@ -1,31 +1,14 @@
+import { parseIntegerList } from "../../../../core/parser/numericList";
+import { normalizeFieldList } from "../../../../core/fields/listValues";
+export { normalizeFieldList } from "../../../../core/fields/listValues";
 import { FieldTypeEnum } from "../../../../core/fields";
-
-/** 列表中的颜色、坐标数组应作为一个完整的值。 */
-export function normalizeFieldList(value: unknown, type: string): unknown[] {
-  if (!Array.isArray(value)) return [value];
-  if (type === FieldTypeEnum.StringPairList && value.length === 2 && value.every((item) => typeof item === "string")) return [value];
-  if (
-    (type === FieldTypeEnum.IntListList ||
-      type === FieldTypeEnum.XYWHList ||
-      type === FieldTypeEnum.PositionList) &&
-    value.length > 0 &&
-    value.every((item) => typeof item === "number")
-  ) {
-    return [value];
-  }
-  return value;
-}
 
 /** 将固定坐标（含文本输入）转换为工具使用的矩形，不解析节点引用。 */
 export function parseROIValue(
   value: unknown,
 ): [number, number, number, number] | undefined {
-  const numbers = typeof value === "string"
-    ? value.replace(/[\s[\]]/g, "").split(/[,，]/).map(Number)
-    : value;
-  if (!Array.isArray(numbers) || !numbers.every(Number.isInteger)) {
-    return undefined;
-  }
+  const numbers = parseIntegerList(value);
+  if (!numbers) return undefined;
   if (numbers.length === 2) return [numbers[0], numbers[1], 1, 1];
   if (numbers.length === 4) {
     return numbers as [number, number, number, number];

@@ -44,6 +44,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   longPressDuration: {
     key: "duration",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 1000,
     step: 100,
@@ -88,6 +89,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   swipeDuration: {
     key: "duration",
+    unit: "ms",
     type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
     default: [1000],
     step: 100,
@@ -95,6 +97,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   endHold: {
     key: "end_hold",
+    unit: "ms",
     type: [FieldTypeEnum.IntList, FieldTypeEnum.Int],
     default: [200],
     step: 100,
@@ -188,6 +191,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   longPressKeyDuration: {
     key: "duration",
+    unit: "ms",
     type: FieldTypeEnum.Int,
     default: 1000,
     step: 100,
@@ -247,6 +251,8 @@ export const actionFieldSchema: Record<string, FieldType> = {
   },
   shellTimeout: {
     key: "shell_timeout",
+    unit: "ms",
+    allowNegativeOne: true,
     type: FieldTypeEnum.Int,
     default: 20000,
     step: 1000,

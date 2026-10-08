@@ -85,7 +85,7 @@ export function parsePipelineNodeForExport(
   const extras = JsonHelper.isObj(fNodeData.extras)
     ? fNodeData.extras
     : (JsonHelper.stringObjToJson(
-        String(fNodeData.extras).replaceAll(/[""]/g, `"`),
+        String(fNodeData.extras),
       ) ?? {});
 
   // 检查是否导出默认识别/动作

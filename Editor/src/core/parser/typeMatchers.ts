@@ -1,20 +1,12 @@
 import { notification } from "@/utils/ui/antdAppApi";
 
-import { flatten } from "lodash";
 import type { ParamType } from "./types";
 import { FieldTypeEnum, type FieldType } from "../fields";
 import { JsonHelper } from "../../utils/data/jsonHelper";
 
-/**
- * 纯化字符串列表
- * @param list 待处理的列表
- * @returns 字符串数组
- */
-function pureStringList(list: any): string[] {
-  return String(list)
-    .replace(/[\s[\]]/g, "")
-    .split(/[,，]/);
-}
+import { normalizeFieldList } from "../fields/listValues";
+import { normalizeDurationField } from "./duration";
+import { parseIntegerList, parseNumericList } from "./numericList";
 
 /**
  * 单个类型匹配器
@@ -73,48 +65,23 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       case FieldTypeEnum.ImagePath:
         return String(value);
 
-      // 整型数组
+      // 数值列表：仅解析完整的数值输入，不拆分字符串字段。
       case FieldTypeEnum.IntList:
-        if (Array.isArray(value)) {
-          temp = value.map((item) => Number(item));
-          if (temp.every((n) => Number.isInteger(n))) {
-            return temp;
-          }
-        }
-        break;
+        return parseIntegerList(value);
 
-      // 二维整型数组
       case FieldTypeEnum.IntListList:
         if (Array.isArray(value)) {
-          const number2DList: any[] = [];
-          let length = 0;
-          for (const list of value) {
-            temp = pureStringList(list).map((c) => Number(c));
-            if (length === 0) length = temp.length;
-            if (
-              temp.length !== length ||
-              temp.some((n) => !Number.isInteger(n))
-            ) {
-              length = 0;
-              break;
-            }
-            number2DList.push(temp);
-          }
-          if (length > 0) {
-            return length === 1 ? flatten(number2DList) : number2DList;
+          const flat = parseIntegerList(value);
+          if (flat) return flat;
+          const rows = value.map(parseIntegerList);
+          if (rows.every((row) => row !== null && row.length > 0 && row.length === rows[0]?.length)) {
+            return rows;
           }
         }
         break;
 
-      // 浮点数数组
       case FieldTypeEnum.DoubleList:
-        if (Array.isArray(value)) {
-          temp = value.map((item) => Number(item));
-          if (temp.every((n) => !Number.isNaN(n))) {
-            return temp;
-          }
-        }
-        break;
+        return parseNumericList(value);
 
       // 字符串数组
       case FieldTypeEnum.StringList:
@@ -126,8 +93,8 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 
       // XYWH
       case FieldTypeEnum.XYWH:
-        temp = pureStringList(value).map((c) => Number(c));
-        if (temp.length === 4 && temp.every((n) => Number.isInteger(n))) {
+        temp = parseIntegerList(value);
+        if (temp?.length === 4) {
           return temp;
         }
         break;
@@ -135,17 +102,12 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       // XYWH数组
       case FieldTypeEnum.XYWHList:
         if (Array.isArray(value)) {
-          // [x,y,w,h] -> [[x,y,w,h]]
-          const allInt = value.every((n) => Number.isInteger(Number(n)));
-          if (value.length === 4 && allInt) {
-            return [value.map((n) => Number(n))];
-          }
           // 每一项为 XYWH
           const list: any[] = [];
           let ok = true;
-          for (const item of value) {
-            const nums = pureStringList(item).map((c) => Number(c));
-            if (nums.length === 4 && nums.every((n) => Number.isInteger(n)))
+          for (const item of normalizeFieldList(value, type)) {
+            const nums = parseIntegerList(item);
+            if (nums?.length === 4)
               list.push(nums);
             else {
               ok = false;
@@ -155,8 +117,8 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
           if (ok) return list;
         } else {
           // XYWH 字符串
-          const nums = pureStringList(value).map((c) => Number(c));
-          if (nums.length === 4 && nums.every((n) => Number.isInteger(n))) {
+          const nums = parseIntegerList(value);
+          if (nums?.length === 4) {
             return [nums];
           }
         }
@@ -168,22 +130,17 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
           // true
           if (pos === true || String(pos) === "true") return true;
           // [x,y,w,h] or [x,y]
-          const nums = pureStringList(pos).map((c) => Number(c));
+          const nums = parseIntegerList(pos);
           if (
-            (nums.length === 4 || nums.length === 2) &&
-            nums.every((n) => Number.isInteger(n))
+            nums && (nums.length === 4 || nums.length === 2)
           )
             return nums;
           // label string
           return String(pos);
         };
         if (Array.isArray(value)) {
-          const allInt = value.every((n) => Number.isInteger(Number(n)));
-          if ((value.length === 4 || value.length === 2) && allInt) {
-            return [value.map((n) => Number(n))];
-          }
           const list: any[] = [];
-          for (const item of value) {
+          for (const item of normalizeFieldList(value, type)) {
             list.push(buildPosition(item));
           }
           return list;
@@ -194,41 +151,26 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
 
       // 整型键值对
       case FieldTypeEnum.IntPair:
-        temp = pureStringList(value).map((c) => Number(c));
-        if (temp.length === 2 && temp.every((n) => Number.isInteger(n))) {
+        temp = parseIntegerList(value);
+        if (temp?.length === 2) {
           return temp;
         }
         break;
 
-      // 键值对
+      // 字符串键值对必须保持明确的数组结构，内容原样保留。
       case FieldTypeEnum.StringPair:
-        temp = String(value)
-          .replaceAll(/[" [\]]/g, "")
-          .split(",");
-        if (temp.length === 2) {
-          return temp;
+        if (Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "string")) {
+          return [...value];
         }
         break;
 
-      // 键值对数组
       case FieldTypeEnum.StringPairList:
         if (Array.isArray(value)) {
-          // 协议允许单条 [pattern, replacement]，不把它误当成两条规则。
+          // 框架允许单条 [pattern, replacement]。
           if (value.length === 2 && value.every((item) => typeof item === "string")) return [...value];
-          const stringPairList: any[] = [];
-          for (const pair of value) {
-            if (Array.isArray(pair) && pair.length === 2) {
-              stringPairList.push(pair.map((s) => String(s)));
-              continue;
-            }
-            temp = String(pair)
-              .replaceAll(/[" [\]]/g, "")
-              .split(",");
-            if (temp.length === 2) {
-              stringPairList.push(temp);
-            }
+          if (value.every((pair) => Array.isArray(pair) && pair.length === 2 && pair.every((item) => typeof item === "string"))) {
+            return value.map((pair) => [...pair]);
           }
-          return stringPairList;
         }
         break;
 
@@ -236,7 +178,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       case FieldTypeEnum.Any:
         if (JsonHelper.isObj(value)) return value;
         else {
-          temp = String(value).replaceAll(/[""]/g, `"`);
+          temp = String(value);
           return JsonHelper.stringObjToJson(temp) ?? temp;
         }
 
@@ -247,7 +189,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
           for (const obj of value) {
             if (JsonHelper.isObj(obj)) objList.push(obj);
             else {
-              temp = String(obj).replaceAll(/[""]/g, `"`);
+              temp = String(obj);
               if (JsonHelper.isStringObj(temp)) {
                 objList.push(JsonHelper.stringObjToJson(temp));
               }
@@ -272,7 +214,7 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
             else {
               const str = String(item);
               // 尝试解析为 JSON 对象
-              temp = str.replaceAll(/[""]/g, `"`);
+              temp = str;
               if (JsonHelper.isStringObj(temp)) {
                 mixedList.push(JsonHelper.stringObjToJson(temp));
               } else {
@@ -322,11 +264,13 @@ export function matchParamType(
 
     // 匹配参数类型
     const typeList = Array.isArray(type.type) ? type.type : [type.type];
-    const value = params[key];
+    const rawValue = params[key];
+    const value = type.unit === "ms" ? normalizeDurationField(rawValue, type) : rawValue;
     let matchedValue = null;
 
     // 尝试所有可能的类型
     for (const fieldType of typeList) {
+      if (type.unit === "ms" && value === null) break;
       if (matchedValue !== null) break;
       matchedValue = matchSingleType(value, fieldType);
     }
@@ -337,7 +281,7 @@ export function matchParamType(
       // 类型匹配失败
       if (skipValidation) {
         // 跳过校验时保留原始值
-        matchedDatas[key] = value;
+        matchedDatas[key] = rawValue;
       } else {
         // 显示错误通知
         notification.error({

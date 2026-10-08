@@ -230,3 +230,22 @@ describe("字段快捷工具的选择与回填", () => {
     expect(onChange).toHaveBeenCalledExactlyOnceWith("dy", 25);
   });
 });
+
+
+it("空列表可恢复默认复合项，时间列表可输入秒并提交毫秒", () => {
+  let stored: unknown;
+  function Editor() {
+    const [param, setParam] = useState<unknown[]>([]);
+    const paramData: Record<string, unknown> = { duration: param };
+    return <ParamFieldListElem paramData={paramData} paramType={[actionFieldSchema.swipeDuration]}
+      onChange={vi.fn()} onDelete={vi.fn()} onListAdd={vi.fn()} onListDelete={vi.fn()}
+      onListChange={(_key, next) => { stored = next; setParam(next); }} />;
+  }
+  render(<Editor />);
+  fireEvent.click(screen.getByRole("button", { name: "duration 添加一项" }));
+  expect(stored).toEqual([1000]);
+  const input = screen.getByRole("textbox", { name: "duration 第 1 项（毫秒）" });
+  fireEvent.change(input, { target: { value: "1.5s" } });
+  fireEvent.blur(input);
+  expect(stored).toEqual([1500]);
+});
