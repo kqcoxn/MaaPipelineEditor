@@ -3,7 +3,7 @@ use std::{
     process::Child,
     sync::{
         atomic::{AtomicBool, AtomicU64, Ordering},
-        Mutex,
+        Arc, Mutex,
     },
 };
 pub struct Session {
@@ -19,7 +19,7 @@ pub struct State {
     pub settings: Mutex<Settings>,
     pub session: Mutex<Option<Session>>,
     pub busy: AtomicBool,
-    pub update_check: Mutex<Option<tokio::sync::oneshot::Sender<()>>>,
+    pub update_cancel: Mutex<Option<Arc<crate::update_cancel::Cancellation>>>,
     pub closing: AtomicBool,
     pub exiting: AtomicBool,
     pub heartbeat: AtomicU64,
@@ -30,7 +30,7 @@ impl State {
             settings: Mutex::new(settings),
             session: Mutex::new(None),
             busy: AtomicBool::new(false),
-            update_check: Mutex::new(None),
+            update_cancel: Mutex::new(None),
             closing: AtomicBool::new(false),
             exiting: AtomicBool::new(false),
             heartbeat: AtomicU64::new(0),

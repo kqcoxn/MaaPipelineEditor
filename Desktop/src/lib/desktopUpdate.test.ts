@@ -22,7 +22,7 @@ describe("desktop update progress", () => {
         onProgress: { onmessage: (event: unknown) => void };
       };
       for (const event of [
-        { phase: "downloading", downloaded: 0 },
+        { phase: "downloading", downloaded: 0, cancellable: true },
         {
           phase: "downloading",
           downloaded: 512,
@@ -32,7 +32,7 @@ describe("desktop update progress", () => {
         },
         { phase: "downloading", downloaded: 1024, total: null },
         { phase: "verifying" },
-        { phase: "installing" },
+        { phase: "installing", cancellable: false },
       ])
         onProgress.onmessage({ artifact: "desktop", ...event });
       return "完成";
@@ -41,6 +41,7 @@ describe("desktop update progress", () => {
       "完成",
     );
     expect(states[0].text).toContain("等待下载响应");
+    expect(states[0].cancellable).toBe(true);
     expect(states[1]).toEqual({
       text: "MPE Desktop：512.0 B / 1.0 KiB（50.0%） · 256.0 B/s · 已用 2s",
       download: { label: "MPE Desktop下载进度", percent: 50 },
@@ -50,6 +51,7 @@ describe("desktop update progress", () => {
     expect(states[3]).toEqual({ text: "MPE Desktop 下载完成，正在校验更新包" });
     expect(states[4]).toEqual({
       text: "正在安装 MPE Desktop，安装完成后将重启",
+      cancellable: false,
     });
   });
 

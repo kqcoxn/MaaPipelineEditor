@@ -3,7 +3,11 @@ export type DownloadProgress = {
   percent?: number;
 };
 
-export type InstallProgress = { text: string; download?: DownloadProgress };
+export type InstallProgress = {
+  text: string;
+  download?: DownloadProgress;
+  cancellable?: boolean;
+};
 
 const phases: Record<string, string> = {
   downloading: "正在连接下载服务器",
@@ -11,6 +15,7 @@ const phases: Record<string, string> = {
   installing: "正在切换版本",
   validating: "正在验证已安装环境",
   complete: "环境已准备完成",
+  cancelled: "已取消更新，可启动当前版本",
 };
 
 function size(bytes: number): string {
@@ -27,6 +32,10 @@ const nonnegative = (value: unknown): value is number =>
 export function parseInstallProgress(value: string): InstallProgress {
   try {
     const event = JSON.parse(value);
+    const cancellation =
+      typeof event.cancellable === "boolean"
+        ? { cancellable: event.cancellable }
+        : {};
     if (event.phase === "downloading" && nonnegative(event.downloaded)) {
       const total = nonnegative(event.total) ? event.total : 0;
       const percent =
@@ -36,7 +45,9 @@ export function parseInstallProgress(value: string): InstallProgress {
           ? "MPE Desktop"
           : event.artifact === "editor"
             ? "Editor"
-            : "运行环境";
+            : event.artifact === "installer"
+              ? "安装工具"
+              : "运行环境";
       const amount =
         total > 0
           ? `${size(event.downloaded)} / ${size(total)}（${percent!.toFixed(1)}%）`
@@ -50,6 +61,7 @@ export function parseInstallProgress(value: string): InstallProgress {
       const waiting =
         total === 0 && event.downloaded === 0 ? "等待下载响应 · " : "";
       return {
+        ...cancellation,
         text: `${label}：${waiting}${amount} · ${speed}/s · 已用 ${elapsed}s`,
         download: { label: `${label}下载进度`, percent },
       };
@@ -61,9 +73,9 @@ export function parseInstallProgress(value: string): InstallProgress {
         installing: "正在安装 MPE Desktop，安装完成后将重启",
         restarting: "MPE Desktop 安装完成，正在重启",
       };
-      return { text: desktopPhases[event.phase] ?? value };
+      return { text: desktopPhases[event.phase] ?? value, ...cancellation };
     }
-    return { text: phases[event.phase] ?? value };
+    return { text: phases[event.phase] ?? value, ...cancellation };
   } catch {
     return { text: value };
   }

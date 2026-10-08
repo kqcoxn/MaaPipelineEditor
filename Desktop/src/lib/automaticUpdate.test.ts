@@ -330,6 +330,28 @@ describe("independent update preferences", () => {
 });
 
 describe("cancelling version checks", () => {
+  it("reports cancelled installation without success or failure and allows retry", async () => {
+    vi.mocked(invoke).mockReset();
+    vi.mocked(invoke).mockResolvedValueOnce({ cancelled: true });
+    const statuses: string[] = [];
+    const notices: Array<[string, string | undefined]> = [];
+    const status = (value: string) => { statuses.push(value); };
+    const notice = (value: string, kind?: string) => { notices.push([value, kind]); };
+    expect(await installEnvironment("2.0.1", status, notice)).toBeUndefined();
+    expect(statuses.at(-1)).toBe("已取消更新，可启动当前版本");
+    expect(notices.map(([, kind]) => kind)).toEqual(["pending", "info"]);
+    vi.mocked(invoke).mockResolvedValueOnce({ ...snapshot().environment, version: "2.0.1" });
+    expect((await installEnvironment("2.0.1", status, notice))?.version).toBe("2.0.1");
+    expect(notices.at(-1)?.[1]).toBe("success");
+  });
+
+  it("ends an automatic environment update normally after cancelling download", async () => {
+    vi.mocked(invoke).mockReset();
+    vi.mocked(invoke).mockResolvedValueOnce(result()).mockResolvedValueOnce({ cancelled: true });
+    expect(await updateEnvironment(snapshot(), () => {}, () => {}))
+      .toBe("已取消更新，可启动当前版本");
+  });
+
   it("releases the wait and ignores a late version response without installing", async () => {
     let finish!: (value: VersionList) => void;
     vi.mocked(invoke).mockReset();

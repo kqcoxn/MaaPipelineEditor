@@ -485,11 +485,9 @@ mod tests {
 pub fn cancel_update_check(window: WebviewWindow, app: tauri::AppHandle) -> Result<bool, String> {
     authorize(&window, "launcher")?;
     let state = app.state::<State>();
-    let sender = state.update_check.lock().unwrap().take();
-    if let Some(sender) = sender {
-        let _ = sender.send(());
-        Ok(true)
-    } else {
-        Ok(false)
+    let control = state.update_cancel.lock().unwrap().clone();
+    match control {
+        Some(control) => control.cancel(),
+        None => Ok(false),
     }
 }

@@ -1,4 +1,4 @@
-import { CHECK_CANCELLED, CHECK_TIMEOUT, waitForCheck } from "./checkCancellation";
+import { CHECK_CANCELLED, CHECK_TIMEOUT, UPDATE_CANCELLED, waitForCheck } from "./checkCancellation";
 import { invoke } from "@tauri-apps/api/core";
 import type { Snapshot, VersionList } from "../types";
 import type { NoticeKind } from "./feedback";
@@ -90,7 +90,7 @@ export async function updateEnvironment(
     onNotice,
     `${found}，正在下载并更新`,
   );
-  return `MPE 已更新至 ${installed.version}`;
+  return installed ? `MPE 已更新至 ${installed.version}` : UPDATE_CANCELLED;
 }
 
 export async function runAutomaticUpdates(

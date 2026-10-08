@@ -24,7 +24,7 @@ export function Engine({ model: m }: { model: Model }) {
   const [stopFailed, setStopFailed] = useState(false);
   const install = () =>
     m.run(async () => {
-      await m.installEnvironment(choice);
+      if (!(await m.installEnvironment(choice))) return;
       await invoke("save_settings", {
         settings: {
           ...s!.settings,

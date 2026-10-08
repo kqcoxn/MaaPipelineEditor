@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/install"
@@ -26,6 +27,9 @@ func installationCommand(cmd *cobra.Command, dir, version string, recoverOnly, w
 		same = true
 	}
 	if same {
+		if controlled, _ := cmd.Flags().GetBool("download-control"); controlled {
+			return fmt.Errorf("桌面安装控制必须使用临时安装工具")
+		}
 		temp, err := os.MkdirTemp("", "mpe-install-worker-")
 		if err != nil {
 			return err
@@ -79,6 +83,9 @@ func installationCommand(cmd *cobra.Command, dir, version string, recoverOnly, w
 	}
 	m, err := install.FetchManifest(cmd.Context(), version)
 	if err != nil {
+		if cmd.Context().Err() != nil {
+			return cmd.Context().Err()
+		}
 		return err
 	}
 	output := cmd.OutOrStdout()
@@ -121,8 +128,24 @@ func init() {
 		return json.NewEncoder(cmd.OutOrStdout()).Encode(install.Inspect(directory, withEditor))
 	}}
 	setup := &cobra.Command{Use: "install", RunE: func(cmd *cobra.Command, args []string) error {
-		return installationCommand(cmd, directory, version, false, withEditor)
+		controlled, _ := cmd.Flags().GetBool("download-control")
+		if controlled {
+			if !jsonOutput {
+				return fmt.Errorf("桌面安装控制需要 --json")
+			}
+			ctx, cancel := install.WithDownloadControl(cmd.Context(), cmd.InOrStdin(), cmd.OutOrStdout())
+			defer cancel()
+			cmd.SetContext(ctx)
+		}
+		err := installationCommand(cmd, directory, version, false, withEditor)
+		// A recovery failure wraps the cancellation; preserve it as an error.
+		if controlled && err == context.Canceled {
+			return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]string{"phase": "cancelled"})
+		}
+		return err
 	}}
+	setup.Flags().Bool("download-control", false, "通过标准输入控制下载取消与安装提交")
+	_ = setup.Flags().MarkHidden("download-control")
 	setup.Flags().StringVar(&version, "version", "latest", "MPE 版本（latest 或完整版本号）")
 	recover := &cobra.Command{Use: "recover", RunE: func(cmd *cobra.Command, args []string) error {
 		return installationCommand(cmd, directory, "", true, false)

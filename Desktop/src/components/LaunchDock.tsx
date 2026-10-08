@@ -154,7 +154,7 @@ export function LaunchDock({
       <div className="launch-action">
         <Button
           className="launch-button"
-          disabled={!m.canCancelCheck && (locked || !s)}
+          disabled={m.cancelling || (!m.canCancelCheck && (locked || !s))}
           onClick={m.canCancelCheck ? () => void m.cancelCheck() : onLaunch}
         >
           {m.canCancelCheck ? (
@@ -166,15 +166,22 @@ export function LaunchDock({
           ) : (
             <Play fill="currentColor" aria-hidden="true" />
           )}
-          {m.canCancelCheck
-            ? "取消检测"
-            : m.busy
-              ? "正在准备"
-              : s?.running
-                ? "编辑中"
-                : needsEnvironment
-                  ? "进入环境管理"
-                  : "启动编辑器"}
+          {m.cancelling
+            ? "正在取消"
+            : m.canCancelCheck
+              ? m.desktopUpdateProgress?.download || m.downloadProgress
+                ? "取消下载"
+                : m.versionsLoading ||
+                    m.desktopUpdateProgress?.text === "正在检查桌面端更新"
+                  ? "取消检测"
+                  : "取消更新"
+              : m.busy
+                ? "正在准备"
+                : s?.running
+                  ? "编辑中"
+                  : needsEnvironment
+                    ? "进入环境管理"
+                    : "启动编辑器"}
         </Button>
       </div>
     </footer>

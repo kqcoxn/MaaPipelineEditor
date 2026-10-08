@@ -1,14 +1,14 @@
 use crate::settings::{binary_name, data_dir, engine_dir, platform};
 use serde_json::{json, Value};
-use sha2::{Digest, Sha256};
 use std::{
-    io::{BufRead, BufReader},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::Command,
     time::Duration,
 };
 use tauri::Emitter;
 mod download;
+mod install;
+pub use install::install;
 
 pub const RELEASES: &str = "https://github.com/kqcoxn/MaaPipelineEditor/releases";
 pub fn command(path: &Path) -> Command {
@@ -161,69 +161,6 @@ pub fn stop(id: &str, force: bool) -> Result<(), String> {
         std::thread::sleep(Duration::from_millis(100));
     }
     Err("正常停止超时，可选择强制结束".into())
-}
-pub fn install(app: &tauri::AppHandle, version: &str) -> Result<Value, String> {
-    let m = manifest(app, version)?;
-    let version = m["version"].as_str().ok_or("无效版本")?;
-    let a = &m["platforms"][platform()]["binary"];
-    let url = a["url"]
-        .as_str()
-        .filter(|s| s.starts_with("https://"))
-        .ok_or("无效下载地址")?;
-    let bytes = client()?
-        .get(url)
-        .send()
-        .and_then(|r| r.error_for_status())
-        .and_then(|r| r.bytes())
-        .map_err(|e| format!("下载安装工具失败：{}", download::describe_error(&e)))?;
-    if hex::encode(Sha256::digest(&bytes)) != a["sha256"].as_str().unwrap_or("") {
-        return Err("安装工具校验失败".into());
-    }
-    let worker_dir = data_dir(app).join("installer");
-    std::fs::create_dir_all(&worker_dir).map_err(|e| e.to_string())?;
-    let worker = worker_dir.join(binary_name());
-    std::fs::write(&worker, bytes).map_err(|e| e.to_string())?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&worker, std::fs::Permissions::from_mode(0o700))
-            .map_err(|e| e.to_string())?;
-    }
-    let mut child = command(&worker)
-        .args([
-            "env",
-            "install",
-            "--with-editor",
-            "--json",
-            "--version",
-            version,
-        ])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    let stderr = child.stderr.take().unwrap();
-    let errors = std::thread::spawn(move || {
-        use std::io::Read;
-        let mut text = String::new();
-        let _ = BufReader::new(stderr).read_to_string(&mut text);
-        text
-    });
-    for line in BufReader::new(child.stdout.take().unwrap()).lines() {
-        let line = line.map_err(|e| e.to_string())?;
-        crate::logs::record(app, &format!("安装：{line}"));
-        let _ = app.emit_to("launcher", "engine-progress", line);
-    }
-    let result = child.wait().map_err(|e| e.to_string())?;
-    let message = errors.join().unwrap_or_default();
-    if !message.trim().is_empty() {
-        crate::logs::record(app, &format!("安装输出：{message}"));
-    }
-    let _ = std::fs::remove_file(worker);
-    if !result.success() {
-        return Err(message);
-    }
-    check()
 }
 pub fn recover(app: &tauri::AppHandle) -> Result<(), String> {
     let binary = [

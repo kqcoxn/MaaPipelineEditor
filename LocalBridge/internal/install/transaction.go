@@ -150,6 +150,8 @@ func installPartsWith(ctx context.Context, dir string, m Manifest, output io.Wri
 		if err != nil {
 			if recovery := recoverLocked(dir); recovery != nil {
 				err = fmt.Errorf("%w；恢复失败: %v", err, recovery)
+			} else if ctx.Err() != nil {
+				err = ctx.Err()
 			}
 		}
 	}()
@@ -201,6 +203,9 @@ func installPartsWith(ctx context.Context, dir string, m Manifest, output io.Wri
 	binaryHash, hashErr := fileHash(filepath.Join(stage, BinaryName()))
 	if hashErr != nil || binaryHash != platform.Binary.SHA256 {
 		return fmt.Errorf("mpelb 与发布清单不一致")
+	}
+	if err = awaitCommit(ctx); err != nil {
+		return err
 	}
 	emit("installing")
 	for _, item := range j.Items {

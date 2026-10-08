@@ -16,6 +16,7 @@ mod session;
 mod settings;
 mod startup;
 mod state;
+mod update_cancel;
 #[cfg(windows)]
 mod windows_job;
 

@@ -1,4 +1,4 @@
-import { CHECK_TIMEOUT } from "./lib/checkCancellation";
+import { CHECK_TIMEOUT, UPDATE_CANCELLED } from "./lib/checkCancellation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -36,9 +36,20 @@ export function useLauncher() {
     useState<InstallProgress>();
   const gate = useRef(false);
   const [canCancelCheck, setCanCancelCheck] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const cancellationPending = useRef(false);
+  const operationEpoch = useRef(0);
   const checkController = useRef<AbortController | undefined>(undefined);
   const checksCancelled = useRef(false);
   const cancelCheck = async () => {
+    if (cancellationPending.current) return;
+    const epoch = operationEpoch.current;
+    // Stop the automatic chain immediately, even if the cancel IPC reply arrives
+    // after the update command has already completed.
+    checksCancelled.current = true;
+    cancellationPending.current = true;
+    setCancelling(true);
+    setCanCancelCheck(false);
     if (checkController.current) {
       checksCancelled.current = true;
       checkController.current.abort();
@@ -46,8 +57,16 @@ export function useLauncher() {
     } else {
       try {
         const cancelled = await invoke<boolean>("cancel_update_check");
+        if (epoch !== operationEpoch.current || !gate.current) return;
         if (cancelled) checksCancelled.current = true;
+        else {
+          cancellationPending.current = false;
+          setCancelling(false);
+        }
       } catch (error) {
+        if (epoch !== operationEpoch.current || !gate.current) return;
+        cancellationPending.current = false;
+        setCancelling(false);
         setError(String(error));
       }
     }
@@ -64,6 +83,9 @@ export function useLauncher() {
     ) => {
       if (gate.current) return false;
       gate.current = true;
+      operationEpoch.current += 1;
+      cancellationPending.current = false;
+      setCancelling(false);
       setBusy(true);
       try {
         await action();
@@ -74,6 +96,9 @@ export function useLauncher() {
         await refresh().catch(() => {});
         return false;
       } finally {
+        setCanCancelCheck(false);
+        setCancelling(false);
+        cancellationPending.current = false;
         setBusy(false);
         gate.current = false;
         setInstallationProgress({ text: "" });
@@ -119,13 +144,15 @@ export function useLauncher() {
     setDesktopUpdateStatus("正在检查桌面端更新");
     setDesktopUpdateProgress({ text: "正在检查桌面端更新" });
     try {
-      setDesktopUpdateStatus(
-        await updateDesktop((progress) => {
-          setCanCancelCheck(progress.text === "正在检查桌面端更新");
-          setDesktopUpdateProgress(progress);
-          setDesktopUpdateStatus(progress.text);
-        }),
-      );
+      const status = await updateDesktop((progress) => {
+        setCanCancelCheck(
+          !cancellationPending.current && progress.cancellable === true,
+        );
+        setDesktopUpdateProgress(progress);
+        setDesktopUpdateStatus(progress.text);
+      });
+      if (status === UPDATE_CANCELLED) checksCancelled.current = true;
+      setDesktopUpdateStatus(status);
       clearFeedback("desktop");
     } catch (error) {
       setDesktopUpdateStatus(`桌面端更新失败：${String(error)}`);
@@ -137,19 +164,16 @@ export function useLauncher() {
   }, []);
   const automatic = useCallback(
     async (s: Snapshot, target: "all" | "mpe" | "desktop" = "all") => {
-      await run(
-        () => {
-          checksCancelled.current = false;
-          return runAutomaticUpdates(
-            s,
-            async () => setUpdateStatus(await loadEnvironmentVersions(s, true)),
-            checkDesktopUpdate,
-            target,
-            () => checksCancelled.current,
-          );
-        },
-        "environment",
-      );
+      await run(() => {
+        checksCancelled.current = false;
+        return runAutomaticUpdates(
+          s,
+          async () => setUpdateStatus(await loadEnvironmentVersions(s, true)),
+          checkDesktopUpdate,
+          target,
+          () => checksCancelled.current,
+        );
+      }, "environment");
     },
     [run, loadEnvironmentVersions, checkDesktopUpdate],
   );
@@ -168,7 +192,12 @@ export function useLauncher() {
       .then((value) => setContent(preferCurrentHomepage(value)))
       .catch(() => {});
     subscribe<string>("engine-progress", (value) => {
-      setInstallationProgress(parseInstallProgress(value));
+      if (!gate.current) return;
+      const progress = parseInstallProgress(value);
+      setInstallationProgress(progress);
+      setCanCancelCheck(
+        !cancellationPending.current && progress.cancellable === true,
+      );
     });
     subscribe<boolean>("session-changed", (running) => {
       void refresh().then((s) => {
@@ -230,6 +259,7 @@ export function useLauncher() {
     snapshot,
     busy,
     canCancelCheck,
+    cancelling,
     cancelCheck,
     progress,
     downloadProgress,
