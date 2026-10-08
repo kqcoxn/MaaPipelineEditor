@@ -4,6 +4,7 @@ import IconFont from "../../../iconfonts";
 import type { ReactNode } from "react";
 import { FieldTypeEnum } from "../../../../core/fields";
 import { normalizeFieldList } from "./fieldValueUtils";
+import { RegexTextArea } from "./RegexTextArea";
 import { FieldTextArea } from "./FieldTextArea";
 
 export function ListValueElem(
@@ -38,6 +39,22 @@ export function ListValueElem(
             onChange(key, valueList);
           }}
         />
+      ) : key === "replace" && placeholder === FieldTypeEnum.StringPairList && Array.isArray(value) ? (
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {["匹配正则", "替换文本"].map((label, part) => <label key={part}><span>{label}</span><RegexTextArea
+            label={label} value={String(value[part] ?? "")}
+            onCommit={(next) => {
+              const pair = [...value]; pair[part] = next;
+              const list = [...valueList]; list[index] = pair;
+              onChange(key, list);
+            }} /></label>)}
+        </div>
+      ) : key === "expected" && placeholder === FieldTypeEnum.StringList ? (
+        <RegexTextArea value={String(value ?? "")} onCommit={(newValue) => {
+          const newList = [...valueList];
+          newList[index] = newValue;
+          onChange(key, newList);
+        }} />
       ) : (
         <FieldTextArea
           value={value}

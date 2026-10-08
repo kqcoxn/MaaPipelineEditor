@@ -27,7 +27,7 @@ function ChildrenEditor({ tab, pointer, kind }: { tab: PiTab; pointer: string; k
         <TextField tab={tab} pointer={p + '/description'} label="说明" multiline />
         {kind === 'cases' ? <><ReferenceField tab={tab} pointer={p + '/option'} kind="option" label="子选项" /><OverrideField tab={tab} pointer={p + '/pipeline_override'} /></> : <>
           {!item.password && <TextField tab={tab} pointer={p + '/default'} label="默认值" />}
-          {kind === 'inputs' && <><ChoiceField tab={tab} pointer={p + '/pipeline_type'} label="数据类型" options={['string', 'int', 'bool']} /><TextField tab={tab} pointer={p + '/verify'} label="校验正则" /><TextField tab={tab} pointer={p + '/pattern_msg'} label="校验提示" /><BoolField tab={tab} pointer={p + '/password'} label="密码输入" /></>}
+          {kind === 'inputs' && <><ChoiceField tab={tab} pointer={p + '/pipeline_type'} label="数据类型" options={['string', 'int', 'bool']} /><TextField tab={tab} pointer={p + '/verify'} label="校验正则" regex /><TextField tab={tab} pointer={p + '/pattern_msg'} label="校验提示" /><BoolField tab={tab} pointer={p + '/password'} label="密码输入" /></>}
         </>}
         <Button danger onClick={() => store.getState().patch(tab.path, p, undefined)}>删除</Button>
       </div></details>;

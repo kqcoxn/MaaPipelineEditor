@@ -130,6 +130,15 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.1.0",
+    date: "2026-10",
+    type: "feature",
+    maafwVersion: "5.14.2",
+    updates: {
+      perfs: ["新增正则显示与编辑方式配置项，可调整按原始正则或 JSON 正则书写"],
+    },
+  },
+  {
     version: "2.0.7",
     date: "2026-10-5",
     type: "perf",

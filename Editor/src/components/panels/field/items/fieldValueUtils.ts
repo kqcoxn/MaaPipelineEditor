@@ -3,6 +3,7 @@ import { FieldTypeEnum } from "../../../../core/fields";
 /** 列表中的颜色、坐标数组应作为一个完整的值。 */
 export function normalizeFieldList(value: unknown, type: string): unknown[] {
   if (!Array.isArray(value)) return [value];
+  if (type === FieldTypeEnum.StringPairList && value.length === 2 && value.every((item) => typeof item === "string")) return [value];
   if (
     (type === FieldTypeEnum.IntListList ||
       type === FieldTypeEnum.XYWHList ||

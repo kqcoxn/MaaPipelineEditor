@@ -208,6 +208,20 @@ export const settingsDefinitions: ConfigItemDef[] = [
     order: 6,
   },
   {
+    key: "regexInputMode",
+    category: "export",
+    section: "文件格式",
+    label: "正则编辑方式",
+    tipTitle: "正则编辑方式",
+    tipContent: String.raw`适用于 OCR expected、replace、文字识别验证及 PI 输入校验正则的表单。原始正则：输入 \d+；JSON 正则：输入 \\d+，不加外围双引号，文本中的双引号写成 \"。切换方式不改变正则内容，JSON 编辑器始终使用标准 JSON。`,
+    type: "select",
+    order: 6.5,
+    options: [
+      { value: "raw", label: "原始正则" },
+      { value: "json", label: "JSON 正则" },
+    ],
+  },
+  {
     key: "skipFieldValidation",
     category: "export",
     section: "导出内容与校验",
@@ -564,6 +578,7 @@ export const settingsDefinitions: ConfigItemDef[] = [
   },
 
   // ==================== 组件 (component) ====================
+
   {
     key: "saveFilesBeforeDebug",
     category: "component",

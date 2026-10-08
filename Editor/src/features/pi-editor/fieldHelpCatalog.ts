@@ -65,7 +65,7 @@ export const objectHelp: Record<string, Record<string, PiFieldHelp>> = {
     name: hint('当前配置项内的输入字段标识；参数模板用 {字段名} 引用此值。', '次数'),
     default: hint('可选。填写字符串形式的初始值；即使 pipeline_type 为 int 或 bool，此处也填字符串。password 为 true 时禁止设置默认值。', '3'),
     pipeline_type: hint('输入值写入 pipeline_override 时的目标类型：string 字符串、int 整数、bool 布尔值。'),
-    verify: hint('可选。用于检查用户输入的正则表达式，不加 /…/ 分隔符；在表单里直接输入，JSON 转义由编辑器处理。', '^[0-9]+$'),
+    verify: hint('可选。用于检查用户输入的正则表达式，不加 /…/ 分隔符；表单写法遵循设置中的「正则编辑方式」，文件的 JSON 转义由编辑器处理。', '^[0-9]+$'),
     pattern_msg: hint(`可选。输入不满足 verify 正则时显示的提示。${i18n}`, '请输入非负整数'),
     password: hint('可选，默认 false。标记密码或密钥输入，客户端需掩码显示并加密保存。不能同时设置 default，也不要将密码写入 preset。'),
   },

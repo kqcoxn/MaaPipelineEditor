@@ -213,6 +213,8 @@ function matchSingleType(value: any, type: FieldTypeEnum): any {
       // 键值对数组
       case FieldTypeEnum.StringPairList:
         if (Array.isArray(value)) {
+          // 协议允许单条 [pattern, replacement]，不把它误当成两条规则。
+          if (value.length === 2 && value.every((item) => typeof item === "string")) return [...value];
           const stringPairList: any[] = [];
           for (const pair of value) {
             if (Array.isArray(pair) && pair.length === 2) {

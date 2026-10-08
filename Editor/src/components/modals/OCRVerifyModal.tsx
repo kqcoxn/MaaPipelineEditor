@@ -1,5 +1,8 @@
+import { RegexTags } from "../panels/field/items/RegexTags";
+import { ListValueElem } from "../panels/field/items/ListValueElem";
+import { FieldTypeEnum } from "@/core/fields";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Input, InputNumber, Select, Switch } from "antd";
+import { Alert, Button, InputNumber, Select, Switch } from "antd";
 import { ThunderboltOutlined } from "@ant-design/icons";
 import { ScreenshotModalBase, type CanvasRenderProps } from "./ScreenshotModalBase";
 import { RecognitionCanvas, type ROI, type RecognitionBox } from "./recognition/RecognitionCanvas";
@@ -23,7 +26,7 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
     : [initialParams.expected];
   const expectedOptions = [...new Set(expectedValues.filter(
     (value): value is string => typeof value === "string",
-  ))].map(value => ({ value, label: value || "（空正则）" }));
+  ))];
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [roi, setROI] = useState<ROI>(() => parseROIValue(initialParams.roi) ?? [0, 0, 0, 0]);
   const [roiResolved, setROIResolved] = useState(() => !initialParams.roi || !!parseROIValue(initialParams.roi));
@@ -35,7 +38,8 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
   const [onlyRec, setOnlyRec] = useState((initialParams.only_rec as boolean) ?? false);
   const [orderBy, setOrderBy] = useState((initialParams.order_by as string) ?? "Horizontal");
   const [index, setIndex] = useState((initialParams.index as number) ?? 0);
-  const [replace, setReplace] = useState(JSON.stringify(initialParams.replace ?? []));
+  const [replace, setReplace] = useState<unknown[]>(Array.isArray(initialParams.replace) ? initialParams.replace : []);
+  const [expectedValid, setExpectedValid] = useState(true);
   const [result, setResult] = useState<OCRVerifyResult | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef<string | null>(null);
@@ -79,13 +83,13 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
   ), [roi, result, changeROI, initialParams.roi_offset]);
 
   const verify = () => {
-    if (!screenshot || busy) return;
+    if (!screenshot || busy || !expectedValid) return;
     invalidate();
     try {
       if (!roiResolved) throw new Error("ROI 引用了其他节点，请框选验证区域或输入坐标。");
       if (initialParams.color_filter) throw new Error("color_filter 依赖其他节点，请使用节点的识别测试功能。");
       if (initialParams.model) throw new Error("自定义 OCR 模型需要项目资源，请使用节点的识别测试功能。");
-      const replacements: unknown = JSON.parse(replace);
+      const replacements: unknown = replace;
       const pair = (value: unknown): boolean => Array.isArray(value) && value.length === 2 && value.every(item => typeof item === "string");
       if (!pair(replacements) && !(Array.isArray(replacements) && replacements.every(pair))) {
         throw new Error('替换规则应为 ["正则", "替换文本"] 或规则数组。');
@@ -117,7 +121,7 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
     boundedLayout
     previewFooter={<OCRVerificationResults result={result} busy={busy} screenshot={screenshot} />}
     extraButtons={<Button type="primary" icon={<ThunderboltOutlined />} loading={busy}
-      disabled={!screenshot || !roiResolved || !!initialParams.model || !!initialParams.color_filter}
+      disabled={!expectedValid || !screenshot || !roiResolved || !!initialParams.model || !!initialParams.color_filter}
       onClick={verify}>开始验证</Button>}
     confirmText="关闭" onConfirm={onClose} renderCanvas={renderCanvas}
     onScreenshotChange={changeScreenshot} onReset={invalidate}>
@@ -127,9 +131,8 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
       {!!(initialParams.model || initialParams.color_filter) && <Alert type="warning" showIcon title="当前节点使用自定义模型或 color_filter，请使用节点的识别测试功能加载项目资源。" />}
       <label style={fieldStyle}>
         <span>期望文字 expected</span>
-        <Select aria-label="期望文字 expected" mode="tags" value={expected} allowClear
-          options={expectedOptions}
-          placeholder="选择列表项或输入正则；留空匹配全部" onChange={(value) => { invalidate(); setExpected(value); }} />
+        <RegexTags value={expected} options={expectedOptions} onValidityChange={setExpectedValid}
+          onChange={(value) => { invalidate(); setExpected(value); }} />
       </label>
       <div>
         <div className={styles.roiHeader}>
@@ -166,10 +169,15 @@ export const OCRVerifyModal = memo(({ open, onClose, initialParams, initialExpec
             onChange={(value) => { invalidate(); setIndex(value ?? 0); }} />
         </label>
       </div>
-      <label style={fieldStyle}>文字替换 replace（JSON）
-        <Input.TextArea aria-label="文字替换规则" value={replace} autoSize={{ minRows: 1, maxRows: 4 }}
-          onChange={(event) => { invalidate(); setReplace(event.target.value); }} />
-      </label>
+      <div style={fieldStyle}>文字替换 replace
+        {ListValueElem("replace", replace,
+          (_key, values) => { invalidate(); setReplace(values); },
+          (_key, values) => { invalidate(); setReplace([...values, ["", ""]]); },
+          (_key, values, index) => { invalidate(); setReplace(values.filter((_, i) => i !== index)); },
+          FieldTypeEnum.StringPairList)}
+        <Button size="small" onClick={() => { invalidate(); setReplace([]); }}>清空替换规则</Button>
+        {replace.length === 0 && <Button size="small" onClick={() => setReplace([["", ""]])}>添加替换规则</Button>}
+      </div>
     </div>
   </ScreenshotModalBase>;
 });

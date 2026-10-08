@@ -1,3 +1,4 @@
+import { RegexTextArea } from "@/components/panels/field/items/RegexTextArea";
 import { CodeOutlined, CopyOutlined, PlusOutlined, TranslationOutlined } from '@ant-design/icons';
 import styles from './PiForm.module.less';
 import { modal } from '@/utils/ui/antdAppApi';
@@ -28,16 +29,16 @@ export function JsonField({ tab, pointer, label }: { tab: PiTab; pointer: string
     }}>编辑字段源码</Button></div></div>
   </Form.Item>;
 }
-export function TextField({ tab, pointer, label, multiline = false, disabled = false }: { tab: PiTab; pointer: string; label: string; multiline?: boolean; disabled?: boolean }) {
+export function TextField({ tab, pointer, label, multiline = false, disabled = false, regex = false }: { tab: PiTab; pointer: string; label: string; multiline?: boolean; disabled?: boolean; regex?: boolean }) {
   const help = usePiFieldHelp(tab, pointer, label);
   const value = valueAt(tab.content, pointer);
   const text = typeof value === 'string' ? value : '';
   const project = store(s => s.project);
-  const translations = text.startsWith('$') ? project?.definitions.filter(d => d.kind === 'translation' && d.name === text.slice(1)) ?? [] : [];
+  const translations = !regex && text.startsWith('$') ? project?.definitions.filter(d => d.kind === 'translation' && d.name === text.slice(1)) ?? [] : [];
   const references = project?.references.filter(r => r.kind === 'translation' && r.name === text.slice(1)) ?? [];
   const change = (value: string) => store.getState().patch(tab.path, pointer, value || undefined);
   return <Form.Item className={styles.field} label={help.label}>
-    {multiline ? <Input.TextArea aria-label={label} aria-describedby={help.descriptionId} autoSize={{ minRows: 2, maxRows: 5 }} value={text} disabled={disabled} onChange={e => change(e.target.value)} /> : <Input aria-label={label} aria-describedby={help.descriptionId} value={text} disabled={disabled} onChange={e => change(e.target.value)} />}
+    {regex ? <RegexTextArea label={label} value={text} disabled={disabled} onCommit={change} /> : multiline ? <Input.TextArea aria-label={label} aria-describedby={help.descriptionId} autoSize={{ minRows: 2, maxRows: 5 }} value={text} disabled={disabled} onChange={e => change(e.target.value)} /> : <Input aria-label={label} aria-describedby={help.descriptionId} value={text} disabled={disabled} onChange={e => change(e.target.value)} />}
     {!!translations.length && <div className={styles.translations}><div className={styles.translationHeading}><span><TranslationOutlined /> 翻译预览</span><span>{references.length} 处引用</span></div>{translations.map(d => {
       const source = store.getState().tabs.find(t => t.path === d.file) ?? project?.documents.find(t => t.path === d.file);
       return <div className={styles.translationRow} key={d.file}><Typography.Text className={styles.translationValue}>{source ? String(valueAt(source.content, d.pointer) ?? '') : ''}</Typography.Text><Button className={styles.translationLink} title={source?.relativePath ?? d.file} size="small" type="link" onClick={() => { void store.getState().open(d.file, d.pointer).catch(reportPiError); }}>{source?.relativePath.split('/').at(-1) ?? '编辑翻译'} ↗</Button></div>;

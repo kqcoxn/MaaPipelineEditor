@@ -62,8 +62,8 @@ export function normalizeAIContextCompactionThreshold(value: number): number {
 /**固有配置 */
 export const globalConfig = {
   dev: true,
-  version: `2.0.7`,
-  betaIteration: 2,
+  version: `2.1.0`,
+  betaIteration: 0,
   mfwVersion: "5.14.2",
   protocolVersion: "2.0.7",
 };
@@ -93,6 +93,7 @@ export const configCategoryMap: Record<string, ConfigCategory> = {
   exportDefaultRecoAction: "export",
   exportEmptyParam: "export",
   pipelineProtocolVersion: "export",
+  regexInputMode: "export",
   skipFieldValidation: "export",
   jsonIndent: "export",
   configHandlingMode: "export",
@@ -248,6 +249,7 @@ const defaultConfigs = {
   exportDefaultRecoAction: false,
   exportEmptyParam: false,
   pipelineProtocolVersion: "v2" as PipelineProtocolVersion,
+  regexInputMode: "raw" as "raw" | "json",
   skipFieldValidation: false,
   jsonIndent: 4,
   wsPort: 9066,
@@ -331,6 +333,7 @@ export type ConfigState = {
     exportDefaultRecoAction: boolean;
     exportEmptyParam: boolean;
     pipelineProtocolVersion: PipelineProtocolVersion;
+    regexInputMode: "raw" | "json";
     skipFieldValidation: boolean;
     jsonIndent: number;
     wsPort: number;
