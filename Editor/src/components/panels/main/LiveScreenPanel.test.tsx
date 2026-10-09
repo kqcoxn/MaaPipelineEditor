@@ -1,5 +1,6 @@
+import { useRecorderStore } from "@/features/recorder/store";
 import { emitAchievementEvent } from "@/features/achievements/bus";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import LiveScreenPanel from "./LiveScreenPanel";
 
@@ -105,4 +106,19 @@ describe("LiveScreenPanel", () => {
     expect(screen.queryByText("截图异常")).not.toBeInTheDocument();
     unmount();
   });
+});
+
+
+it("pauses the covered preview during Recorder and resumes it on close", async () => {
+  requestScreencap.mockClear();
+  requestScreencap.mockReturnValue(new Promise(() => undefined));
+  useRecorderStore.getState().setOpen(true);
+  const { unmount } = render(<LiveScreenPanel />);
+  try {
+    expect(requestScreencap).not.toHaveBeenCalled();
+    act(() => useRecorderStore.getState().setOpen(false));
+    await waitFor(() => expect(requestScreencap).toHaveBeenCalledTimes(1));
+    act(() => useRecorderStore.getState().setOpen(true));
+    expect(requestScreencap.mock.calls[0][1].aborted).toBe(true);
+  } finally { unmount(); useRecorderStore.getState().setOpen(false); }
 });

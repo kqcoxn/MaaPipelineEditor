@@ -29,8 +29,10 @@ import (
 	fileProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/file"
 	mfwProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/mfw"
 	projectInterfaceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/projectinterface"
+	recorderProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/recorder"
 	resourceProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/resource"
 	utilityProtocol "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/protocol/utility"
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/recorder"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/router"
 	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/server"
 	fileService "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/file"
@@ -451,6 +453,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	// 注册 Utility 协议处理器
 	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.EffectiveRoot(), diagnosticRecorder)
 	rt.RegisterHandler(utilityHandler)
+	rt.RegisterHandler(recorderProtocol.NewHandler(recorder.NewService(mfwSvc, resSvc)))
 
 	// 注册 Config 协议处理器
 	configHandler := configProtocol.NewConfigHandler()

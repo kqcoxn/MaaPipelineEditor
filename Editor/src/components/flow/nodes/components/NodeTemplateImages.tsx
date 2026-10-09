@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Image as AntImage, Spin } from "antd";
+import { DebugImageViewer } from "@/features/debug/components/DebugImageViewer";
 import { useResourceImages } from "@/hooks/useResourceImages";
 import style from "../../../../styles/flow/nodes.module.less";
 
@@ -11,7 +12,10 @@ interface NodeTemplateImagesProps {
 const MAX_IMAGE_HEIGHT = 36;
 const MAX_IMAGE_WIDTH = 60;
 
-function getDisplaySize(width: number, height: number): {
+function getDisplaySize(
+  width: number,
+  height: number,
+): {
   width: number;
   height: number;
 } {
@@ -19,11 +23,7 @@ function getDisplaySize(width: number, height: number): {
     return { width: MAX_IMAGE_HEIGHT, height: MAX_IMAGE_HEIGHT };
   }
 
-  const scale = Math.min(
-    MAX_IMAGE_WIDTH / width,
-    MAX_IMAGE_HEIGHT / height,
-    1,
-  );
+  const scale = Math.min(MAX_IMAGE_WIDTH / width, MAX_IMAGE_HEIGHT / height, 1);
   return {
     width: Math.max(1, Math.round(width * scale)),
     height: Math.max(1, Math.round(height * scale)),
@@ -53,21 +53,46 @@ export const NodeTemplateImages = memo(
           return (
             <div
               key={`${path}-${index}`}
-              className={`${style.nodeTemplateImageSlot} nodrag`}
+              className={`${style.nodeTemplateImageSlot} nodrag nopan`}
+              onPointerDown={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => event.stopPropagation()}
             >
               {pending && !image && <Spin size="small" />}
               {image && displaySize && (
-                <AntImage
-                  src={image.url}
-                  fallback={image.dataUrl}
+                <DebugImageViewer
+                  src={image.dataUrl || image.url}
                   alt={path}
-                  width={displaySize.width}
-                  height={displaySize.height}
-                  decoding="async"
-                  style={{
-                    objectFit: "contain",
-                    borderRadius: 2,
+                  metadata={{
+                    naturalWidth: image.width,
+                    naturalHeight: image.height,
                   }}
+                  renderTrigger={(openPreview) => (
+                    <button
+                      type="button"
+                      aria-label={`预览模板 ${path}`}
+                      onClick={openPreview}
+                      style={{
+                        padding: 0,
+                        border: 0,
+                        background: "none",
+                        cursor: "zoom-in",
+                        display: "block",
+                      }}
+                    >
+                      <AntImage
+                        src={image.url}
+                        fallback={image.dataUrl}
+                        alt={path}
+                        width={displaySize.width}
+                        height={displaySize.height}
+                        decoding="async"
+                        preview={false}
+                        style={{ objectFit: "contain", borderRadius: 2 }}
+                      />
+                    </button>
+                  )}
                 />
               )}
             </div>

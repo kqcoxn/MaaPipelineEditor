@@ -78,12 +78,15 @@ export interface DebugImageOverlayGroup {
   label: string;
 }
 
+const EMPTY_OVERLAYS: DebugImageOverlay[] = [];
+const EMPTY_OVERLAY_GROUPS: DebugImageOverlayGroup[] = [];
+
 export function DebugImageViewer({
   alt,
   maxImageHeight = 360,
   metadata,
-  overlayGroups = [],
-  overlays = [],
+  overlayGroups = EMPTY_OVERLAY_GROUPS,
+  overlays = EMPTY_OVERLAYS,
   src,
   renderTrigger,
 }: DebugImageViewerProps) {

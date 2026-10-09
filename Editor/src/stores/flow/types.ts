@@ -47,7 +47,7 @@ export type RecognitionParamType = {
   roi?: XYWH | string;
   roi_offset?: XYWH;
   template?: string[];
-  threshold?: number[];
+  threshold?: number | number[];
   order_by?: string;
   index?: number;
   method?: number;

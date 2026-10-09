@@ -85,6 +85,10 @@ export function useCanvasViewport({
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.closest("input, textarea, select, [contenteditable=true], button, [role=button]")
+      ) return;
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         setIsSpacePressed(true);

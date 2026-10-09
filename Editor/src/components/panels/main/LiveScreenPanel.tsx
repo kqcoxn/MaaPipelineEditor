@@ -1,3 +1,4 @@
+import { useRecorderStore } from "@/features/recorder/store";
 import { emitAchievementEvent } from "@/features/achievements/bus";
 import { message } from "@/utils/ui/antdAppApi";
 import style from "../../../styles/panels/LiveScreenPanel.module.less";
@@ -69,7 +70,8 @@ const LiveScreenPanel = memo(() => {
     controllerId !== null &&
     !isDisplaced &&
     enableLiveScreen;
-  const shouldRequestScreen = shouldShow && !isCollapsed;
+  const recorderOpen = useRecorderStore((s) => s.open);
+  const shouldRequestScreen = shouldShow && !isCollapsed && !recorderOpen;
 
   const handleScreenshotFailure = useCallback(() => {
     setHasError(true);

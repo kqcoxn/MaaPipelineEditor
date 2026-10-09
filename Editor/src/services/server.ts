@@ -1,3 +1,4 @@
+import { RecorderProtocol } from "./protocols/RecorderProtocol";
 import { InterfaceRunProtocol } from "./protocols/InterfaceRunProtocol";
 import { desktopContext } from "@/features/desktop/host";
 import { message, notification } from "@/utils/ui/antdAppApi";
@@ -361,6 +362,7 @@ export const resourceProtocol = new ResourceProtocol();
 export const loggerProtocol = new LoggerProtocol();
 export const interfaceProtocol = new InterfaceProtocol();
 export const interfaceRunProtocol = new InterfaceRunProtocol();
+export const recorderProtocol = new RecorderProtocol();
 
 /**
  * 初始化 WebSocket 连接和所有响应路由
@@ -385,6 +387,7 @@ export function initializeWebSocket() {
 
   interfaceProtocol.register(localServer);
   interfaceRunProtocol.register(localServer);
+  recorderProtocol.register(localServer);
 
   // 注册 debug-vNext 协议客户端
   debugProtocolClient.register(localServer);
