@@ -13,18 +13,18 @@ cargo check --manifest-path Desktop/src-tauri/Cargo.toml
 yarn --cwd Desktop test
 ```
 
-准备真实编辑会话时，先准备与 `mfwVersion` 对应的 runtime，再执行：
+准备真实编辑会话时，执行：
 
 ```sh
 yarn ed:install
 yarn desk
 ```
 
-`desk:prepare` 构建 Editor 和 mpelb，默认从现有全局安装读取 runtime，经统一安装事务替换**全局** mpelb、Editor 与 runtime。此操作需要所有 mpelb 服务停止，会影响随后终端使用的版本。它不是开发服务器，也不自动打开 MPE Desktop。未发布首个配套清单前，使用此入口验证本地源码；安装界面的在线版本来自实际 GitHub Release。
+`desk:prepare` 构建 Editor 和 mpelb，默认复用版本匹配的全局 runtime；缺失或版本不匹配时，自动下载源码 `mfwVersion` 指定的 MaaFramework、配套 MaaAgentBinary 与 OCR 到临时目录，再经统一安装事务替换**全局** mpelb、Editor 与 runtime。此操作需要所有 mpelb 服务停止，会影响随后终端使用的版本。它不是开发服务器，也不自动打开 MPE Desktop。未发布首个配套清单前，使用此入口验证本地源码；安装界面的在线版本来自实际 GitHub Release。
 
-`desk` 启动前自动执行 `desk:prepare`：检查 runtime 版本、构建 Editor 与 mpelb，并更新全局安装，然后启动 Tauri 开发界面。每次启动都会构建，Go 会复用编译缓存；检查、构建或安装失败时停止，不启动旧产物。运行前需退出正在使用 mpelb 的编辑会话并停止其他 mpelb 服务。
+`desk` 启动前自动执行 `desk:prepare`：检查并准备 runtime、构建 Editor 与 mpelb，并更新全局安装，然后启动 Tauri 开发界面。每次启动都会构建，Go 会复用编译缓存；检查、构建或安装失败时停止，不启动旧产物。运行前需退出正在使用 mpelb 的编辑会话并停止其他 mpelb 服务。
 
-需要指定 runtime 目录或只准备产物时，单独执行 `yarn desk:prepare <runtime目录>`。`desk:build` 用于生成本机安装包。不要自动启动 GUI 或浏览器测试。
+只准备环境而不启动界面时，执行 `yarn desk:prepare`。需要使用已有 runtime 时，执行 `yarn desk:prepare <runtime目录>`；指定目录必须已有匹配的版本，否则停止并报错，不自动替换该目录。`desk:build` 用于生成本机安装包。不要自动启动 GUI 或浏览器测试。
 
 ## 边界与接口
 
