@@ -8,13 +8,14 @@ const object = (value: unknown) => value !== null && typeof value === "object" &
 const ints = (value: unknown): value is number[] => Array.isArray(value) && value.every((n) => typeof n === "number" && Number.isSafeInteger(n));
 const pair = (value: unknown) => Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "string");
 
-/** 显式批量替换：整体校验后一次提交，不转换文本内容或丢弃非法项。 */
+/** 自动识别完整列表；复合单项交给原输入框，整体校验失败不拦截普通粘贴。 */
 export function parseListPaste(text: string, field: FieldType): ListPasteResult {
   let parsed: unknown;
   try { parsed = JSON.parse(text); } catch { return { error: "请输入完整的标准 JSON 数组，字符串需要使用英文双引号。" }; }
   if (!Array.isArray(parsed)) return { error: "请输入数组，例如 [1, 2]。" };
   const type = Array.isArray(field.type) ? field.type[0] : field.type;
-  let value = normalizeFieldList(parsed, type);
+  if (normalizeFieldList(parsed, type) !== parsed) return { error: "这是一个复合单项，按普通输入处理。" };
+  let value = parsed;
   if (field.unit === "ms") {
     const durations = parseDurationValue(value, field.allowNegativeOne);
     if (!Array.isArray(durations)) return { error: "时间项需为整数毫秒或带 ms / s 单位的字符串，转换后必须是整数毫秒。" };

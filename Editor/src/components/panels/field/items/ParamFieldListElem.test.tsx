@@ -61,6 +61,53 @@ function confirm(...args: unknown[]) {
 }
 
 describe("字段快捷工具的选择与回填", () => {
+  it.each([
+    [recoFieldSchema.ocrExpected, ["same", "old"], '["same","new"]', ["same", "new"]],
+    [recoFieldSchema.templateMatchThreshold, [0.1], '[0.7,0.8]', [0.7, 0.8]],
+    [recoFieldSchema.lower, [[1, 2, 3]], '[[0,0,0],[100,100,100]]', [[0, 0, 0], [100, 100, 100]]],
+    [actionFieldSchema.swipeDuration, [100], '["1.5s","200ms"]', [1500, 200]],
+    [recoFieldSchema.replace, [["old", "value"]], '[["a","b"],["c","d"]]', [["a", "b"], ["c", "d"]]],
+  ] as const)("$0.key 粘贴完整列表后失焦不覆盖结果", (field, initial, text, expected) => {
+    let stored: unknown = initial;
+    function Editor() {
+      const [value, setValue] = useState<unknown>(initial);
+      return <ParamFieldListElem paramData={{ [field.key]: value }} paramType={[field]}
+        onChange={vi.fn()} onDelete={vi.fn()} onListAdd={vi.fn()} onListDelete={vi.fn()}
+        onListChange={(_key, next) => { stored = next; setValue(next); }} />;
+    }
+    const { container } = render(<Editor />);
+    const input = container.querySelector("textarea, input")!;
+    fireEvent.change(input, { target: { value: "uncommitted" } });
+    expect(fireEvent.paste(input, { clipboardData: { getData: () => text } })).toBe(false);
+    expect(stored).toEqual(expected);
+    const current = container.querySelector("textarea, input")!;
+    expect(current).toHaveFocus();
+    fireEvent.blur(current);
+    expect(stored).toEqual(expected);
+    expect(fireEvent.paste(current, { clipboardData: { getData: () => "[]" } })).toBe(false);
+    expect(stored).toEqual([]);
+    expect(screen.getByRole("button", { name: `${field.key} 添加一项` })).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: `${field.key} 添加一项` }));
+    expect((stored as unknown[])).toHaveLength(1);
+  });
+
+  it.each([
+    [recoFieldSchema.ocrExpected, ["old"], "普通文本\n第二行"],
+    [recoFieldSchema.ocrExpected, ["old"], '["a",1]'],
+    [recoFieldSchema.ocrExpected, ["old"], '["a",]'],
+    [recoFieldSchema.ocrExpected, ["old"], '[a-z]+'],
+    [recoFieldSchema.lower, [[1, 2, 3]], '[0,128,255]'],
+    [recoFieldSchema.lower, [[1, 2, 3]], '[[1,2,3],[4,5]]'],
+  ] as const)("$0.key 的普通文本或复合单项不拦截粘贴：$2", (field, value, text) => {
+    const apply = vi.fn();
+    const { container } = render(<ParamFieldListElem paramData={{ [field.key]: value }} paramType={[field]}
+      onChange={vi.fn()} onDelete={vi.fn()} onListAdd={vi.fn()} onListDelete={vi.fn()} onListChange={apply} />);
+    expect(fireEvent.paste(container.querySelector("textarea, input")!, {
+      clipboardData: { getData: () => text },
+    })).toBe(true);
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it("Any 字段保留 JSON 引号和空白，失焦后提交真实类型", () => {
     let committed: unknown;
     function Editor() {
