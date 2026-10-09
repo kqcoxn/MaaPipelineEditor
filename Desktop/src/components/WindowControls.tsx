@@ -1,8 +1,13 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, X } from "lucide-react";
 import { setError } from "../lib/feedback";
+import { isMacOS } from "../lib/platform";
 
 export function WindowControls({ busy }: { busy: boolean }) {
+  // AppKit owns macOS window actions, including fullscreen and accessibility.
+  if (isMacOS) {
+    return <div className="window-drag-region" data-tauri-drag-region aria-hidden="true" />;
+  }
   const run = (action: () => Promise<void>) => {
     void action().catch((error) => setError(String(error)));
   };

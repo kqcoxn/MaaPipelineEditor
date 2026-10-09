@@ -54,3 +54,23 @@
   padding-top: 48px !important;
   scroll-padding-top: 48px;
 }
+
+/* Reserve the native titlebar above both surfaces. AppKit draws the traffic
+   lights at the system position; never imitate them with web buttons. */
+.app[data-platform="macos"] .sidebar {
+  padding-top: 55px;
+}
+.app[data-platform="macos"] .sidebar > .window-drag-region {
+  height: 36px;
+}
+.app[data-platform="macos"] .brand {
+  margin-bottom: 22px;
+}
+/* The home hero already clears the titlebar with its own spacing. */
+.app[data-platform="macos"]:not(.page-home) .workspace {
+  padding-top: 52px;
+}
+.app[data-platform="macos"] .workspace > .management-main {
+  padding-top: 24px !important;
+  scroll-padding-top: 24px;
+}

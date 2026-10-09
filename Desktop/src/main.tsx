@@ -26,6 +26,7 @@ import { Logs } from "./pages/Logs";
 import { useLauncher, openLink } from "./model";
 import { prepareLauncherImages, revealWhenReady } from "./lib/startup";
 import { builtinBackgrounds, useBackground } from "./lib/useBackground";
+import { isMacOS } from "./lib/platform";
 import "./style.css";
 const InteractionLab = import.meta.env.DEV
   ? lazy(() => import("./dev/InteractionLab"))
@@ -97,6 +98,7 @@ function App() {
     <div
       className={`app theme-${s?.settings.theme ?? "dark"} page-${page}`}
       data-background={background}
+      data-platform={isMacOS ? "macos" : "other"}
     >
       <BackgroundAmbience
         animated={ambientAnimations}
@@ -109,6 +111,9 @@ function App() {
         <SkyWorkflow animated={ambientAnimations} />
       )}
       <aside className="sidebar">
+        {isMacOS && (
+          <div className="window-drag-region" data-tauri-drag-region aria-hidden="true" />
+        )}
         <div className="brand">
           <img src="./logo.png" alt="" />
           <div className="brand-copy">

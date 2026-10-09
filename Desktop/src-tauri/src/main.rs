@@ -46,6 +46,24 @@ fn main() {
             .show();
         return;
     }
+    let context = tauri::generate_context!();
+    #[cfg(target_os = "macos")]
+    let context = {
+        let mut context = context;
+        let launcher = context
+            .config_mut()
+            .app
+            .windows
+            .iter_mut()
+            .find(|window| window.label == "launcher")
+            .expect("启动器窗口配置");
+        // Keep AppKit's controls, window shape and fullscreen behavior. Apply
+        // before creation so the hidden startup window already has native chrome.
+        launcher.decorations = true;
+        launcher.title_bar_style = tauri::TitleBarStyle::Overlay;
+        launcher.hidden_title = true;
+        context
+    };
     let app = crash::configure(tauri::Builder::default())
         .manage(state::InstanceLock(instance))
         .manage(startup::Startup::default())
@@ -136,7 +154,7 @@ fn main() {
                 }
             }
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("启动 MPE Desktop");
     app.run(|app, event| {
         if let tauri::RunEvent::ExitRequested { api, .. } = event {
