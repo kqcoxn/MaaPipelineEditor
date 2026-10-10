@@ -10,7 +10,7 @@ import { JsonHelper } from "../../../../utils/data/jsonHelper";
 import { LazyFeature } from "../../../async/LazyFeature";
 import { ListValueElem } from "./ListValueElem";
 import { TimeInput } from "./TimeInput";
-import { ListPasteButton } from "./ListPasteButton";
+import { ListPasteTarget } from "./ListPasteTarget";
 import { FieldTextArea } from "./FieldTextArea";
 import { TemplatePreview } from "./TemplatePreview";
 import { ImageSelect } from "./ImageSelect";
@@ -697,15 +697,19 @@ export const ParamFieldListElem = memo(
             );
         }
       }
-      if (isListType) {
+      if (isListType && Array.isArray(value) && value.length === 0) {
         InputElem = <div style={{ flex: 1, minWidth: 0 }}>
           {InputElem}
           <div style={{ marginLeft: 12 }}>
-            {Array.isArray(value) && value.length === 0 && <Button type="text" size="small"
-              aria-label={`${key} 添加一项`} onClick={() => onListChange(key, [structuredClone(normalizeFieldList(type.default, paramType)[0] ?? "")])}>添加一项</Button>}
-            <ListPasteButton field={type} onApply={(next) => onListChange(key, next)} />
+            <Button type="text" size="small"
+              aria-label={`${key} 添加一项`} onClick={() => onListChange(key, [structuredClone(normalizeFieldList(type.default, paramType)[0] ?? "")])}>添加一项</Button>
           </div>
         </div>;
+      }
+      if (isListType) {
+        InputElem = <ListPasteTarget field={type} onApply={(next) => onListChange(key, next)}>
+          {InputElem}
+        </ListPasteTarget>;
       }
       // 使用 displayName 或 key 作为显示名称
       const displayText = type.displayName || key;
