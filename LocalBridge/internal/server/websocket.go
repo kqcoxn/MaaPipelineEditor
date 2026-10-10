@@ -104,8 +104,6 @@ func (s *WebSocketServer) StartWithReady(ready func(string)) error {
 	}
 	go s.run()
 	logger.Info("WebSocket", "服务器已启动，监听地址: %s", listener.Addr())
-	onlineURL := fmt.Sprintf("https://mpe.codax.site/stable/?link_lb=true&port=%d", listener.Addr().(*net.TCPAddr).Port)
-	logger.Info("Main", "在线服务地址: %s", onlineURL)
 	if ready != nil {
 		ready("ws://" + listener.Addr().String())
 	}

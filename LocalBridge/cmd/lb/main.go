@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -484,7 +485,20 @@ func runServer(cmd *cobra.Command, args []string) error {
 	// 先绑定端口，再报告就绪；失败也走统一清理。
 	var serverFailure error
 	serverErrors := make(chan error, 1)
-	go func() { serverErrors <- wsServer.StartWithReady(func(address string) { service.Ready(address) }) }()
+	go func() {
+		serverErrors <- wsServer.StartWithReady(func(address string) {
+			service.Ready(address)
+			if endpoint, err := url.Parse(address); err == nil {
+				editorURL := "https://mpe.codax.site/stable/"
+				label := "在线服务地址"
+				if Version == "dev" {
+					editorURL = "http://127.0.0.1:3000/development/"
+					label = "本地开发地址"
+				}
+				logger.Info("Main", "%s: %s?link_lb=true&port=%s", label, editorURL, endpoint.Port())
+			}
+		})
+	}()
 
 	// 等待退出信号
 	sigChan := make(chan os.Signal, 1)

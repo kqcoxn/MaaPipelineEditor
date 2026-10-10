@@ -8,7 +8,8 @@ tmp_dir = "build"
   cmd = "go mod tidy ; go build -o ./build/mpelb.exe ./cmd/lb"
   bin = "./build/mpelb.exe"
   # 调试项目与 MaaPipelineEditor 位于同一父目录，使用相对路径适配不同设备。
-  full_bin = "./build/mpelb.exe --root ../../MaaDuDuL-backup --log-level DEBUG"
+  # 固定开发端口，避免热重启后端口变化导致前端无法重新连接。
+  args_bin = ["--root", "../../MaaDuDuL-backup", "--log-level", "DEBUG", "--port", "9066"]
   include_ext = ["go", "toml", "yaml", "yml", "json"]
   exclude_dir = ["build", "test-json", "node_modules", "vendor", ".git"]
   exclude_file = []
