@@ -129,7 +129,7 @@ export function TemplateImageEditor({ path, image, root, onClose }: {
     anchor.click();
   }
 
-  return <Modal open title="模板图片编辑" width="min(1120px, calc(100vw - 32px))" style={{ top: 24 }}
+  return <Modal open title="模板图片编辑" width="min(1120px, calc(100vw - 32px))"
     onCancel={close} mask={{ closable: false }} keyboard={!saving} closable={!saving}
     styles={{ body: { maxHeight: "calc(100vh - 190px)", overflow: "auto" } }}
     footer={<div className={styles.footer}>

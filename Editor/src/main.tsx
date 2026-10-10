@@ -17,7 +17,7 @@ initDevConsole();
 // 创建 React
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ConfigProvider locale={antdZhCN}>
+    <ConfigProvider locale={antdZhCN} modal={{ centered: true }}>
       {/* 保留 DOM 以承载 CSS 变量，并延续编辑器的全高布局。 */}
       <AntdApp style={{ width: "100%", height: "100%" }}>
         <AntdFeedbackBridge />

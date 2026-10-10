@@ -131,17 +131,19 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.1.0",
-    date: "2026-10",
+    date: "2026-10-10",
     type: "feature",
     maafwVersion: "5.14.3",
     updates: {
       features: [
         "🎥 新增 MPE Recorder 流程录制模块，提供即时 OCR 填充与模板自动裁剪，点击屏幕即可快速交互式生成流程类 Pipeline",
+        "✂️ 新增模板二次编辑面板，可对已有模板进行裁剪与绿幕添加",
         "🍬 新增时间与数组粘贴语法糖，整理已有语法，详见[文档](https://mpe.codax.site/docs/guide/trait/parser.html#%E8%AF%AD%E6%B3%95%E7%B3%96)",
       ],
       perfs: [
         "新增正则显示与编辑方式配置项，可调整按原始正则或 JSON 正则书写",
         "优化自环结构展示效果",
+        "优化弹出类面板位置锚定，提升交互体验",
         "优化桌面端启动器样式与交互体验",
         "优化桌面端更新顺序，允许中断更新",
       ],

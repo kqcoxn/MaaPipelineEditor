@@ -1,5 +1,5 @@
 import { emitAchievementEvent } from "@/features/achievements/bus";
-﻿import {
+import {
   useEffect,
   useMemo,
   useRef,
@@ -799,7 +799,6 @@ const thumbnailMetaStyle: CSSProperties = {
 
 const imageModalStyle: CSSProperties = {
   maxWidth: "calc(100vw - 48px)",
-  top: 24,
 };
 
 const imageModalBodyStyle: CSSProperties = {

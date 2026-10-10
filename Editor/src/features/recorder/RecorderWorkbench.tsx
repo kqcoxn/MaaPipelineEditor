@@ -64,7 +64,7 @@ export default function RecorderWorkbench() {
         open={open}
         title="MPE Recorder"
         width="calc(100vw - 40px)"
-        style={{ top: 20, paddingBottom: 0 }}
+        style={{ paddingBottom: 0 }}
         styles={{ body: { height: "calc(100dvh - 128px)", minHeight: 300 } }}
         footer={null}
         mask={{ closable: false }}
