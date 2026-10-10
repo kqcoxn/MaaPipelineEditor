@@ -46,6 +46,7 @@ func NewHandler(resourceService *resourceService.Service, eventBus *eventbus.Eve
 func (h *Handler) GetRoutePrefix() []string {
 	return []string{
 		"/etl/get_image",
+		"/etl/save_template_image",
 		"/etl/get_images",
 		"/etl/get_image_list",
 		"/etl/refresh_resources",
@@ -55,6 +56,8 @@ func (h *Handler) GetRoutePrefix() []string {
 // 处理消息
 func (h *Handler) Handle(msg models.Message, conn *server.Connection) *models.Message {
 	switch msg.Path {
+	case "/etl/save_template_image":
+		return h.handleSaveTemplateImage(msg)
 	case "/etl/get_image":
 		return h.handleGetImage(msg, conn)
 	case "/etl/get_images":

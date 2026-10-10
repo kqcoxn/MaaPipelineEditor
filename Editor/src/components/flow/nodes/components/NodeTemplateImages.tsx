@@ -1,7 +1,8 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Image as AntImage, Spin } from "antd";
-import { DebugImageViewer } from "@/features/debug/components/DebugImageViewer";
+import { TemplateImageEditor } from "@/components/modals/template-editor/TemplateImageEditor";
 import { useResourceImages } from "@/hooks/useResourceImages";
+import { useLocalFileStore, type ImageCacheItem } from "@/stores/project/localFileStore";
 import style from "../../../../styles/flow/nodes.module.less";
 
 interface NodeTemplateImagesProps {
@@ -37,14 +38,21 @@ function getDisplaySize(
 export const NodeTemplateImages = memo(
   ({ templatePaths }: NodeTemplateImagesProps) => {
     const { connected, paths, images } = useResourceImages(templatePaths);
+    // Keep the editor alive when cache entries refresh or the connection drops.
+    const [session, setSession] = useState<{ path: string; image: ImageCacheItem; root: string } | null>(null);
 
     // 无有效路径或未连接
-    if (paths.length === 0 || !connected) {
+    if (!session && (paths.length === 0 || !connected)) {
       return null;
     }
 
     return (
-      <div className={style.nodeTemplateImages}>
+      <div className={`${style.nodeTemplateImages} nodrag nopan`}
+        onPointerDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}>
+        {session && <TemplateImageEditor {...session} onClose={() => setSession(null)} />}
         {images.map(({ path, image, pending }, index) => {
           const displaySize = image
             ? getDisplaySize(image.width, image.height)
@@ -61,39 +69,29 @@ export const NodeTemplateImages = memo(
             >
               {pending && !image && <Spin size="small" />}
               {image && displaySize && (
-                <DebugImageViewer
-                  src={image.dataUrl || image.url}
-                  alt={path}
-                  metadata={{
-                    naturalWidth: image.width,
-                    naturalHeight: image.height,
+                <button
+                  type="button"
+                  aria-label={`编辑模板 ${path}`}
+                  onClick={() => setSession({ path, image, root: useLocalFileStore.getState().rootPath })}
+                  style={{
+                    padding: 0,
+                    border: 0,
+                    background: "none",
+                    cursor: "zoom-in",
+                    display: "block",
                   }}
-                  renderTrigger={(openPreview) => (
-                    <button
-                      type="button"
-                      aria-label={`预览模板 ${path}`}
-                      onClick={openPreview}
-                      style={{
-                        padding: 0,
-                        border: 0,
-                        background: "none",
-                        cursor: "zoom-in",
-                        display: "block",
-                      }}
-                    >
-                      <AntImage
-                        src={image.url}
-                        fallback={image.dataUrl}
-                        alt={path}
-                        width={displaySize.width}
-                        height={displaySize.height}
-                        decoding="async"
-                        preview={false}
-                        style={{ objectFit: "contain", borderRadius: 2 }}
-                      />
-                    </button>
-                  )}
-                />
+                >
+                  <AntImage
+                    src={image.url}
+                    fallback={image.dataUrl}
+                    alt={path}
+                    width={displaySize.width}
+                    height={displaySize.height}
+                    decoding="async"
+                    preview={false}
+                    style={{ objectFit: "contain", borderRadius: 2 }}
+                  />
+                </button>
               )}
             </div>
           );

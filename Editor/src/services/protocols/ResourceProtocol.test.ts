@@ -55,6 +55,31 @@ describe("ResourceProtocol image requests", () => {
     vi.restoreAllMocks();
   });
 
+  it("保存响应按请求关联，成功后刷新缓存", async () => {
+    const saved = protocol.saveTemplateImage("a.png", "D:/image/a.png", "old", "new");
+    const requestId = server.sent[0].data.request_id;
+    server.deliver("/lte/template_image_saved", { request_id: "unrelated", success: false });
+    server.deliver("/lte/template_image_saved", {
+      request_id: requestId, success: true,
+      image: { success: true, relative_path: "a.png", base64: btoa("edited"), width: 12, height: 8 },
+    });
+    await expect(saved).resolves.toBeUndefined();
+    expect(useLocalFileStore.getState().getImageCache("a.png")).toMatchObject({ width: 12, height: 8, dataUrl: `data:image/png;base64,${btoa("edited")}` });
+  });
+
+  it("冲突和断线拒绝保存且不更新图片缓存", async () => {
+    const saved = protocol.saveTemplateImage("a.png", "D:/image/a.png", "old", "new");
+    const rejected = expect(saved).rejects.toThrow("外部修改");
+    server.deliver("/lte/template_image_saved", { request_id: server.sent[0].data.request_id, success: false, message: "外部修改" });
+    await rejected;
+    expect(useLocalFileStore.getState().getImageCache("a.png")).toBeUndefined();
+    const interrupted = protocol.saveTemplateImage("a.png", "D:/image/a.png", "old", "new");
+    const disconnected = expect(interrupted).rejects.toThrow("连接或项目已变化");
+    server.emitStatus(false);
+    await disconnected;
+    await vi.advanceTimersByTimeAsync(16000);
+  });
+
   it("去重批量请求并用一次 Store 更新提交响应", async () => {
     protocol.requestImages(["a.png", "a.png", "b.png"]);
     await vi.advanceTimersByTimeAsync(50);

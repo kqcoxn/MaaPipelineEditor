@@ -56,6 +56,33 @@ function createImageCacheItem(data: ImageResponseData): ImageCacheItem {
  * 处理资源目录和图片预览相关的 WebSocket 消息
  */
 export class ResourceProtocol extends BaseProtocol {
+  private templateSaves = new Map<string, { resolve: () => void; reject: (error: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+
+  public saveTemplateImage(relativePath: string, absolutePath: string, original: string, image: string): Promise<void> {
+    const requestId = crypto.randomUUID();
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.templateSaves.delete(requestId);
+        reject(new Error("保存响应超时，请检查文件是否已保存后再重试"));
+      }, 15000);
+      this.templateSaves.set(requestId, { resolve, reject, timer });
+      if (!this.wsClient?.send("/etl/save_template_image", {
+        request_id: requestId, relative_path: relativePath, absolute_path: absolutePath, original, image,
+      })) {
+        clearTimeout(timer);
+        this.templateSaves.delete(requestId);
+        reject(new Error("本地服务未连接"));
+      }
+    });
+  }
+
+  private cancelTemplateSaves(): void {
+    for (const pending of this.templateSaves.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("本地连接或项目已变化，请检查保存结果"));
+    }
+    this.templateSaves.clear();
+  }
   private statusUnsubscribe: (() => void) | null = null;
   private rootUnsubscribe: (() => void) | null = null;
   private readonly imageRequestScheduler = new ImageRequestScheduler({
@@ -78,18 +105,31 @@ export class ResourceProtocol extends BaseProtocol {
     this.statusUnsubscribe?.();
     this.rootUnsubscribe?.();
     this.statusUnsubscribe = wsClient.onStatus((connected) => {
-      if (!connected) this.resetImageResources();
+      if (!connected) { this.resetImageResources(); this.cancelTemplateSaves(); }
     });
     this.rootUnsubscribe = useLocalFileStore.subscribe(
       (state) => state.rootPath,
       (rootPath, previousRootPath) => {
         if (previousRootPath && rootPath !== previousRootPath) {
           this.imageRequestScheduler.clear();
+          this.cancelTemplateSaves();
         }
       },
     );
 
     // 注册接收路由
+    this.wsClient.registerRoute("/lte/template_image_saved", (data: {
+      request_id: string; success: boolean; message?: string; image?: ImageResponseData;
+    }) => {
+      const pending = this.templateSaves.get(data.request_id);
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      this.templateSaves.delete(data.request_id);
+      if (data.success) {
+        if (data.image) this.commitImageResponses([data.image]);
+        pending.resolve();
+      } else pending.reject(new Error(data.message || "模板保存失败"));
+    });
     this.wsClient.registerRoute("/lte/resource_bundles", (data) =>
       this.handleResourceBundles(data)
     );
@@ -110,6 +150,7 @@ export class ResourceProtocol extends BaseProtocol {
   }
 
   override unregister(): void {
+    this.cancelTemplateSaves();
     this.statusUnsubscribe?.();
     this.rootUnsubscribe?.();
     this.statusUnsubscribe = null;

@@ -19,6 +19,7 @@ vi.mock("@/hooks/useResourceImages", () => ({
           height: 32,
           url: "blob:test",
           dataUrl: "data:image/png;base64,test",
+          absPath: "D:/project/image/templates/button.png",
         },
         pending: false,
       },
@@ -39,7 +40,7 @@ describe("NodeTemplateImages", () => {
   });
 });
 
-it("opens the shared viewer and closes without propagating gestures to the node", async () => {
+it("opens the template editor and closes without propagating gestures to the node", async () => {
   const drag = vi.fn();
   render(
     <div onMouseDown={drag} onPointerDown={drag}>
@@ -47,11 +48,14 @@ it("opens the shared viewer and closes without propagating gestures to the node"
     </div>,
   );
   const button = screen.getByRole("button", {
-    name: "预览模板 templates/button.png",
+    name: "编辑模板 templates/button.png",
   });
   fireEvent.mouseDown(button);
   fireEvent.click(button);
   const dialog = await screen.findByRole("dialog");
+  expect(screen.getByText("模板图片编辑")).toBeInTheDocument();
+  expect(screen.queryByText("暂无 ROI")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "保存到原文件" })).toBeDisabled();
   fireEvent.mouseDown(dialog);
   expect(drag).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /close/i }));

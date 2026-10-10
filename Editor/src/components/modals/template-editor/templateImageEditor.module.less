@@ -1,0 +1,32 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.meta {
+  overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.viewport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  height: clamp(180px, 48vh, 580px);
+  border: 1px solid;
+  border-radius: 8px;
+  touch-action: none;
+  user-select: none;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  > span { margin-right: auto; font-size: 12px; }
+}
