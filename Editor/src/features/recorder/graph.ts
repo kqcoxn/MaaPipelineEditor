@@ -7,6 +7,8 @@ import type { EdgeType, NodeType, PipelineNodeType } from "@/stores/flow/types";
 import { createNodeIdAllocator } from "@/stores/flow/utils/nodeId";
 import { createEdgeIdAllocator } from "@/stores/flow/utils/edgeId";
 import { getNodeAbsoluteRect } from "@/stores/flow/utils/coordinateUtils";
+import { isEqual } from "lodash";
+import { recoFieldSchema } from "@/core/fields/recognition";
 import { validateConfig, type RecorderStep } from "./types";
 
 export function buildRecorderGraph(
@@ -34,8 +36,12 @@ export function buildRecorderGraph(
     names.add(name);
     const param: PipelineNodeType["data"]["recognition"]["param"] = {};
     if (c.recognition !== "DirectHit") {
-      param.roi = [...c.roi];
-      param.threshold = c.recognition === "OCR" ? c.threshold : [c.threshold];
+      if (!isEqual(c.roi, recoFieldSchema.roi.default)) param.roi = [...c.roi];
+      const threshold = c.recognition === "OCR" ? c.threshold : [c.threshold];
+      const defaultThreshold = c.recognition === "OCR"
+        ? recoFieldSchema.ocrThreshold.default
+        : recoFieldSchema.templateMatchThreshold.default;
+      if (!isEqual(threshold, defaultThreshold)) param.threshold = threshold;
     }
     if (c.recognition === "OCR") param.expected = [c.expected];
     if (c.recognition === "TemplateMatch") {

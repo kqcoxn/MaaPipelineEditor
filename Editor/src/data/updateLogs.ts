@@ -132,7 +132,7 @@ export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.1.0",
     date: "2026-10-10",
-    type: "feature",
+    type: "major",
     maafwVersion: "5.14.3",
     updates: {
       features: [

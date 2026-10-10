@@ -11,7 +11,7 @@ import { enqueueSuggestion } from "./suggestions";
 import { createCapture } from "./capture";
 import type { RecorderFrame, RecorderStep } from "./types";
 
-export function useRecorderLive() {
+export function useRecorderLive(active = true) {
   const refreshRate = useConfigStore((s) => s.configs.liveScreenRefreshRate);
   const controllerId = useMFWStore((s) => s.controllerId);
   const detailsOpen = useRecorderStore((s) => s.detailsOpen);
@@ -21,7 +21,7 @@ export function useRecorderLive() {
   const [actualFrameRate, setActualFrameRate] = useState(0);
   useEffect(() => {
     setActualFrameRate(0);
-    if (!open || detailsOpen || !controllerId) return;
+    if (!active || !open || detailsOpen || !controllerId) return;
     let frameCount = 0;
     let sampleStart = performance.now();
     const sampleTimer = setInterval(() => {
@@ -98,7 +98,7 @@ export function useRecorderLive() {
       clearInterval(sampleTimer);
       clearTimeout(timer);
     };
-  }, [controllerId, detailsOpen, open, refreshRate]);
+  }, [active, controllerId, detailsOpen, open, refreshRate]);
 
   const click = async (
     frame: RecorderFrame,
@@ -107,7 +107,7 @@ export function useRecorderLive() {
     y: number,
   ) => {
     const state = useRecorderStore.getState();
-    if (state.busy || state.detailsOpen) return;
+    if (!active || state.busy || state.detailsOpen) return;
     if (
       !controllerId ||
       useMFWStore.getState().controllerId !== frame.controllerId

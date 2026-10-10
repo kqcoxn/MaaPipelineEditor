@@ -1,61 +1,30 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useRecorderStore } from "./store";
 import { buildRecorderGraph } from "./graph";
-import { escapeOCRText, newStep, type RecorderResult } from "./types";
+import { escapeOCRText, newStep } from "./types";
 import { imagePoint, selectionRect } from "./geometry";
 import { useFlowStore } from "@/stores/flow";
 
-const success: RecorderResult = {
-  request_id: "r",
-  success: true,
-  hit: true,
-  boxes: [],
-};
 beforeEach(() => {
   useRecorderStore.getState().reset();
   useRecorderStore.getState().setBusy(false);
 });
-describe("Recorder editing and recording", () => {
-  it("records configuration without execution and rejects results for replaced/edited steps", () => {
-    const store = useRecorderStore.getState();
-    store.edit({ expected: "开始" });
-    const before = useRecorderStore.getState().current;
-    expect(store.save()).toBeUndefined();
-    expect(useRecorderStore.getState().steps[0].result).toBeUndefined();
-    expect(store.applyResult(before.id, before.version, success)).toBe(true);
-    expect(useRecorderStore.getState().steps).toHaveLength(1);
-    store.edit({ roi: [10, 20, 80, 40] });
-    expect(store.applyResult(before.id, before.version, success)).toBe(false);
-    expect(useRecorderStore.getState().current.result).toBeUndefined();
-    const edited = useRecorderStore.getState().current;
-    store.select();
-    expect(store.applyResult(edited.id, edited.version, success)).toBe(false);
-  });
-  it("keeps independent selections and retains the session when closed", () => {
-    const store = useRecorderStore.getState();
-    store.edit({
-      recognition: "TemplateMatch",
-      templateImage: "template",
-      templateRect: [1, 2, 3, 4],
-      roi: [10, 20, 30, 40],
-      target: [70, 80, 1, 1],
-      targetMode: "fixed",
-    });
-    store.edit({ roi: [0, 0, 0, 0] });
-    store.save();
-    store.setOpen(true);
-    store.setOpen(false);
+describe("Recorder review", () => {
+  it("retains capture order, exits deleted-step review, and clears on close", () => {
     const state = useRecorderStore.getState();
-    expect(state.current.config.templateRect).toEqual([1, 2, 3, 4]);
-    expect(state.current.config.target).toEqual([70, 80, 1, 1]);
-    expect(state.steps).toHaveLength(1);
-  });
-  it("execution feedback never adds a step", () => {
-    const state = useRecorderStore.getState();
-    state.applyResult(state.current.id, state.current.version, {
-      ...success,
-      action_success: true,
-    });
+    const first = newStep();
+    const second = newStep();
+    state.appendCapture(first);
+    state.appendCapture(second);
+    state.select(first.id);
+    state.setDetailsOpen(true);
+    expect(useRecorderStore.getState().steps.map((s) => s.id)).toEqual([first.id, second.id]);
+    expect(useRecorderStore.getState().current.id).toBe(first.id);
+    state.remove(first.id);
+    expect(useRecorderStore.getState().steps).toEqual([second]);
+    expect(useRecorderStore.getState().detailsOpen).toBe(false);
+    expect(useRecorderStore.getState().recording).toBe(false);
+    state.setOpen(false);
     expect(useRecorderStore.getState().steps).toEqual([]);
   });
 });
@@ -117,13 +86,12 @@ it("generates real nodes with no timing metadata, collision-free IDs/names and o
     "录制步骤_3",
   ]);
   expect(result.nodes[0].data.recognition.param).toEqual({
-    roi: [0, 0, 0, 0],
     expected: ["开始"],
-    threshold: 0.3,
   });
-  expect(result.nodes[1].data.recognition.param.template).toEqual([
-    "recorder/session/button.png",
-  ]);
+  expect(result.nodes[1].data.recognition.param).toEqual({
+    roi: [2, 3, 40, 50],
+    template: ["recorder/session/button.png"],
+  });
   expect(
     result.nodes.every((n) => !("target_offset" in n.data.action.param)),
   ).toBe(true);
@@ -156,4 +124,20 @@ it("generates real nodes with no timing metadata, collision-free IDs/names and o
   expect(() => buildRecorderGraph([template], {}, [], [])).toThrow(
     "模板尚未保存",
   );
+});
+
+it("omits default recognition parameters while retaining non-default thresholds and ROI", () => {
+  const ocr = newStep();
+  ocr.config.expected = "开始";
+  ocr.config.threshold = 0.7;
+  ocr.config.roi = [10, 20, 100, 40];
+  const template = newStep();
+  template.config = { ...template.config, recognition: "TemplateMatch", templateImage: "image", threshold: 0.7 };
+  const paths = { [template.id]: "button.png" };
+  const generated = buildRecorderGraph([ocr, template], paths, [], []).nodes;
+  expect(generated[0].data.recognition.param).toEqual({ expected: ["开始"], roi: [10, 20, 100, 40], threshold: 0.7 });
+  expect(generated[1].data.recognition.param).toEqual({ template: ["button.png"] });
+  expect(generated[1].data.action.param).toEqual({});
+  template.config.threshold = 0.9;
+  expect(buildRecorderGraph([template], paths, [], []).nodes[0].data.recognition.param).toEqual({ template: ["button.png"], threshold: [0.9] });
 });

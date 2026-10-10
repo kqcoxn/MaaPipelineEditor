@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { useRecorderStore } from "./store";
+import { buildRecorderGraph } from "./graph";
 import { newStep, type RecorderStep, type RecorderResult } from "./types";
 const io = vi.hoisted(() => ({ run: vi.fn() }));
 vi.mock("@/services/server", () => ({ recorderProtocol: { run: io.run } }));
@@ -64,11 +65,16 @@ it("analyzes the original frame without a device action and updates a saved step
     "精选\\(1\\)",
   );
   expect(useRecorderStore.getState().steps[0].suggestion).toBe("ocr");
+  expect(useRecorderStore.getState().steps[0].config.threshold).toBe(0.3);
+  expect(
+    buildRecorderGraph(useRecorderStore.getState().steps, {}, [], []).nodes[0]
+      .data.recognition.param,
+  ).not.toHaveProperty("threshold");
   expect(useRecorderStore.getState().steps[0].result).toBeUndefined();
 });
-it("never overwrites manual edits, skipped analysis, or a reset session with a late result", async () => {
+it("never restores deleted steps, skipped analysis, or a reset session with a late result", async () => {
   for (const change of [
-    () => useRecorderStore.getState().edit({ expected: "手动" }),
+    () => useRecorderStore.getState().remove(useRecorderStore.getState().current.id),
     () => useRecorderStore.getState().skipSuggestions(),
     () => useRecorderStore.getState().reset(),
   ]) {
@@ -149,4 +155,24 @@ it("removes edge icon noise while retaining literal label matching", () => {
     expect(patch).toMatchObject({ recognition: "OCR", name: label, expected });
     expect(new RegExp(patch!.expected!).test(text)).toBe(true);
   }
+});
+
+it("does not dispatch queued analysis after clearing the session", async () => {
+  const state = useRecorderStore.getState();
+  const first = captured();
+  const second = captured();
+  state.appendCapture(first);
+  state.appendCapture(second);
+  let finish!: (result: RecorderResult) => void;
+  io.run.mockImplementation(() => new Promise<RecorderResult>((resolve) => { finish = resolve; }));
+  const pendingFirst = enqueueSuggestion(first, state.sessionId);
+  const pendingSecond = enqueueSuggestion(second, state.sessionId);
+  await Promise.resolve();
+  expect(io.run).toHaveBeenCalledTimes(1);
+  state.reset();
+  finish(response);
+  await Promise.all([pendingFirst, pendingSecond]);
+  expect(io.run).toHaveBeenCalledTimes(1);
+  expect(useRecorderStore.getState().steps).toEqual([]);
+  expect(useRecorderStore.getState().current.config.expected).toBe("");
 });

@@ -74,18 +74,16 @@ it("sends input immediately and records an unverified candidate from the pre-cli
   expect(step.config.offset).toEqual([0, 0, 0, 0]);
   expect(step.capture?.status).toBe("pending");
   expect(step.result).toBeUndefined();
-  // Late operation feedback must never overwrite a user's field correction.
-  act(() => useRecorderStore.getState().edit({ expected: "手动修改" }));
+  // A deleted capture must not reappear when its device reply arrives.
+  act(() => useRecorderStore.getState().remove(step.id));
   await act(async () => {
     finish({ request_id: "r", success: true, hit: false, boxes: [] });
     await pending;
   });
-  expect(useRecorderStore.getState().steps).toHaveLength(1);
-  expect(useRecorderStore.getState().steps[0].capture?.status).toBe("success");
-  expect(useRecorderStore.getState().current.config.expected).toBe("手动修改");
-  expect(useRecorderStore.getState().steps[0].result).toBeUndefined();
+  expect(useRecorderStore.getState().steps).toEqual([]);
+  expect(useRecorderStore.getState().current.id).not.toBe(step.id);
 });
-it("allows free operation without recording and blocks device input in correction mode", async () => {
+it("allows free operation without recording and blocks device input in review mode", async () => {
   io.click.mockResolvedValue({ success: true });
   const { result } = renderHook(() => useRecorderLive());
   await act(() => result.current.click(frame, new Image(), 10, 20));
@@ -113,15 +111,6 @@ it("retains failed input as failed evidence and falls back to a coordinate draft
 it("clamps the candidate rectangle even for a small screen", () => {
   expect(candidateRect(0, 0, 30, 20)).toEqual([0, 0, 30, 20]);
   expect(candidateRect(799, 599, 800, 600)).toEqual([704, 536, 96, 64]);
-});
-
-it("drops template-specific offsets when correcting an automatic step to OCR", () => {
-  const state = useRecorderStore.getState();
-  state.edit({ recognition: "TemplateMatch", offset: [48, 32, -95, -63] });
-  state.edit({ recognition: "OCR", expected: "开始" });
-  expect(useRecorderStore.getState().current.config.offset).toEqual([
-    0, 0, 0, 0,
-  ]);
 });
 
 it("uses the configured frame cadence, subtracts capture time, and cancels on close", async () => {
@@ -181,4 +170,29 @@ it("continues sending device input while OCR analysis is pending", async () => {
     finish({ request_id: "r", success: true, hit: false, boxes: [] });
     await Promise.resolve();
   });
+});
+
+it("suspends screenshots and device input during close confirmation and resumes on cancel", async () => {
+  vi.useFakeTimers();
+  useRecorderStore.getState().setOpen(true);
+  io.screenshot.mockResolvedValue({ success: true, ...frame });
+  Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" });
+  try {
+    const { result, rerender } = renderHook(({ active }) => useRecorderLive(active), { initialProps: { active: true } });
+    expect(io.screenshot).toHaveBeenCalledTimes(1);
+    rerender({ active: false });
+    expect(io.screenshot.mock.calls[0][1].aborted).toBe(true);
+    await act(async () => {
+      await result.current.click(frame, new Image(), 10, 20);
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(io.click).not.toHaveBeenCalled();
+    expect(io.screenshot).toHaveBeenCalledTimes(1);
+    expect(useRecorderStore.getState().recording).toBe(true);
+    rerender({ active: true });
+    expect(io.screenshot).toHaveBeenCalledTimes(2);
+  } finally {
+    cleanup();
+    vi.useRealTimers();
+  }
 });

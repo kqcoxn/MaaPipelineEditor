@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, Select, theme } from "antd";
+import { Button, theme } from "antd";
 import { useCanvasViewport } from "@/hooks/useCanvasViewport";
 import { resolveNegativeROI } from "@/utils/data/roiNegativeCoord";
 import { useRecorderStore } from "./store";
-import { cropTemplate, imagePoint, selectionRect } from "./geometry";
+import { imagePoint } from "./geometry";
 import type { Rect, RecorderFrame } from "./types";
 import styles from "./Recorder.module.less";
 
-type Tool = "roi" | "template" | "target";
 export function RecorderCanvas({
   onClick,
 }: {
@@ -24,17 +23,10 @@ export function RecorderCanvas({
   const liveFrame = useRecorderStore((s) => s.liveFrame);
   const [heldFrame, setHeldFrame] = useState<RecorderFrame>();
   const busy = useRecorderStore((s) => s.busy);
-  const edit = useRecorderStore((s) => s.edit);
   const { token } = theme.useToken();
-  const [tool, setTool] = useState<Tool>("roi");
   const [lastClick, setLastClick] = useState<{ x: number; y: number }>();
-  const [selection, setSelection] = useState<Rect>();
-  const activeTool =
-    tool === "template" && current.config.recognition !== "TemplateMatch"
-      ? "roi"
-      : tool;
   const start = useRef<{ x: number; y: number } | null>(null);
-  const { config, result } = current;
+  const { config } = current;
   const frame = heldFrame ?? (detailsOpen ? current.frame : liveFrame);
   const operating = !detailsOpen;
   const viewport = useCanvasViewport({
@@ -68,7 +60,6 @@ export function RecorderCanvas({
   const cancel = () => {
     start.current = null;
     setHeldFrame(undefined);
-    setSelection(undefined);
     viewport.endPan();
   };
   const rect = (r: Rect, color: string, label: string) => (
@@ -95,52 +86,32 @@ export function RecorderCanvas({
   const roi = frame
     ? resolveNegativeROI(config.roi, frame.width, frame.height).actual
     : null;
-  const boxes = result?.image === frame?.image ? (result?.boxes ?? []) : [];
   return (
     <section className={styles.picture} aria-label="设备画面">
       <div className={styles.pictureTools}>
-        {operating ? (
-          <span className={styles.hint}>
-            点击画面操作设备 · 拖动不会发送滑动
-          </span>
-        ) : (
-          <Select
-            aria-label="画面交互工具"
-            value={activeTool}
-            disabled={busy}
-            onChange={(value) => {
-              cancel();
-              setTool(value);
-            }}
-            options={[
-              { value: "roi", label: "框选 ROI" },
-              {
-                value: "template",
-                label: "裁剪模板",
-                disabled: config.recognition !== "TemplateMatch",
-              },
-              { value: "target", label: "选择固定点击位置" },
-            ]}
-          />
-        )}
-        <Button onClick={viewport.handleZoomOut} aria-label="缩小画面">
-          −
-        </Button>
-        <Button onClick={viewport.handleZoomReset}>
-          {Math.round(viewport.scale * 100)}%
-        </Button>
-        <Button onClick={viewport.handleZoomIn} aria-label="放大画面">
-          +
-        </Button>
+        <h3>{operating ? "设备画面" : "步骤截图"}</h3>
+        <span className={styles.hint}>{operating ? "点击操作设备" : "只读回看 · 不操作设备"}</span>
+        <span className={styles.grow} />
+        <div className={styles.zoomControls}>
+          <Button type="text" onClick={viewport.handleZoomOut} aria-label="缩小画面">
+            −
+          </Button>
+          <Button type="text" onClick={viewport.handleZoomReset} aria-label="适应画面">
+            {Math.round(viewport.scale * 100)}%
+          </Button>
+          <Button type="text" onClick={viewport.handleZoomIn} aria-label="放大画面">
+            +
+          </Button>
+        </div>
       </div>
       <div ref={viewport.containerRef} className={styles.viewport}>
         {!frame ? (
           <div className={styles.empty}>
-            连接设备后点击“获取截图”
+            连接设备后自动显示画面
             <br />
             {operating
               ? "画面加载后即可直接点击设备"
-              : "在画面中框选和选点不会操作设备"}
+              : "该步骤没有可用截图"}
           </div>
         ) : (
           <div
@@ -172,11 +143,11 @@ export function RecorderCanvas({
               width={frame.width}
               height={frame.height}
               className={styles.overlay}
-              aria-label="框选区域和点击位置"
+              aria-label="设备操作与步骤回看"
               style={{
                 cursor:
                   viewport.getBaseCursorStyle() ??
-                  (operating ? "pointer" : "crosshair"),
+                  (operating ? "pointer" : "default"),
               }}
               onPointerDown={(event) => {
                 if (busy) return;
@@ -190,31 +161,27 @@ export function RecorderCanvas({
                   );
                   return;
                 }
-                if (event.button !== 0) return;
+                if (!operating || event.button !== 0) return;
                 if (!viewport.imageRef.current?.complete) return;
                 setHeldFrame(frame);
                 start.current = toPoint(event);
-                setSelection(undefined);
               }}
               onPointerMove={(event) => {
                 if (viewport.isPanning) {
                   viewport.updatePan(event.clientX, event.clientY);
                   return;
                 }
-                if (!operating && start.current && activeTool !== "target")
-                  setSelection(selectionRect(start.current, toPoint(event)));
               }}
               onPointerUp={(event) => {
                 if (start.current && !busy && !viewport.isPanning) {
                   const point = toPoint(event);
-                  const area = selectionRect(start.current, point);
                   if (operating && viewport.imageRef.current) {
                     if (
                       Math.hypot(
                         point.x - start.current.x,
                         point.y - start.current.y,
                       ) *
-                        viewport.scale <=
+                      viewport.scale <=
                       6
                     ) {
                       setLastClick(point);
@@ -225,24 +192,7 @@ export function RecorderCanvas({
                         point.y,
                       );
                     }
-                  } else if (activeTool === "target")
-                    edit({
-                      targetMode: "fixed",
-                      target: [point.x, point.y, 1, 1],
-                    });
-                  else if (
-                    tool === "template" &&
-                    config.recognition === "TemplateMatch" &&
-                    viewport.imageRef.current
-                  ) {
-                    edit({
-                      templateRect: area,
-                      templateImage: cropTemplate(
-                        viewport.imageRef.current,
-                        area,
-                      ),
-                    });
-                  } else if (activeTool === "roi") edit({ roi: area });
+                  }
                 }
                 if (event.currentTarget.hasPointerCapture?.(event.pointerId))
                   event.currentTarget.releasePointerCapture(event.pointerId);
@@ -286,41 +236,21 @@ export function RecorderCanvas({
                   />
                 </g>
               )}
-              {!operating &&
-                boxes.map((box, index) => (
-                  <g key={index}>
-                    {rect(
-                      [box.x, box.y, box.width, box.height],
-                      token.colorWarning,
-                      `${index + 1} ${box.text || box.score.toFixed(2)}`,
-                    )}
-                  </g>
-                ))}
-              {!operating &&
-                result?.hit &&
-                result.best &&
-                result.image === frame?.image &&
-                rect(
-                  [
-                    result.best.x,
-                    result.best.y,
-                    result.best.width,
-                    result.best.height,
-                  ],
-                  token.colorSuccess,
-                  "命中",
-                )}
-              {selection && rect(selection, token.colorTextLightSolid, "选区")}
+              {!operating && current.capturePoint && (
+                <circle cx={current.capturePoint.x} cy={current.capturePoint.y}
+                  r={10 / viewport.scale} stroke={token.colorPrimary}
+                  strokeWidth={2 / viewport.scale} fill="none" />
+              )}
             </svg>
           </div>
         )}
       </div>
-      <div className={styles.hint}>
+      <div className={styles.pictureHint}>
         {frame ? `${frame.width} × ${frame.height} · ` : ""}滚轮缩放 ·
         空格或中键拖动画面 ·{" "}
         {operating
           ? "画面自动刷新；点击立即发送到设备"
-          : "修正步骤时底图保持固定"}
+          : "操作前截图 · 参数在草稿中调整"}
       </div>
     </section>
   );

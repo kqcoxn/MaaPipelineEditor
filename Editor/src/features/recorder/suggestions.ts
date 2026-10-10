@@ -1,4 +1,5 @@
 import { recorderProtocol } from "@/services/server";
+import { recoFieldSchema } from "@/core/fields/recognition";
 import { useRecorderStore } from "./store";
 import {
   escapeOCRText,
@@ -77,29 +78,27 @@ export function chooseOCR(
     recognition: "OCR",
     name: box.label,
     expected: escapeOCRText(box.label),
-    threshold: 0.7,
+    threshold: recoFieldSchema.ocrThreshold.default,
     roi: suggestionROI(step),
     targetMode: "recognition",
     offset: [0, 0, 0, 0],
   };
 }
-// One bounded request at a time. Closing the workbench retains analysis;
-// resetting/importing, skipping, or editing a step invalidates its automatic patch.
+// One bounded request at a time. Queue only identifiers so clearing a session
+// releases queued screenshots; an already dispatched result is ignored after reset.
 let queue: Promise<void> = Promise.resolve();
 export function enqueueSuggestion(
   step: RecorderStep,
   sessionId: string,
 ): Promise<void> {
+  const id = step.id;
+  const version = step.version;
   queue = queue.then(async () => {
-    const state = useRecorderStore.getState();
-    const saved = state.steps.find((s) => s.id === step.id);
-    if (state.sessionId !== sessionId || saved?.suggestion !== "pending")
-      return;
-    if (
-      saved.version !== step.version ||
-      (state.current.id === step.id && state.dirty)
-    ) {
-      state.finishSuggestion(sessionId, step.id, step.version);
+    if (useRecorderStore.getState().sessionId !== sessionId) return;
+    const step = useRecorderStore.getState().steps.find((s) => s.id === id);
+    if (step?.suggestion !== "pending") return;
+    if (step.version !== version) {
+      useRecorderStore.getState().finishSuggestion(sessionId, id, version);
       return;
     }
     try {

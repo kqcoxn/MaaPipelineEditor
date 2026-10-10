@@ -1,10 +1,8 @@
-import { VideoCameraOutlined } from "@ant-design/icons";
+import { RecorderHost } from "@/features/recorder/RecorderHost";
 import { useRecorderStore } from "@/features/recorder/store";
 import { getShortcut } from "@/utils/shortcuts";
 import { message, modal } from "@/utils/ui/antdAppApi";
 import {
-  lazy,
-  Suspense,
   memo,
   useMemo,
   useState,
@@ -37,7 +35,6 @@ type GlobalToolType = {
   onDisabledClick?: () => void;
 };
 
-const RecorderWorkbench = lazy(() => import("@/features/recorder/RecorderWorkbench"));
 
 const DOCS_BASE_URL = "https://mpe.codax.site/docs";
 const DEBUG_INTRO_CONFIRMED_KEY = "mpe_debug_intro_confirmed_v1";
@@ -349,11 +346,14 @@ function GlobalPanel() {
           </li>
         </div>
         <div className={style.group}>
+          <div className={style.devider}>
+            <div></div>
+          </div>
           <li className={style.item}>
             <Tooltip placement="bottom" title="MPE Recorder">
               <button aria-label="打开 MPE Recorder" className={style.icon} style={{ border: 0, background: "none", color: "inherit", cursor: "pointer", padding: 0, fontSize: 24 }}
                 onClick={() => isEmbed ? showEmbedServiceNotice("MPE Recorder") : useRecorderStore.getState().setOpen(true)}>
-                <VideoCameraOutlined />
+                <IconFont name="icon-luxiang" size={24} />
               </button>
             </Tooltip>
           </li>
@@ -416,7 +416,7 @@ function GlobalPanel() {
         </div>
       </ul>
       <ul className={editPanelClass}>{renderTools(editingTools)}</ul>
-      <Suspense fallback={null}><RecorderWorkbench /></Suspense>
+      <RecorderHost />
     </>
   );
 }

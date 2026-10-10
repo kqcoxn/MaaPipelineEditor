@@ -1,30 +1,28 @@
 import { useState, type CSSProperties } from "react";
-import { Modal, Button, Select, Tag, theme } from "antd";
+import { Modal, Button, Select, theme } from "antd";
 import {
-  PlusOutlined,
-  UpOutlined,
-  DownOutlined,
-  DeleteOutlined,
-  ReloadOutlined,
+  CaretRightOutlined,
+  PauseOutlined,
 } from "@ant-design/icons";
 import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
 import { useRecorderStore } from "./store";
 import { RecorderCanvas } from "./RecorderCanvas";
-import { RecorderFields } from "./RecorderFields";
+import IconFont from "@/components/iconfonts";
+import { RecorderSteps } from "./RecorderSteps";
 import { useRecorderLive } from "./useRecorderLive";
 import { useRecorderActions } from "./useRecorderActions";
 import styles from "./Recorder.module.less";
 
 export default function RecorderWorkbench() {
+  const [closeRequested, setCloseRequested] = useState(false);
   const recording = useRecorderStore((s) => s.recording);
   const detailsOpen = useRecorderStore((s) => s.detailsOpen);
   const liveController = useRecorderStore((s) => s.liveFrame?.controllerId);
-  const live = useRecorderLive();
+  const live = useRecorderLive(!closeRequested);
   const open = useRecorderStore((s) => s.open);
   const steps = useRecorderStore((s) => s.steps);
   const current = useRecorderStore((s) => s.current);
-  const dirty = useRecorderStore((s) => s.dirty);
   const busy = useRecorderStore((s) => s.busy);
   const resourcePath = useRecorderStore((s) => s.resourcePath);
   const setResourcePath = useRecorderStore((s) => s.setResourcePath);
@@ -33,19 +31,26 @@ export default function RecorderWorkbench() {
   const bundles = useLocalFileStore((s) => s.resourceBundles);
   const { token } = theme.useToken();
   const actions = useRecorderActions();
-  const [pending, setPending] = useState<(() => void) | null>(null);
-  const navigate = (next: () => void) => {
-    if (dirty) setPending(() => next);
-    else next();
-  };
   const analyzing = steps.filter((s) => s.suggestion === "pending").length;
-  const unverified = steps.filter(
-    (step) =>
-      !step.result?.success ||
-      !step.result.hit ||
-      step.result.action_success === false,
-  ).length;
   const validResource = bundles.some((b) => b.abs_path === resourcePath);
+  const requestClose = () => {
+    const state = useRecorderStore.getState();
+    if (state.busy) return;
+    if (state.steps.length) setCloseRequested(true);
+    else state.reset();
+  };
+  const resourceSelect = (
+    <Select
+      className={styles.resource}
+      aria-label="识别与模板资源包"
+      placeholder="选择资源包（保存模板必选）"
+      value={validResource ? resourcePath : undefined}
+      allowClear
+      disabled={busy}
+      options={bundles.map((b) => ({ value: b.abs_path, label: b.rel_path || b.name }))}
+      onChange={(value) => setResourcePath(value ?? "")}
+    />
+  );
   const colors = {
     "--rec-bg": token.colorBgLayout,
     "--rec-panel": token.colorBgContainer,
@@ -54,6 +59,8 @@ export default function RecorderWorkbench() {
     "--rec-muted": token.colorTextSecondary,
     "--rec-accent": token.colorPrimary,
     "--rec-selected": token.colorPrimaryBg,
+    "--rec-hover": token.colorFillTertiary,
+    "--rec-success": token.colorSuccess,
   } as CSSProperties;
   return (
     <div
@@ -62,309 +69,97 @@ export default function RecorderWorkbench() {
     >
       <Modal
         open={open}
-        title="MPE Recorder"
+        title={<div className={styles.title}><IconFont name="icon-luxiang" size={24} /><span>MPE Recorder</span><span className={styles.titleHint}>流程录制</span></div>}
         width="calc(100vw - 40px)"
-        style={{ paddingBottom: 0 }}
         styles={{ body: { height: "calc(100dvh - 128px)", minHeight: 300 } }}
         footer={null}
         mask={{ closable: false }}
-        onCancel={() => useRecorderStore.getState().setOpen(false)}
-        afterClose={() => setPending(null)}
+        onCancel={requestClose}
+        closable={!busy && !closeRequested}
+        keyboard={!busy && !closeRequested}
         destroyOnHidden
       >
         <div className={styles.workbench} style={colors}>
           <header className={styles.topbar}>
-            <Button
-              type="primary"
-              danger={recording}
-              disabled={
-                busy ||
-                !connected ||
-                detailsOpen ||
-                !liveController ||
-                liveController !== controllerId
-              }
-              onClick={() =>
-                useRecorderStore.getState().setRecording(!recording)
-              }
-            >
-              {recording ? "暂停录制" : "开始录制"}
-            </Button>
-            <Tag color={recording ? "error" : "default"}>
-              {recording ? "录制中 · 点击自动记录" : "自由操作 · 不记录"}
-            </Tag>
-            <Tag color={connected ? "success" : "default"}>
-              {connected ? "设备已连接" : "设备未连接"}
-            </Tag>
-            {!detailsOpen && connected && (
-              <span className={styles.hint}>
-                画面 {live.actualFrameRate} / {live.refreshRate} FPS
-              </span>
-            )}
-            {detailsOpen && (
+            <div className={styles.recordControls}>
               <Button
-                icon={<ReloadOutlined />}
-                disabled={busy || !controllerId}
-                onClick={actions.refresh}
+                type="primary"
+                danger={recording}
+                icon={recording ? <PauseOutlined /> : <CaretRightOutlined />}
+                disabled={
+                  busy ||
+                  (!recording && !detailsOpen &&
+                    (!connected || !liveController || liveController !== controllerId))
+                }
+                onClick={() =>
+                  useRecorderStore.getState().setRecording(!recording)
+                }
               >
-                获取截图
+                {detailsOpen ? "继续录制" : recording ? "暂停录制" : "开始录制"}
               </Button>
-            )}
-            <Select
-              className={styles.resource}
-              aria-label="识别与模板资源包"
-              placeholder="选择资源包（模板保存必选）"
-              value={validResource ? resourcePath : undefined}
-              allowClear
-              disabled={busy}
-              options={bundles.map((b) => ({
-                value: b.abs_path,
-                label: b.rel_path || b.name,
-              }))}
-              onChange={(value) => setResourcePath(value ?? "")}
-            />
-            {analyzing > 0 && (
-              <>
-                <span className={styles.hint}>{analyzing} 步文字分析中</span>
-                <Button
-                  size="small"
-                  onClick={() => useRecorderStore.getState().skipSuggestions()}
-                >
-                  跳过文字分析
-                </Button>
-              </>
-            )}
-            <span className={styles.grow} />
-            <span className={styles.hint}>
-              {steps.length} 个步骤 · {unverified} 个未通过验证
-            </span>
-            <Button
-              type="primary"
-              disabled={busy || steps.length === 0 || analyzing > 0}
-              onClick={() => navigate(actions.generate)}
-            >
-              生成草稿
-            </Button>
-          </header>
-          <div
-            className={`${styles.columns} ${!detailsOpen ? styles.liveColumns : ""}`}
-          >
-            <aside className={styles.steps} aria-label="已保存步骤">
-              <div className={styles.sectionHeading}>
-                <h3>已保存步骤</h3>
-                <Button
-                  size="small"
-                  icon={<PlusOutlined />}
-                  disabled={busy}
-                  onClick={() =>
-                    navigate(() => {
-                      useRecorderStore.getState().select();
-                      useRecorderStore.getState().setDetailsOpen(true);
-                      useRecorderStore.getState().setRecording(false);
-                      const liveFrame = useRecorderStore.getState().liveFrame;
-                      if (liveFrame)
-                        useRecorderStore.getState().setFrame(liveFrame);
-                    })
-                  }
-                >
-                  新建
-                </Button>
+              <div className={styles.recordStatus} title={detailsOpen ? "点击继续录制，返回实时画面" : recording ? "点击画面自动记录步骤" : "点击操作设备，不记录步骤"}>
+                <strong>{detailsOpen ? "步骤回看" : recording ? "录制中" : "自由操作"}</strong>
               </div>
-              {!steps.length && (
-                <p className={styles.hint}>
-                  开始录制后，在右侧画面直接操作。点击会自动留下步骤与模板候选，无需逐步保存。
-                </p>
-              )}
-              {steps.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`${styles.step} ${step.id === current.id ? styles.selected : ""}`}
-                >
-                  <button
-                    title={step.suggestionError}
-                    className={styles.stepSelect}
-                    disabled={busy}
-                    onClick={() => {
-                      navigate(() => {
-                        useRecorderStore.getState().select(step.id);
-                        useRecorderStore.getState().setDetailsOpen(true);
-                        useRecorderStore.getState().setRecording(false);
-                      });
-                    }}
+              <span className={`${styles.connection} ${connected ? styles.connected : ""}`}>{connected ? "设备已连接" : "设备未连接"}</span>
+              {!detailsOpen && connected && <span className={styles.hint}>{live.actualFrameRate} / {live.refreshRate} FPS</span>}
+              {analyzing > 0 && (
+                <>
+                  <span className={styles.hint}>{analyzing} 步文字分析中</span>
+                  <Button
+                    size="small"
+                    onClick={() => useRecorderStore.getState().skipSuggestions()}
                   >
-                    {step.config.templateImage && (
-                      <img
-                        src={step.config.templateImage}
-                        alt="点击附近模板候选"
-                        className={styles.captureThumb}
-                      />
-                    )}
-                    <strong>
-                      {index + 1}. {step.config.name}
-                    </strong>
-                    <span>
-                      {step.config.recognition} · {step.config.action}
-                    </span>
-                    <span>
-                      {step.capture && (
-                        <span>
-                          {step.capture.status === "pending"
-                            ? "点击发送中"
-                            : step.capture.status === "failed"
-                              ? "点击失败"
-                              : step.capture.status === "unknown"
-                                ? "点击结果不明"
-                                : "已操作设备"}{" "}
-                          ·{" "}
-                        </span>
-                      )}
-                      {step.suggestion === "pending"
-                        ? "文字分析中 · "
-                        : step.suggestion === "ocr"
-                          ? "OCR 优选 · "
-                          : step.suggestion === "unavailable"
-                            ? "OCR 不可用 · "
-                            : ""}
-                      {!step.result
-                        ? step.capture
-                          ? "自动候选 · 待验证"
-                          : "未验证"
-                        : !step.result.success
-                          ? "验证失败"
-                          : step.result.hit
-                            ? "识别已通过"
-                            : "识别未命中"}
-                    </span>
-                  </button>
-                  <div className={styles.stepTools}>
-                    <Button
-                      size="small"
-                      type="text"
-                      aria-label={`上移步骤 ${index + 1}`}
-                      icon={<UpOutlined />}
-                      disabled={busy || index === 0}
-                      onClick={() =>
-                        useRecorderStore.getState().move(step.id, -1)
-                      }
-                    />
-                    <Button
-                      size="small"
-                      type="text"
-                      aria-label={`下移步骤 ${index + 1}`}
-                      icon={<DownOutlined />}
-                      disabled={busy || index === steps.length - 1}
-                      onClick={() =>
-                        useRecorderStore.getState().move(step.id, 1)
-                      }
-                    />
-                    <Button
-                      size="small"
-                      type="text"
-                      danger
-                      aria-label={`删除步骤 ${index + 1}`}
-                      icon={<DeleteOutlined />}
-                      disabled={busy}
-                      onClick={() =>
-                        navigate(() =>
-                          useRecorderStore.getState().remove(step.id),
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              ))}
-            </aside>
+                    跳过文字分析
+                  </Button>
+                </>
+              )}
+            </div>
+            <div className={styles.exportControls}>
+              <span className={styles.hint}>{steps.length} 个步骤</span>
+              {resourceSelect}
+              <Button
+                type="primary"
+                disabled={busy || steps.length === 0 || analyzing > 0}
+                onClick={() => actions.generate()}
+              >
+                生成草稿
+              </Button>
+            </div>
+          </header>
+          <div className={styles.columns}>
+            <RecorderSteps />
             <RecorderCanvas
               key={detailsOpen ? current.id : "live"}
               onClick={live.click}
             />
-            {detailsOpen && (
-              <RecorderFields
-                candidates={actions.candidates}
-                extract={() => actions.run("extract")}
-              />
-            )}
           </div>
           <footer className={styles.bottomBar}>
             <span className={styles.hint}>
-              关闭保留本次录制；刷新或退出应用后不恢复。
-              {dirty ? " · 当前步骤尚未保存" : ""}
+              {live.error || "生成草稿后，可在画布调整顺序、识别条件和动作参数。"}
             </span>
             <span className={styles.grow} />
-            {detailsOpen ? (
-              <>
-                <Button
-                  disabled={busy}
-                  onClick={() =>
-                    navigate(() =>
-                      useRecorderStore.getState().setDetailsOpen(false),
-                    )
-                  }
-                >
-                  返回操作画面
-                </Button>
-                <Button
-                  disabled={busy || !current.frame}
-                  onClick={() => actions.run("preview")}
-                >
-                  试识别
-                </Button>
-                <Button
-                  disabled={busy || !current.frame || !controllerId}
-                  loading={busy}
-                  onClick={() => actions.run("execute")}
-                >
-                  执行当前步骤
-                </Button>
-                <Button type="primary" disabled={busy} onClick={actions.save}>
-                  {steps.some((s) => s.id === current.id)
-                    ? "更新步骤"
-                    : "保存步骤"}
-                </Button>
-              </>
-            ) : (
-              <span className={styles.hint}>
-                {live.error ||
-                  "自动模板仅为候选，点击左侧步骤可修正 OCR、模板与 ROI。"}
-              </span>
-            )}
+            <span className={styles.hint}>关闭前可应用或清除本次录制。</span>
           </footer>
         </div>
       </Modal>
       <Modal
-        open={!!pending}
-        title="当前步骤有未保存的编辑"
-        onCancel={() => setPending(null)}
-        footer={
-          <>
-            <Button onClick={() => setPending(null)}>取消</Button>
-            <Button
-              onClick={() => {
-                const next = pending;
-                const state = useRecorderStore.getState();
-                state.select(state.current.id);
-                setPending(null);
-                next?.();
-              }}
-            >
-              放弃编辑并继续
-            </Button>
-            <Button
-              type="primary"
-              onClick={() => {
-                if (actions.save()) {
-                  const next = pending;
-                  setPending(null);
-                  next?.();
-                }
-              }}
-            >
-              保存并继续
-            </Button>
-          </>
-        }
+        open={closeRequested}
+        destroyOnHidden
+        title="结束本次录制？"
+        onCancel={() => setCloseRequested(false)}
+        closable={!busy}
+        keyboard={!busy}
+        mask={{ closable: false }}
+        footer={<>
+          <Button disabled={busy} onClick={() => setCloseRequested(false)}>取消</Button>
+          <Button danger disabled={busy} onClick={() => useRecorderStore.getState().reset()}>清除并关闭</Button>
+          <Button type="primary" loading={busy} disabled={busy || analyzing > 0}
+            onClick={() => actions.generate()}>应用并关闭</Button>
+        </>}
       >
-        保存只记录配置，不会操作设备。
+        <p>本次录制有 {steps.length} 个步骤。应用会生成草稿到当前画布；清除会丢弃本次录制。</p>
+        {steps.some((step) => step.config.recognition === "TemplateMatch") && resourceSelect}
+        {analyzing > 0 && <p>{analyzing} 个步骤正在分析，请等待完成后应用，或返回面板跳过文字分析。</p>}
       </Modal>
     </div>
   );

@@ -1,10 +1,7 @@
-import { useState } from "react";
 import {
-  mfwProtocol,
   recorderProtocol,
   resourceProtocol,
 } from "@/services/server";
-import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useFlowStore } from "@/stores/flow";
 import { assignNodeOrders, useFileStore } from "@/stores/project/fileStore";
 import { fitFlowView } from "@/stores/flow/utils/viewportUtils";
@@ -13,15 +10,9 @@ import { useRecorderStore } from "./store";
 import { buildRecorderGraph } from "./graph";
 import { layoutGraph } from "@/core/groupLayout";
 import { useLocalFileStore } from "@/stores/project/localFileStore";
-import { makeRunRequest, validateConfig, type RunMode } from "./types";
+import { validateConfig } from "./types";
 
 export function useRecorderActions() {
-  const [candidates, setCandidates] = useState<{
-    id: string;
-    version: number;
-    texts: string[];
-  }>();
-  const current = useRecorderStore((s) => s.current);
   const exclusive = async (operation: () => Promise<void>) => {
     if (useRecorderStore.getState().busy) return;
     useRecorderStore.getState().setBusy(true);
@@ -33,106 +24,12 @@ export function useRecorderActions() {
       useRecorderStore.getState().setBusy(false);
     }
   };
-  const capture = async (preserveResult = false) => {
-    const controllerId = useMFWStore.getState().controllerId;
-    if (!controllerId) throw new Error("请先通过连接面板连接设备");
-    const before = useRecorderStore.getState().current;
-    const frame = await mfwProtocol.requestScreencap({
-      controller_id: controllerId,
-      use_cache: false,
-    });
-    if (!frame.success || !frame.image || !frame.width || !frame.height)
-      throw new Error(frame.error || "获取截图失败");
-    const state = useRecorderStore.getState();
-    if (
-      useMFWStore.getState().controllerId !== controllerId ||
-      state.current.id !== before.id ||
-      state.current.version !== before.version
-    )
-      return;
-    if (
-      before.frame &&
-      (before.frame.width !== frame.width ||
-        before.frame.height !== frame.height ||
-        before.frame.controllerId !== controllerId)
-    ) {
-      message.warning("设备或截图尺寸已变化，请重新检查 ROI、模板和点击目标");
-    }
-    state.setFrame(
-      {
-        image: frame.image,
-        width: frame.width,
-        height: frame.height,
-        controllerId,
-      },
-      preserveResult,
-    );
-  };
-  const refresh = () => exclusive(() => capture());
-  const run = (mode: RunMode) =>
-    exclusive(async () => {
-      const state = useRecorderStore.getState();
-      const step = state.current;
-      if (!step.frame) throw new Error("请先获取设备截图");
-      if (mode !== "extract") {
-        const error = validateConfig(step.config, mode === "preview");
-        if (error) throw new Error(error);
-      }
-      const controllerId = useMFWStore.getState().controllerId;
-      if (
-        mode === "execute" &&
-        (!controllerId || controllerId !== step.frame.controllerId)
-      )
-        throw new Error("设备已变化，请重新获取截图后再执行");
-      const result = await recorderProtocol.run(
-        makeRunRequest(step, mode, controllerId ?? "", state.resourcePath),
-      );
-      const latest = useRecorderStore.getState();
-      if (
-        useMFWStore.getState().controllerId !== controllerId ||
-        latest.current.id !== step.id ||
-        latest.current.version !== step.version
-      )
-        return;
-      if (mode === "extract") {
-        if (!result.success) throw new Error(result.error || "文字提取失败");
-        const texts = [
-          ...new Set(
-            (result.boxes ?? []).map((box) => box.text).filter(Boolean),
-          ),
-        ];
-        setCandidates({ id: step.id, version: step.version, texts });
-        if (!texts.length) message.info("该区域没有提取到文字，请调整 ROI");
-        return;
-      }
-      latest.applyResult(
-        step.id,
-        step.version,
-        mode === "preview" ? { ...result, image: step.frame.image } : result,
-      );
-      if (mode === "execute") {
-        // Refresh for the next operation; retain the outcome, but don't paint old boxes over the new frame.
-        try {
-          await capture(true);
-        } catch (error) {
-          message.warning(`操作结果已保留，刷新截图失败：${String(error)}`);
-        }
-      }
-    });
-  const save = () => {
-    const error = useRecorderStore.getState().save();
-    if (error) {
-      message.warning(error);
-      return false;
-    }
-    return true;
-  };
   const generate = () =>
     exclusive(async () => {
       const state = useRecorderStore.getState();
       if (state.steps.some((s) => s.suggestion === "pending"))
         throw new Error("文字分析尚未完成，请等待或跳过分析");
-      if (!state.steps.length) throw new Error("请先保存至少一个步骤");
+      if (!state.steps.length) throw new Error("请先录制至少一个步骤");
       for (const step of state.steps) {
         const error = validateConfig(step.config);
         if (error) throw new Error(`${step.config.name}：${error}`);
@@ -194,14 +91,5 @@ export function useRecorderActions() {
       if (assets.length) resourceProtocol.requestRefreshResources();
       message.success(`已生成 ${nodes.length} 个节点，可在画布继续编辑`);
     });
-  return {
-    refresh,
-    run,
-    save,
-    generate,
-    candidates:
-      candidates?.id === current.id && candidates.version === current.version
-        ? candidates.texts
-        : [],
-  };
+  return { generate };
 }

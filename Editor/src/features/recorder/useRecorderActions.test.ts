@@ -2,7 +2,7 @@ import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { useRecorderStore } from "./store";
 import { useMFWStore } from "@/stores/connection/mfwStore";
-import type { RecorderResult } from "./types";
+import { newStep } from "./types";
 
 const io = vi.hoisted(() => ({
   run: vi.fn(),
@@ -32,69 +32,15 @@ beforeEach(() => {
     controllerId: "device",
     connectionStatus: "connected",
   });
-  useRecorderStore.getState().edit({ expected: "开始" });
-  useRecorderStore.getState().setFrame({
-    image: "before",
-    width: 800,
-    height: 600,
-    controllerId: "device",
-  });
+  const step = newStep();
+  step.config.expected = "开始";
+  step.frame = { image: "before", width: 800, height: 600, controllerId: "device" };
+  useRecorderStore.getState().appendCapture(step);
 });
 afterEach(() => {
   cleanup();
   useRecorderStore.getState().reset();
 });
-it("saving sends no device request; execution refreshes the frame without recording", async () => {
-  const { result } = renderHook(() => useRecorderActions());
-  act(() => {
-    expect(result.current.save()).toBe(true);
-  });
-  expect(io.run).not.toHaveBeenCalled();
-  expect(io.screenshot).not.toHaveBeenCalled();
-  act(() => useRecorderStore.getState().select());
-  act(() => useRecorderStore.getState().edit({ expected: "返回" }));
-  io.run.mockResolvedValue({
-    request_id: "r",
-    success: true,
-    hit: true,
-    action_success: true,
-    boxes: [],
-  });
-  io.screenshot.mockResolvedValue({
-    success: true,
-    image: "after",
-    width: 800,
-    height: 600,
-  });
-  await act(() => result.current.run("execute"));
-  expect(useRecorderStore.getState().steps).toHaveLength(1);
-  expect(useRecorderStore.getState().steps[0].config.expected).toBe("开始");
-  expect(useRecorderStore.getState().current.frame?.image).toBe("after");
-  expect(useRecorderStore.getState().current.result?.action_success).toBe(true);
-});
-it("ignores a response when the selected step changes while the request is pending", async () => {
-  let resolve!: (r: RecorderResult) => void;
-  io.run.mockImplementation(
-    () =>
-      new Promise<RecorderResult>((r) => {
-        resolve = r;
-      }),
-  );
-  const { result } = renderHook(() => useRecorderActions());
-  let pending!: Promise<void>;
-  act(() => {
-    pending = result.current.run("preview");
-  });
-  act(() => useRecorderStore.getState().select());
-  await act(async () => {
-    resolve({ request_id: "r", success: true, hit: true, boxes: [] });
-    await pending;
-  });
-  expect(useRecorderStore.getState().current.result).toBeUndefined();
-  expect(useRecorderStore.getState().busy).toBe(false);
-  expect(io.screenshot).not.toHaveBeenCalled();
-});
-
 it("generates a separate laid-out chain and undo preserves earlier canvas edits", async () => {
   const { useFlowStore } = await import("@/stores/flow");
   const { buildRecorderGraph } = await import("./graph");
@@ -109,7 +55,6 @@ it("generates a separate laid-out chain and undo preserves earlier canvas edits"
   flow.initHistory([], []);
   // Simulate an earlier edit still awaiting its debounced history checkpoint.
   flow.replace(existing, [], { isFitView: false, skipHistory: true });
-  useRecorderStore.getState().save();
   const { result } = renderHook(() => useRecorderActions());
   await act(() => result.current.generate());
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -121,4 +66,19 @@ it("generates a separate laid-out chain and undo preserves earlier canvas edits"
   expect(useFlowStore.getState().nodes.map((n) => n.id)).toEqual(
     existing.map((n) => n.id),
   );
+});
+
+it("keeps recorded steps and the canvas intact when template saving fails", async () => {
+  const { useFlowStore } = await import("@/stores/flow");
+  const step = newStep();
+  step.config.recognition = "TemplateMatch";
+  step.config.templateImage = "template";
+  useRecorderStore.setState({ steps: [step], current: step, resourcePath: "resource" });
+  const before = useFlowStore.getState().nodes;
+  io.saveAssets.mockResolvedValue({ success: false, error: "写入失败" });
+  const { result } = renderHook(() => useRecorderActions());
+  await act(() => result.current.generate());
+  expect(useRecorderStore.getState().steps).toEqual([step]);
+  expect(useFlowStore.getState().nodes).toBe(before);
+  expect(useRecorderStore.getState().busy).toBe(false);
 });

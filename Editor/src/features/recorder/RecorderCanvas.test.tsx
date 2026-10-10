@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { newStep } from "./types";
 import { RecorderCanvas } from "./RecorderCanvas";
 import { useRecorderStore } from "./store";
 import { useCanvasViewport } from "@/hooks/useCanvasViewport";
@@ -9,27 +10,28 @@ beforeEach(() => {
   useRecorderStore.getState().reset();
   useRecorderStore.getState().setDetailsOpen(true);
   useRecorderStore.getState().setBusy(false);
-  useRecorderStore.getState().setFrame({
+  const step = newStep();
+  step.frame = {
     image: "data:image/png;base64,frame",
     width: 800,
     height: 600,
     controllerId: "device",
-  });
+  };
+  useRecorderStore.getState().appendCapture(step);
 });
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
-it("commits a zoomed ROI selection without changing template or target", () => {
-  useRecorderStore
-    .getState()
-    .edit({ templateRect: [3, 4, 10, 20], target: [50, 60, 1, 1] });
-  render(<RecorderCanvas />);
+it("keeps step review read-only and never sends device input", () => {
+  const before = useRecorderStore.getState().current;
+  const click = vi.fn();
+  render(<RecorderCanvas onClick={click} />);
   Object.defineProperty(screen.getByAltText("当前步骤底图"), "complete", {
     value: true,
     configurable: true,
   });
-  const canvas = screen.getByLabelText("框选区域和点击位置");
+  const canvas = screen.getByLabelText("设备操作与步骤回看");
   Object.defineProperty(canvas, "setPointerCapture", {
     value: vi.fn(),
     configurable: true,
@@ -53,11 +55,9 @@ it("commits a zoomed ROI selection without changing template or target", () => {
     clientX: 150,
     clientY: 90,
   });
-  const config = useRecorderStore.getState().current.config;
-  expect(config.roi).toEqual([20, 20, 81, 61]);
-  expect(config.templateRect).toEqual([3, 4, 10, 20]);
-  expect(config.target).toEqual([50, 60, 1, 1]);
-  expect(useRecorderStore.getState().steps).toEqual([]);
+  expect(useRecorderStore.getState().current).toBe(before);
+  expect(useRecorderStore.getState().steps).toEqual([before]);
+  expect(click).not.toHaveBeenCalled();
 });
 it("does not steal spaces from OCR text inputs", () => {
   const { result } = renderHook(() =>
@@ -94,7 +94,7 @@ it("clicks on the displayed frame and keeps that frame stable during a gesture",
     value: true,
     configurable: true,
   });
-  const canvas = screen.getByLabelText("框选区域和点击位置");
+  const canvas = screen.getByLabelText("设备操作与步骤回看");
   Object.defineProperty(canvas, "setPointerCapture", {
     value: vi.fn(),
     configurable: true,
