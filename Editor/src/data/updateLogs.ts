@@ -133,7 +133,7 @@ export const updateLogs: UpdateLogItem[] = [
     version: "2.1.0",
     date: "2026-10",
     type: "feature",
-    maafwVersion: "5.14.2",
+    maafwVersion: "5.14.3",
     updates: {
       features: [
         "🎥 新增 MPE Recorder 流程录制模块，提供即时 OCR 填充与模板自动裁剪，点击屏幕即可快速交互式生成流程类 Pipeline",
@@ -144,6 +144,10 @@ export const updateLogs: UpdateLogItem[] = [
         "优化自环结构展示效果",
         "优化桌面端启动器样式与交互体验",
         "优化桌面端更新顺序，允许中断更新",
+      ],
+      maafw: [
+        "推理接口由 CoreML 调整为 WebGPU",
+        "补充多资源包同名模板覆盖规则与等待画面静止的目标区域说明",
       ],
     },
   },

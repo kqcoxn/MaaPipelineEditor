@@ -80,15 +80,12 @@ const (
 	// It's from Win32 API `EnumAdapters1`.
 	MaaInferenceExecutionProvider_DirectML = 2
 
-	// MaaResOption_InferenceDevice will be used to set coreml_flag,
-	// Reference to
-	// https://github.com/microsoft/onnxruntime/blob/main/include/onnxruntime/core/providers/coreml/coreml_provider_factory.h
-	// But you need to pay attention to the onnxruntime version we use, the latest flag may not be supported.
-	MaaInferenceExecutionProvider_CoreML = 3
-
 	// MaaResOption_InferenceDevice will be used to set NVIDIA GPU ID
 	// TODO!
 	MaaInferenceExecutionProvider_CUDA = 4
+
+	// WebGPU device id; Auto uses device 0. Available on Windows, Linux and macOS.
+	MaaInferenceExecutionProvider_WebGPU = 5
 )
 
 type MaaResOption int32

@@ -4,6 +4,8 @@
 
 尚需保留的补丁：
 
+- `resource.go`、`internal/native/framework.go`：对齐 MaaFramework v5.14.3，使用 WebGPU 推理接口（枚举值 5）替换已废弃的 CoreML；自动推理提供者仍由运行时选择。
+
 - `action.go`：`TouchDownParam`、`KeyDownParam` 保留 `auto_up` 参数，避免 Pipeline 解析和序列化丢失自动抬起设置。
 - `recognition.go`：神经网络 `Expected` 使用 `[]any`，支持类别索引与标签混用。
 - `controller.go`：`WithScreenshotTargetExpand` 通过控制器选项 8 设置扩展截图尺寸。

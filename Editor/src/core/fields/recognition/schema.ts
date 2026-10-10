@@ -31,7 +31,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
     type: [FieldTypeEnum.ImagePathList, FieldTypeEnum.ImagePath],
     required: true,
     default: [""],
-    desc: `模板图片路径，需要 image 文件夹的相对路径。必选。所使用的图片需要是无损原图缩放到 720p 后的裁剪。支持填写文件夹路径，将递归加载其中所有图片文件。`,
+    desc: `模板图片路径，需要 image 文件夹的相对路径。必选。所使用的图片需要是无损原图缩放到 720p 后的裁剪。支持填写文件夹路径，将递归加载其中所有图片文件。多个资源包中同相对路径的图片以后加载的为准；文件夹按相对路径合并，同名文件由后加载的覆盖。`,
   },
   templateMatchThreshold: {
     key: "threshold",

@@ -172,16 +172,16 @@ func (r *Resource) UseDirectml(deviceID InferenceDevice) error {
 	return r.setInference(native.MaaInferenceExecutionProvider_DirectML, deviceID)
 }
 
-// UseCoreml uses CoreML for inference.
-// coremlFlag is the CoreML flag; use InferenceDeviceAuto for auto selection.
-func (r *Resource) UseCoreml(coremlFlag InferenceDevice) error {
+// UseWebgpu uses WebGPU for inference on Windows, Linux and macOS.
+// deviceID is the WebGPU device id; InferenceDeviceAuto selects device 0.
+func (r *Resource) UseWebgpu(deviceID InferenceDevice) error {
 	_, done, useErr := r.state.begin()
 	if useErr != nil {
 		return useErr
 	}
 	defer done()
 
-	return r.setInference(native.MaaInferenceExecutionProvider_CoreML, coremlFlag)
+	return r.setInference(native.MaaInferenceExecutionProvider_WebGPU, deviceID)
 }
 
 // UseAutoExecutionProvider automatically selects the inference execution provider and device.

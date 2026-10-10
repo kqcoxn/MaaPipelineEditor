@@ -7,7 +7,11 @@ import (
 )
 
 func TestDisplaySnapshotTaskDescription(t *testing.T) {
-	root := t.TempDir()
+	// 手动构造快照时，与 loader.load 一样使用真实路径；macOS 的临时目录可能经过 /var 符号链接。
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(filepath.Join(root, "task.md"), []byte("\ufeff# 任务说明\n\n**正文**"), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +41,10 @@ func TestDisplaySnapshotTaskDescription(t *testing.T) {
 }
 
 func TestTaskDescriptionRejectsOutsideRoot(t *testing.T) {
-	root := t.TempDir()
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 	if _, err := readTaskDescription(root, filepath.Join(filepath.Dir(root), "outside.md")); err == nil {
 		t.Fatal("outside path accepted")
 	}

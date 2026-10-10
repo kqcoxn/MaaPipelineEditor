@@ -81,7 +81,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
         key: "target",
         type: FieldTypeEnum.Any,
         default: true,
-        desc: "等待目标的位置。可选，默认 true。值同 Click.target。",
+        desc: "等待目标的位置。可选，默认 true。值同 Click.target。应选择包含纹理或文字的区域，避免纯色或大面积渐变；低方差区域可能让 method 5 一直无法判静止，也可能让 method 1 / 3 漏掉局部变化。",
         displayName: "target",
       },
       {
@@ -145,7 +145,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
         key: "target",
         type: FieldTypeEnum.Any,
         default: true,
-        desc: "等待目标的位置。可选，默认 true。值同 Click.target。",
+        desc: "等待目标的位置。可选，默认 true。值同 Click.target。应选择包含纹理或文字的区域，避免纯色或大面积渐变；低方差区域可能让 method 5 一直无法判静止，也可能让 method 1 / 3 漏掉局部变化。",
         displayName: "target",
       },
       {
@@ -303,7 +303,7 @@ export const otherFieldSchema: Record<string, FieldType> = {
         key: "target",
         type: FieldTypeEnum.Any,
         default: true,
-        desc: "等待目标的位置。可选，默认 true。值同 Click.target。",
+        desc: "等待目标的位置。可选，默认 true。值同 Click.target。应选择包含纹理或文字的区域，避免纯色或大面积渐变；低方差区域可能让 method 5 一直无法判静止，也可能让 method 1 / 3 漏掉局部变化。",
         displayName: "target",
       },
       {
