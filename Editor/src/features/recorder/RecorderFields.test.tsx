@@ -6,7 +6,7 @@ afterEach(() => {
   cleanup();
   useRecorderStore.getState().reset();
 });
-it("switches template candidates without moving the original click or changing the search ROI", () => {
+it("switches template candidates without generating an offset or changing the search ROI", () => {
   const state = useRecorderStore.getState();
   state.reset();
   state.setBusy(false);
@@ -28,7 +28,7 @@ it("switches template candidates without moving the original click or changing t
   fireEvent.click(screen.getByRole("button", { name: /元素候选 1/ }));
   const c = useRecorderStore.getState().current.config;
   expect(c.templateRect).toEqual([62, 44, 67, 40]);
-  expect(c.offset).toEqual([18, 20, -66, -39]);
+  expect(c.offset).toEqual([0, 0, 0, 0]);
   expect(c.roi).toEqual([10, 20, 300, 200]);
   expect(useRecorderStore.getState().dirty).toBe(true);
 });

@@ -55,7 +55,9 @@ export function buildRecorderGraph(
           param:
             c.action === "Click"
               ? {
-                  target: c.targetMode === "fixed" ? [...c.target!] : true,
+                  ...(c.targetMode === "fixed"
+                    ? { target: [...c.target!] }
+                    : {}),
                   ...(c.offset.some((v) => v !== 0)
                     ? { target_offset: [...c.offset] }
                     : {}),

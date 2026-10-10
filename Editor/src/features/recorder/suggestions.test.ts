@@ -35,7 +35,7 @@ it("prefers nearby reliable text and escapes regex, but keeps symbols and distan
   const patch = chooseOCR(s, response)!;
   expect(patch.recognition).toBe("OCR");
   expect(patch.expected).toBe("精选\\(1\\)");
-  expect(patch.offset).toEqual([15, 10, -29, -19]);
+  expect(patch.offset).toEqual([0, 0, 0, 0]);
   for (const overrides of [
     { text: "..." },
     { text: "精选", score: 0.2 },
@@ -94,5 +94,59 @@ it("never overwrites manual edits, skipped analysis, or a reset session with a l
       useRecorderStore.getState().steps.some((s) => s.suggestion === "ocr"),
     ).toBe(false);
     useRecorderStore.getState().reset();
+  }
+});
+
+it("keeps icon-like OCR and embedded icon mixtures as templates even at high confidence", () => {
+  for (const text of ["≈0", "0", "O", "＋", "下⊕载"]) {
+    expect(
+      chooseOCR(captured(), {
+        ...response,
+        boxes: [{ ...response.boxes[0], text, score: 0.999 }],
+      }),
+    ).toBeUndefined();
+  }
+  for (const text of [
+    "下载",
+    "精选",
+    "桌面",
+    "Save (1)",
+    "100%",
+    "设置/帮助",
+  ]) {
+    expect(
+      chooseOCR(captured(), {
+        ...response,
+        boxes: [{ ...response.boxes[0], text, score: 0.95 }],
+      })?.name,
+    ).toBe(text);
+  }
+});
+it("requires strong confidence and a click on the text rather than a nearby icon", () => {
+  for (const box of [
+    { ...response.boxes[0], score: 0.89 },
+    { ...response.boxes[0], x: 106 },
+    { ...response.boxes[0], y: 106 },
+  ]) {
+    expect(
+      chooseOCR(captured(), { ...response, boxes: [box] }),
+    ).toBeUndefined();
+  }
+});
+
+it("removes edge icon noise while retaining literal label matching", () => {
+  for (const [text, label, expected] of [
+    ["④下载", "下载", "下载"],
+    ["⊕文件夹", "文件夹", "文件夹"],
+    [" ④ 下载 ↓ ", "下载", "下载"],
+    ["↓Save (1)", "Save (1)", "Save \\(1\\)"],
+    ["下载④", "下载", "下载"],
+  ]) {
+    const patch = chooseOCR(captured(), {
+      ...response,
+      boxes: [{ ...response.boxes[0], text }],
+    });
+    expect(patch).toMatchObject({ recognition: "OCR", name: label, expected });
+    expect(new RegExp(patch!.expected!).test(text)).toBe(true);
   }
 });

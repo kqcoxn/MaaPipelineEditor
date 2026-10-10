@@ -70,11 +70,8 @@ it("sends input immediately and records an unverified candidate from the pre-cli
   expect(step.frame).toEqual(frame);
   expect(step.config.recognition).toBe("TemplateMatch");
   expect(step.config.roi).toEqual([0, 0, 0, 0]);
-  const [x, y, w, h] = step.config.templateRect!;
-  expect(x + step.config.offset[0]).toBe(790);
-  expect(y + step.config.offset[1]).toBe(590);
-  expect(w + step.config.offset[2]).toBe(1);
-  expect(h + step.config.offset[3]).toBe(1);
+  expect(step.config.targetMode).toBe("recognition");
+  expect(step.config.offset).toEqual([0, 0, 0, 0]);
   expect(step.capture?.status).toBe("pending");
   expect(step.result).toBeUndefined();
   // Late operation feedback must never overwrite a user's field correction.

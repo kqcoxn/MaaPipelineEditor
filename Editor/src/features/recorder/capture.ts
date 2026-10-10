@@ -55,7 +55,7 @@ export function createCapture(
     }));
     const { rect: area, image: templateImage } = step.templateCandidates[0];
     if (!templateImage.startsWith("data:image/png;base64,")) return step;
-    // Match the candidate, preserving the original click point relative to the candidate origin.
+    // Use the recognized element as the click target.
     step.config = {
       ...step.config,
       recognition: "TemplateMatch",
@@ -63,7 +63,7 @@ export function createCapture(
       templateRect: area,
       threshold: 0.7,
       targetMode: "recognition",
-      offset: [x - area[0], y - area[1], 1 - area[2], 1 - area[3]],
+      offset: [0, 0, 0, 0],
     };
   } catch {
     /* Cropping is best effort; retain an explicit coordinate draft. */

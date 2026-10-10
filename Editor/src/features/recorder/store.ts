@@ -138,8 +138,8 @@ export const useRecorderStore = create<RecorderState & RecorderActions>()(
           result: undefined,
           config: {
             ...state.current.config,
-            // Automatic offsets belong to a particular recognition box. A new
-            // algorithm/template must not inherit its width/height correction.
+            // Offsets belong to a particular recognition box. Reset them when
+            // changing the algorithm/template unless explicitly provided.
             ...((patch.recognition &&
               patch.recognition !== state.current.config.recognition) ||
             (patch.templateImage &&

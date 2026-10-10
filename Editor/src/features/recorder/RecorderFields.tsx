@@ -144,14 +144,9 @@ export function RecorderFields({
                     disabled={busy}
                     aria-pressed={c.templateImage === candidate.image}
                     onClick={() => {
-                      const p = current.capturePoint;
-                      const [x, y, w, h] = candidate.rect;
                       edit({
                         templateRect: candidate.rect,
                         templateImage: candidate.image,
-                        ...(p && c.targetMode === "recognition"
-                          ? { offset: [p.x - x, p.y - y, 1 - w, 1 - h] as Rect }
-                          : {}),
                       });
                     }}
                   >

@@ -124,6 +124,15 @@ it("generates real nodes with no timing metadata, collision-free IDs/names and o
   expect(result.nodes[1].data.recognition.param.template).toEqual([
     "recorder/session/button.png",
   ]);
+  expect(
+    result.nodes.every((n) => !("target_offset" in n.data.action.param)),
+  ).toBe(true);
+  ocr.config.offset = [10, 5, 0, 0];
+  expect(
+    buildRecorderGraph([ocr], {}, [], []).nodes[0].data.action.param.target_offset,
+  ).toEqual([10, 5, 0, 0]);
+  expect(result.nodes[0].data.action.param).not.toHaveProperty("target");
+  expect(result.nodes[1].data.action.param).not.toHaveProperty("target");
   expect(result.nodes[2].data.action.param.target).toEqual([20, 30, 1, 1]);
   expect(
     result.nodes.every((n) => Object.keys(n.data.others).length === 0),

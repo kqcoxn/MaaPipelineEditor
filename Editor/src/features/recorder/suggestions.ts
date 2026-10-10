@@ -20,6 +20,27 @@ export function suggestionROI(step: RecorderStep): Rect {
     h,
   ];
 }
+// Trim unsupported edge symbols, but never join text across an embedded icon.
+// Keep ordinary punctuation intact so labels and regex escaping retain meaning.
+const LABEL_CHARACTER =
+  /[\p{L}\p{M}\p{Nd}\s.,:;!?，。：；！？、()（）[\]【】「」『』“”‘’'"_+%％/-]/u;
+function reliableLabel(text: string): string | undefined {
+  const characters = Array.from(text.trim());
+  while (characters.length && !LABEL_CHARACTER.test(characters[0]))
+    characters.shift();
+  while (
+    characters.length &&
+    !LABEL_CHARACTER.test(characters[characters.length - 1])
+  )
+    characters.pop();
+  const label = characters.join("").trim();
+  if (
+    (label.match(/[\p{L}\p{Nd}]/gu) ?? []).length >= 2 &&
+    characters.every((character) => LABEL_CHARACTER.test(character))
+  )
+    return label;
+}
+
 export function chooseOCR(
   step: RecorderStep,
   result: RecorderResult,
@@ -27,21 +48,22 @@ export function chooseOCR(
   if (!result.success || !step.frame || !step.capturePoint) return;
   const { x, y } = step.capturePoint;
   const nearby = result.boxes
+    .map((box) => ({ ...box, label: reliableLabel(box.text ?? "") }))
     .filter((b) => {
       if (
         !b.text ||
-        !/[\p{L}\p{N}]/u.test(b.text) ||
+        !b.label ||
         !Number.isFinite(b.score) ||
-        b.score < 0.7 ||
+        b.score < 0.9 ||
         b.width <= 0 ||
         b.height <= 0
       )
         return false;
       return (
-        x >= b.x - 8 &&
-        x <= b.x + b.width + 8 &&
-        y >= b.y - 8 &&
-        y <= b.y + b.height + 8
+        x >= b.x - 2 &&
+        x <= b.x + b.width + 2 &&
+        y >= b.y - 2 &&
+        y <= b.y + b.height + 2
       );
     })
     .sort(
@@ -50,15 +72,15 @@ export function chooseOCR(
         Math.hypot(x - b.x - b.width / 2, y - b.y - b.height / 2),
     );
   const box = nearby[0];
-  if (!box) return;
+  if (!box?.label) return;
   return {
     recognition: "OCR",
-    name: box.text.trim(),
-    expected: escapeOCRText(box.text.trim()),
+    name: box.label,
+    expected: escapeOCRText(box.label),
     threshold: 0.7,
     roi: suggestionROI(step),
     targetMode: "recognition",
-    offset: [x - box.x, y - box.y, 1 - box.width, 1 - box.height],
+    offset: [0, 0, 0, 0],
   };
 }
 // One bounded request at a time. Closing the workbench retains analysis;
