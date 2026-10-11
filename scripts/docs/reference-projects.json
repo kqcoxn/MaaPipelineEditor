@@ -12,6 +12,15 @@
       "mainContent": "MaaFW 协议、公开 API、运行时、示例、测试与核心源码"
     },
     {
+      "name": "maa-framework-go",
+      "directory": "maa-framework-go",
+      "relativePath": "../maa-refs/maa-framework-go",
+      "repository": "https://github.com/MaaXYZ/maa-framework-go",
+      "repositoryAliases": [],
+      "category": "语言绑定",
+      "mainContent": "MaaFramework 官方 Go Binding、API、句柄生命周期、Pipeline 类型与回归测试"
+    },
+    {
       "name": "MFAAvalonia",
       "directory": "MFAAvalonia",
       "relativePath": "../maa-refs/MFAAvalonia",

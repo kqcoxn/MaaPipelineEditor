@@ -22,7 +22,7 @@ func (c *delayedConnectController) Connect() bool {
 	return true
 }
 
-// 验证 beta.19 拒绝释放被绑定对象时，管理器保留实例，解除绑定后可重试。
+// 验证 Binding 拒绝释放被绑定对象时，管理器保留实例，解除绑定后可重试。
 func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 	lib := os.Getenv("MPE_MFW_TEST_LIB_DIR")
 	if lib == "" {
@@ -44,7 +44,7 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		if err := ctrl.Destroy(); err != nil {
+		if err := DestroyController(ctrl); err != nil {
 			t.Error(err)
 		}
 	})
@@ -117,13 +117,16 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		job := ctrl.PostConnect()
+		job, err := ctrl.PostConnect()
+		if err != nil {
+			t.Fatal(err)
+		}
 		select {
 		case <-probe.started:
 		case <-time.After(5 * time.Second):
 			close(probe.finish)
 			job.Wait()
-			_ = ctrl.Destroy()
+			_ = DestroyController(ctrl)
 			t.Fatal("connect callback did not start")
 		}
 		done := make(chan error, 1)
@@ -132,7 +135,7 @@ func TestNativeBoundObjectsRemainManaged(t *testing.T) {
 		case err := <-done:
 			close(probe.finish)
 			job.Wait()
-			_ = ctrl.Destroy()
+			_ = DestroyController(ctrl)
 			t.Fatalf("cleanup returned before connect finished: %v", err)
 		case <-time.After(60 * time.Millisecond):
 		}

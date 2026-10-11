@@ -37,10 +37,14 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 	if ctrlErr != nil || ctrl == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeControllerCreateFail, "创建固定图片控制器失败", nil)
 	}
-	defer ctrl.Destroy()
+	defer mfw.DestroyController(ctrl)
 
-	if connJob := ctrl.PostConnect(); connJob != nil {
-		connJob.Wait()
+	connJob, connErr := ctrl.PostConnect()
+	if connErr != nil {
+		return nil, fmt.Errorf("提交底图控制器连接失败: %w", connErr)
+	}
+	if !connJob.Wait().Success() {
+		return nil, fmt.Errorf("底图控制器连接失败")
 	}
 	logger.Debug("Utility", "固定图片控制器已就绪 (底图 %dx%d)", img.Bounds().Dx(), img.Bounds().Dy())
 
@@ -111,11 +115,11 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 			}
 		}
 
-		resJob := res.PostBundle(actualPath)
-		if resJob == nil {
-			logger.Error("Utility", "加载 OCR 资源失败: PostBundle 返回 nil (路径: %s)", actualPath)
+		resJob, postErr := res.PostBundle(actualPath)
+		if postErr != nil {
+			logger.Error("Utility", "加载 OCR 资源失败: %v (路径: %s)", postErr, actualPath)
 			return nil, mfw.NewMFWError(mfw.ErrCodeResourceLoadFailed, "OCR 资源加载失败", map[string]interface{}{
-				"reason":       "PostBundle 返回 nil",
+				"reason":       postErr.Error(),
 				"resource_dir": resourcePath,
 				"suggestions": []string{
 					"检查 OCR 资源目录是否存在",
@@ -208,9 +212,9 @@ func (h *UtilityHandler) performOCR(baseImageB64, resourceID string, roi [4]int3
 
 	// 提交 OCR 任务
 	logger.Debug("Utility", "提交 OCR 识别任务,ROI: %v", roi)
-	taskJob := tasker.PostRecognition(maa.RecognitionTypeOCR, ocrRecognitionParams{values: param}, img)
-	if taskJob == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to post OCR task", nil)
+	taskJob, postErr := tasker.PostRecognition(maa.RecognitionTypeOCR, ocrRecognitionParams{values: param}, img)
+	if postErr != nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "failed to post OCR task", map[string]interface{}{"reason": postErr.Error()})
 	}
 
 	// 等待识别完成

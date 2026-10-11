@@ -2,6 +2,7 @@ package utility
 
 import (
 	"encoding/json"
+	"fmt"
 	"image"
 
 	maa "github.com/MaaXYZ/maa-framework-go/v4"
@@ -128,9 +129,13 @@ func (h *UtilityHandler) performTemplateMatch(
 	if ctrlErr != nil || ctrl == nil {
 		return nil, mfw.NewMFWError(mfw.ErrCodeControllerCreateFail, "创建固定图片控制器失败", nil)
 	}
-	defer ctrl.Destroy()
-	if connJob := ctrl.PostConnect(); connJob != nil {
-		connJob.Wait()
+	defer mfw.DestroyController(ctrl)
+	connJob, connErr := ctrl.PostConnect()
+	if connErr != nil {
+		return nil, fmt.Errorf("提交底图控制器连接失败: %w", connErr)
+	}
+	if !connJob.Wait().Success() {
+		return nil, fmt.Errorf("底图控制器连接失败")
 	}
 
 	// 3. 临时空资源 + 注入模板图
@@ -175,9 +180,9 @@ func (h *UtilityHandler) performTemplateMatch(
 		},
 	}
 
-	taskJob := tasker.PostTask(templateMatchNode, matchConfig)
-	if taskJob == nil {
-		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "提交模板匹配任务失败", nil)
+	taskJob, postErr := tasker.PostTask(templateMatchNode, matchConfig)
+	if postErr != nil {
+		return nil, mfw.NewMFWError(mfw.ErrCodeTaskSubmitFailed, "提交模板匹配任务失败", map[string]interface{}{"reason": postErr.Error()})
 	}
 	taskJob.Wait()
 
@@ -276,5 +281,3 @@ func templateItemToMap(item templateMatchItem) map[string]interface{} {
 		"score":  item.Score,
 	}
 }
-
-

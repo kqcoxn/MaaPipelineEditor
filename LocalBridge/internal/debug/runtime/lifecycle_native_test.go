@@ -37,11 +37,13 @@ func TestNativeRuntimeStopDrainsCallbacks(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		if err := controller.Destroy(); err != nil {
+		if err := mfw.DestroyController(controller); err != nil {
 			t.Errorf("destroy: %v", err)
 		}
 	})
-	if !controller.PostConnect().Wait().Success() {
+	if job, err := controller.PostConnect(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("connect failed")
 	}
 	resource, err := maa.NewResource()
@@ -60,7 +62,9 @@ func TestNativeRuntimeStopDrainsCallbacks(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "pipeline", "main.json"), []byte(`{"Seed":{"recognition":"DirectHit","action":"DoNothing","post_delay":0}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if !resource.PostBundle(root).Wait().Success() {
+	if job, err := resource.PostBundle(root); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("bundle failed")
 	}
 

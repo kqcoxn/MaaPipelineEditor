@@ -39,7 +39,9 @@ func TestNativeAgentStartupLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resource.Destroy()
-	if !resource.PostBundle(root).Wait().Success() {
+	if job, err := resource.PostBundle(root); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("resource load failed")
 	}
 	client, identifier, err := mfw.NewProjectAgentClient("")

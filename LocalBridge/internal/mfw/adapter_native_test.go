@@ -54,11 +54,13 @@ func TestNativeDirectHitAutoUp(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		if err := controller.Destroy(); err != nil {
+		if err := DestroyController(controller); err != nil {
 			t.Errorf("destroy: %v", err)
 		}
 	})
-	if !controller.PostConnect().Wait().Success() {
+	if job, err := controller.PostConnect(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("connect failed")
 	}
 	resource, err := maa.NewResource()
@@ -77,7 +79,9 @@ func TestNativeDirectHitAutoUp(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "pipeline", "main.json"), []byte(`{"Seed":{}}`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if !resource.PostBundle(root).Wait().Success() {
+	if job, err := resource.PostBundle(root); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("bundle failed")
 	}
 	adapter := NewMaaFWAdapter()
@@ -125,7 +129,7 @@ func TestNativeDirectHitAutoUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !node.Action.Param.(*maa.KeyDownParam).AutoUp {
+	if autoUp := node.Action.Param.(*maa.KeyDownParam).AutoUp; autoUp == nil || !*autoUp {
 		t.Fatal("binding lost auto_up during node readback")
 	}
 }

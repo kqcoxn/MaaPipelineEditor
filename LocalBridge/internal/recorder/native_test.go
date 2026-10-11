@@ -41,7 +41,9 @@ func TestNativeRecorderRecognitionAndClick(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer ctrl.Destroy()
-	if !ctrl.PostConnect().Wait().Success() {
+	if job, err := ctrl.PostConnect(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("connect")
 	}
 	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
@@ -86,7 +88,9 @@ func TestNativeRecorderRecognitionAndClick(t *testing.T) {
 	}
 
 	// Live input uses the displayed/cached frame, without taking another screenshot.
-	if !ctrl.PostScreencap().Wait().Success() {
+	if job, err := ctrl.PostScreencap(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("screenshot")
 	}
 	cached, e := ctrl.CacheImage()

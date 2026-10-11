@@ -156,8 +156,8 @@ func (s *Service) execute(ctx context.Context, plans []*pi.RuntimePlan, release 
 		return job, err
 	}, func() {
 		waitForTaskerStop(func() taskJob {
-			job := tasker.PostStop()
-			if job == nil {
+			job, err := tasker.PostStop()
+			if err != nil {
 				return nil
 			}
 			return job

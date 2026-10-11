@@ -1,10 +1,13 @@
 package mfw
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
 )
 
 func TestReadMaaFWErrorsSinceFiltersPostTaskThread(t *testing.T) {
@@ -96,5 +99,19 @@ func TestNewFrameworkOperationErrorDoesNotExposePipelineOverride(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "未提供可读取的错误详情") {
 		t.Fatalf("Error() = %q", err.Error())
+	}
+}
+
+func TestPostTaskDiagnosticsPreservesSubmissionError(t *testing.T) {
+	// v4 在提交失败时仍可返回非 nil 的终止 Job；不能把它当作提交成功。
+	job, err := postTaskWithMaaFWDiagnostics("Entry", func() (*maa.TaskJob, error) {
+		return &maa.TaskJob{}, maa.ErrClosed
+	})
+	if job != nil || !errors.Is(err, maa.ErrClosed) {
+		t.Fatalf("submission failure lost: job=%v error=%v", job, err)
+	}
+	var detail *FrameworkError
+	if !errors.As(err, &detail) || detail.Code != "maafw.task.submit_failed" || !strings.Contains(detail.Summary, maa.ErrClosed.Error()) {
+		t.Fatalf("submission reason missing from frontend diagnostics: %#v", err)
 	}
 }

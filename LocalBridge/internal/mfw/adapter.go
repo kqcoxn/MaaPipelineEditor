@@ -104,9 +104,9 @@ func (a *MaaFWAdapter) ConnectADB(adbPath, address string, screencapMethods, inp
 	}()
 
 	// 连接
-	connectJob := ctrl.PostConnect()
-	if connectJob == nil {
-		return fmt.Errorf("发起连接失败")
+	connectJob, postErr := ctrl.PostConnect()
+	if postErr != nil {
+		return fmt.Errorf("发起连接失败: %w", postErr)
 	}
 
 	connectJob.Wait()
@@ -153,21 +153,21 @@ func (a *MaaFWAdapter) ConnectWin32(hwnd uintptr, screencapMethod, inputMethod s
 	}
 
 	// 连接
-	connectJob := ctrl.PostConnect()
-	if connectJob == nil {
-		ctrl.Destroy()
-		return fmt.Errorf("发起连接失败")
+	connectJob, postErr := ctrl.PostConnect()
+	if postErr != nil {
+		DestroyController(ctrl)
+		return fmt.Errorf("发起连接失败: %w", postErr)
 	}
 
 	connectJob.Wait()
 	if !connectJob.Success() {
-		ctrl.Destroy()
+		DestroyController(ctrl)
 		return fmt.Errorf("连接失败: %v", connectJob.Status())
 	}
 
 	// 清理旧控制器
 	if err := a.destroyOwnedController(); err != nil {
-		_ = ctrl.Destroy()
+		_ = DestroyController(ctrl)
 		return err
 	}
 
@@ -537,7 +537,7 @@ func (a *MaaFWAdapter) PostTask(entry string, override ...interface{}) (*maa.Tas
 		return nil, fmt.Errorf("Tasker 未初始化")
 	}
 
-	return postTaskWithMaaFWDiagnostics(entry, func() *maa.TaskJob {
+	return postTaskWithMaaFWDiagnostics(entry, func() (*maa.TaskJob, error) {
 		if len(override) > 0 {
 			return tasker.PostTask(entry, override[0])
 		}
@@ -557,9 +557,9 @@ func (a *MaaFWAdapter) PostRecognition(recType maa.RecognitionType, recParam maa
 	if img == nil {
 		return nil, fmt.Errorf("识别输入图像为空")
 	}
-	taskJob := tasker.PostRecognition(recType, recParam, img)
-	if taskJob == nil {
-		return nil, fmt.Errorf("提交识别任务失败")
+	taskJob, postErr := tasker.PostRecognition(recType, recParam, img)
+	if postErr != nil {
+		return nil, fmt.Errorf("提交识别任务失败: %w", postErr)
 	}
 	return taskJob, nil
 }
@@ -572,9 +572,9 @@ func (a *MaaFWAdapter) PostAction(actionType maa.ActionType, actionParam maa.Act
 	if tasker == nil {
 		return nil, fmt.Errorf("Tasker 未初始化")
 	}
-	taskJob := tasker.PostAction(actionType, actionParam, box, recoDetail)
-	if taskJob == nil {
-		return nil, fmt.Errorf("提交动作任务失败")
+	taskJob, postErr := tasker.PostAction(actionType, actionParam, box, recoDetail)
+	if postErr != nil {
+		return nil, fmt.Errorf("提交动作任务失败: %w", postErr)
 	}
 	return taskJob, nil
 }
@@ -610,9 +610,9 @@ func (a *MaaFWAdapter) RequestStop() (*maa.TaskJob, error) {
 		return nil, nil
 	}
 
-	stopJob := a.tasker.PostStop()
-	if stopJob == nil {
-		return nil, fmt.Errorf("发送停止信号失败")
+	stopJob, postErr := a.tasker.PostStop()
+	if postErr != nil {
+		return nil, fmt.Errorf("发送停止信号失败: %w", postErr)
 	}
 	if err := stopJob.Error(); err != nil {
 		return nil, err
@@ -887,7 +887,7 @@ func (a *MaaFWAdapter) destroyOwnedController() error {
 	if a.controller == nil || !a.ownsController {
 		return nil
 	}
-	if err := a.controller.Destroy(); err != nil {
+	if err := DestroyController(a.controller); err != nil {
 		return err
 	}
 	if a.releaseADB != nil {
@@ -962,9 +962,9 @@ func (s *Screenshotter) Capture() (image.Image, error) {
 	}
 
 	// 执行截图
-	job := s.controller.PostScreencap()
-	if job == nil {
-		return nil, fmt.Errorf("发起截图失败")
+	job, postErr := s.controller.PostScreencap()
+	if postErr != nil {
+		return nil, fmt.Errorf("发起截图失败: %w", postErr)
 	}
 
 	job.Wait()

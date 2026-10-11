@@ -238,12 +238,12 @@ func loadResolvedResourceBundle(res *maa.Resource, resolution ResourceBundleReso
 	if err != nil {
 		return fmt.Errorf("准备资源加载路径失败 [%s]: %w", resolution.DisplayLabel(), err)
 	}
-	loadJob := res.PostBundle(actualPath)
-	if loadJob == nil {
+	loadJob, postErr := res.PostBundle(actualPath)
+	if postErr != nil {
 		if restore != nil {
 			restore()
 		}
-		return fmt.Errorf("发起资源加载失败 [%s]", resolution.DisplayLabel())
+		return fmt.Errorf("发起资源加载失败 [%s]: %w", resolution.DisplayLabel(), postErr)
 	}
 	loadJob.Wait()
 	if restore != nil {

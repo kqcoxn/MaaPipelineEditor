@@ -107,8 +107,10 @@ func runCommandChild(t *testing.T, lib, scenario string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer controller.Destroy()
-	if !controller.PostConnect().Wait().Success() {
+	defer DestroyController(controller)
+	if job, err := controller.PostConnect(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("connect")
 	}
 	resource, err := maa.NewResource()
@@ -123,7 +125,9 @@ func runCommandChild(t *testing.T, lib, scenario string) {
 	if err := os.WriteFile(filepath.Join(root, "pipeline", "main.json"), []byte(`{"Seed":{}}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if !resource.PostBundle(root).Wait().Success() {
+	if job, err := resource.PostBundle(root); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
 		t.Fatal("bundle")
 	}
 	adapter := NewMaaFWAdapter()

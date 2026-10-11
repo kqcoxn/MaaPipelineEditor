@@ -1,6 +1,7 @@
 package mfw
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -77,9 +78,12 @@ func (tm *TaskManager) StopTask(taskID int64) error {
 
 	// 调用 Tasker 的停止方法
 	if tasker, ok := info.Tasker.(*maa.Tasker); ok && tasker != nil {
-		job := tasker.PostStop()
-		if job != nil {
-			job.Wait()
+		job, err := tasker.PostStop()
+		if err != nil {
+			return fmt.Errorf("提交停止任务失败: %w", err)
+		}
+		if !job.Wait().Success() {
+			return fmt.Errorf("停止任务失败")
 		}
 	}
 
@@ -97,17 +101,22 @@ func (tm *TaskManager) StopAll() {
 	for taskID, info := range tm.tasks {
 		// 调用 Tasker 的停止方法
 		if tasker, ok := info.Tasker.(*maa.Tasker); ok && tasker != nil {
-			job := tasker.PostStop()
-			if job != nil {
-				job.Wait()
+			job, err := tasker.PostStop()
+			if err != nil {
+				logger.Error("MFW", "提交停止任务失败: %v", err)
+				continue
 			}
-			tasker.Destroy()
+			if !job.Wait().Success() {
+				logger.Error("MFW", "停止任务失败: %d", taskID)
+				continue
+			}
+			if err := tasker.Destroy(); err != nil {
+				logger.Error("MFW", "释放任务失败: %v", err)
+				continue
+			}
 		}
+		delete(tm.tasks, taskID)
 		info.Status = "Stopped"
 		logger.Info("MFW", "停止任务: %d", taskID)
 	}
-
-	// 清空任务列表
-	tm.tasks = make(map[int64]*TaskInfo)
-	logger.Info("MFW", "所有任务已停止")
 }

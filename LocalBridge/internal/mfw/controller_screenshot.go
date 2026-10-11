@@ -145,10 +145,10 @@ func cachedOrFreshScreenshot(ctrl *maa.Controller, force bool) screenshotCapture
 
 func captureControllerImage(ctrl *maa.Controller, refresh bool) screenshotCaptureOutcome {
 	if refresh {
-		job := ctrl.PostScreencap()
-		if job == nil {
+		job, postErr := ctrl.PostScreencap()
+		if postErr != nil {
 			return screenshotCaptureOutcome{
-				err:       NewMFWError(ErrCodeOperationFail, "failed to post screencap", nil),
+				err:       NewMFWError(ErrCodeOperationFail, "failed to post screencap", map[string]interface{}{"reason": postErr.Error()}),
 				timestamp: time.Now().Format(time.RFC3339),
 			}
 		}

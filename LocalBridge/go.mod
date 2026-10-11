@@ -2,12 +2,9 @@ module github.com/kqcoxn/MaaPipelineEditor/LocalBridge
 
 go 1.26.1
 
-// Upstream v4.0.0-beta.19 with local patches documented in third_party/maa-framework-go/MPE_PATCHES.md.
-replace github.com/MaaXYZ/maa-framework-go/v4 => ./third_party/maa-framework-go
-
 require (
-	github.com/MaaXYZ/maa-framework-go/v4 v4.0.0-beta.19
-	github.com/ebitengine/purego v0.9.1
+	github.com/MaaXYZ/maa-framework-go/v4 v4.0.0
+	github.com/ebitengine/purego v0.11.1
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3

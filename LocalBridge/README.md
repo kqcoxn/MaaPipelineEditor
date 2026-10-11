@@ -364,6 +364,10 @@ LocalBridge/
 
 ## 开发指南
 
+LocalBridge 通过 `go.mod` 直接依赖官方 `maa-framework-go/v4 v4.0.0`。`Post*` 调用需先检查提交错误，再通过 `Wait().Success()` 判断异步执行结果。拥有的控制器在解除 Tasker / Agent 绑定后，使用 `mfw.DestroyController` 从回调外释放，以等待停止后的原生清理屏障完成。
+
+Go Binding 参考源码及版本对比入口见[社区参考项目索引](../dev/docs/社区参考项目索引.md)。
+
 ### 添加新协议
 
 1. 在 `internal/protocol/` 下创建新目录（如 `maafw/`）

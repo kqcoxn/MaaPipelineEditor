@@ -53,14 +53,21 @@ func TestOCRRuntimeVerification(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer ctrl.Destroy()
-	ctrl.PostConnect().Wait()
+	defer mfw.DestroyController(ctrl)
+	if job, err := ctrl.PostConnect(); err != nil {
+		t.Fatal(err)
+	} else if !job.Wait().Success() {
+		t.Fatal("connect failed")
+	}
 	res, err := maa.NewResource()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer res.Destroy()
-	loadJob := res.PostBundle(filepath.Join(root, "resource"))
+	loadJob, err := res.PostBundle(filepath.Join(root, "resource"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	loadJob.Wait()
 	if !loadJob.Success() {
 		t.Fatal("resource load failed")
@@ -77,9 +84,12 @@ func TestOCRRuntimeVerification(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{".*", "^NEVER_MATCH_THIS_TEXT$"} {
-		job := tasker.PostRecognition(maa.RecognitionTypeOCR, ocrRecognitionParams{values: map[string]interface{}{
+		job, err := tasker.PostRecognition(maa.RecognitionTypeOCR, ocrRecognitionParams{values: map[string]interface{}{
 			"roi": [4]int32{0, 0, 0, 0}, "expected": expected, "only_rec": true, "threshold": 0,
 		}}, img)
+		if err != nil {
+			t.Fatal(err)
+		}
 		job.Wait()
 		detail, err := job.GetDetail()
 		if err != nil {

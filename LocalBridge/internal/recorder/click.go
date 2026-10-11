@@ -72,9 +72,9 @@ func clickOnController(ctx context.Context, ctrl *maa.Controller, req ClickReque
 	if err = ctx.Err(); err != nil {
 		return err
 	}
-	job := ctrl.PostClick(int32(req.X), int32(req.Y))
-	if job == nil {
-		return fmt.Errorf("点击提交失败")
+	job, postErr := ctrl.PostClick(int32(req.X), int32(req.Y))
+	if postErr != nil {
+		return fmt.Errorf("点击提交失败: %w", postErr)
 	}
 	job.Wait()
 	if !job.Success() {

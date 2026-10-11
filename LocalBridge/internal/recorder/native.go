@@ -3,6 +3,7 @@ package recorder
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"image"
 
@@ -71,8 +72,12 @@ func runOnImage(ctx context.Context, req Request, img image.Image, ctrl *maa.Con
 		if err != nil {
 			return err
 		}
-		defer ctrl.Destroy()
-		if job := ctrl.PostConnect(); job == nil || !job.Wait().Success() {
+		defer mfw.DestroyController(ctrl)
+		job, postErr := ctrl.PostConnect()
+		if postErr != nil {
+			return fmt.Errorf("无法初始化底图控制器: %w", postErr)
+		}
+		if !job.Wait().Success() {
 			return fmt.Errorf("无法初始化底图控制器")
 		}
 	}
@@ -86,12 +91,20 @@ func runOnImage(ctx context.Context, req Request, img image.Image, ctrl *maa.Con
 		if cfg == nil || cfg.ResolvedMaaFWResourceDir() == "" {
 			return fmt.Errorf("OCR 资源不可用，请修复本地 OCR 依赖")
 		}
-		if job := res.PostBundle(cfg.ResolvedMaaFWResourceDir()); job == nil || !job.Wait().Success() {
+		job, postErr := res.PostBundle(cfg.ResolvedMaaFWResourceDir())
+		if postErr != nil {
+			return fmt.Errorf("加载 OCR 资源失败: %w", postErr)
+		}
+		if !job.Wait().Success() {
 			return fmt.Errorf("加载 OCR 资源失败")
 		}
 	}
 	if req.ResourcePath != "" {
-		if job := res.PostBundle(req.ResourcePath); job == nil || !job.Wait().Success() {
+		job, postErr := res.PostBundle(req.ResourcePath)
+		if postErr != nil {
+			return fmt.Errorf("加载所选资源包失败: %w", postErr)
+		}
+		if !job.Wait().Success() {
 			return fmt.Errorf("加载所选资源包失败")
 		}
 	}
@@ -119,7 +132,10 @@ func runOnImage(ctx context.Context, req Request, img image.Image, ctrl *maa.Con
 		return err
 	}
 	param := recognitionParam(req)
-	job := tasker.PostRecognition(maa.RecognitionType(req.Step.Recognition), param, img)
+	job, err := tasker.PostRecognition(maa.RecognitionType(req.Step.Recognition), param, img)
+	if err != nil {
+		return err
+	}
 	if err = waitTask(ctx, tasker, job); err != nil {
 		return err
 	}
@@ -146,7 +162,10 @@ func runOnImage(ctx context.Context, req Request, img image.Image, ctrl *maa.Con
 		if req.Step.Target != nil {
 			target = maa.NewTargetRect(maa.Rect(*req.Step.Target))
 		}
-		actionJob := tasker.PostAction(maa.ActionTypeClick, maa.ClickParam{Target: target, TargetOffset: maa.Rect(req.Step.Offset)}, reco.Box, reco)
+		actionJob, err := tasker.PostAction(maa.ActionTypeClick, maa.ClickParam{Target: target, TargetOffset: maa.Rect(req.Step.Offset)}, reco.Box, reco)
+		if err != nil {
+			return false, err
+		}
 		if e := waitTask(ctx, tasker, actionJob); e != nil {
 			return false, e
 		}
@@ -207,11 +226,13 @@ func waitTask(ctx context.Context, tasker *maa.Tasker, job *maa.TaskJob) error {
 	case <-finished:
 		return job.Error()
 	case <-ctx.Done():
-		if stop := tasker.PostStop(); stop != nil {
+		stop, stopErr := tasker.PostStop()
+		if stopErr == nil {
 			stop.Wait()
+			stopErr = stop.Error()
 		}
 		<-finished
-		return ctx.Err()
+		return errors.Join(ctx.Err(), stopErr)
 	}
 }
 func parseBoxes(reco *maa.RecognitionDetail, result *Result) {

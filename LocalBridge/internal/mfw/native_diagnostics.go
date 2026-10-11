@@ -34,6 +34,7 @@ type FrameworkDiagnostic struct {
 }
 
 type FrameworkError struct {
+	cause       error
 	Code        string                `json:"code"`
 	Operation   string                `json:"operation"`
 	Summary     string                `json:"summary"`
@@ -46,6 +47,9 @@ func (e *FrameworkError) Error() string {
 	}
 	return e.Summary
 }
+
+// Unwrap 保留 Binding 的错误身份，供调用方判断对象已关闭等提交失败。
+func (e *FrameworkError) Unwrap() error { return e.cause }
 
 type maaFWLogCheckpoint struct {
 	path   string
@@ -64,13 +68,13 @@ func newMaaFWLogCheckpoint(path string) maaFWLogCheckpoint {
 	return checkpoint
 }
 
-func postTaskWithMaaFWDiagnostics(entry string, post func() *maa.TaskJob) (*maa.TaskJob, error) {
+func postTaskWithMaaFWDiagnostics(entry string, post func() (*maa.TaskJob, error)) (*maa.TaskJob, error) {
 	maaFWPostTaskDiagnosticMu.Lock()
 	defer maaFWPostTaskDiagnosticMu.Unlock()
 
 	checkpoint := newMaaFWLogCheckpoint(currentMaaFWLogPath())
-	job := post()
-	if job != nil && !job.Invalid() {
+	job, postErr := post()
+	if postErr == nil && job != nil && !job.Invalid() {
 		return job, nil
 	}
 
@@ -78,11 +82,16 @@ func postTaskWithMaaFWDiagnostics(entry string, post func() *maa.TaskJob) (*maa.
 	if err != nil {
 		logger.Warn("MaaFW", "读取 MaaFramework 提交失败详情失败: %v", err)
 	}
-	return nil, newFrameworkOperationError(
+	if postErr != nil {
+		diagnostics = append(diagnostics, FrameworkDiagnostic{Message: postErr.Error()})
+	}
+	submitErr := newFrameworkOperationError(
 		"maafw.task.submit_failed",
 		"提交任务",
 		diagnostics,
 	)
+	submitErr.cause = postErr
+	return nil, submitErr
 }
 
 func readMaaFWErrorsSince(

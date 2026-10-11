@@ -130,6 +130,15 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.1.1",
+    date: "2026-10",
+    type: "major",
+    maafwVersion: "5.14.3",
+    updates: {
+      maafw: ["Go Binding 依赖升级至 v4 正式版，优化 lb 稳定性"],
+    },
+  },
+  {
     version: "2.1.0",
     date: "2026-10-10",
     type: "major",
