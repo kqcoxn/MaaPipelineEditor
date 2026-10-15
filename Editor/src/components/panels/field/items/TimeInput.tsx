@@ -25,7 +25,7 @@ export function TimeInput({ value, label, className, allowNegativeOne, onCommit 
     <Input
       aria-label={`${label}（毫秒）`}
       aria-invalid={invalid}
-      aria-describedby={id}
+      aria-describedby={invalid ? id : undefined}
       value={text}
       placeholder="毫秒，或 1.5s / 200ms"
       status={invalid ? "error" : undefined}
@@ -33,8 +33,8 @@ export function TimeInput({ value, label, className, allowNegativeOne, onCommit 
       onBlur={commit}
       onPressEnter={(event) => { if (!event.nativeEvent.isComposing) commit(); }}
     />
-    <span id={id} role={invalid ? "alert" : undefined} style={{ fontSize: 12 }}>
-      {invalid ? `请输入非负整数毫秒或 ms / s 时间${allowNegativeOne ? "；-1 表示无限等待" : ""}，不能有不足 1ms 的小数。未应用此输入。` : "支持 ms / s，无单位为毫秒"}
-    </span>
+    {invalid && <span id={id} role="alert" style={{ fontSize: 12 }}>
+      {`请输入非负整数毫秒或 ms / s 时间${allowNegativeOne ? "；-1 表示无限等待" : ""}，不能有不足 1ms 的小数。未应用此输入。`}
+    </span>}
   </div>;
 }
