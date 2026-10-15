@@ -11,8 +11,27 @@ pub struct Session {
     pub child: Child,
     pub id: String,
     pub root: String,
+    pub stop_reason: Option<StopReason>,
     #[cfg(windows)]
     pub _job: crate::windows_job::Job,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StopReason {
+    EditorClosed,
+    RendererFailed,
+    Forced,
+}
+impl Session {
+    pub fn exit_error(&self, status: std::process::ExitStatus) -> Option<String> {
+        match self.stop_reason {
+            Some(StopReason::Forced) => None,
+            Some(_) if status.success() => None,
+            Some(_) => Some(format!(
+                "LocalBridge 在停止期间异常退出（{status}），请查看日志"
+            )),
+            None => Some(format!("LocalBridge 意外退出（{status}），请查看日志")),
+        }
+    }
 }
 pub struct InstanceLock(pub std::fs::File);
 pub struct State {
@@ -61,6 +80,10 @@ pub fn now() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
+
+#[cfg(test)]
+#[path = "session_shutdown_tests.rs"]
+mod shutdown_tests;
 
 #[cfg(test)]
 mod tests {

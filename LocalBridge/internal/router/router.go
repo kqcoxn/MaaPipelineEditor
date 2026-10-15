@@ -27,23 +27,42 @@ type Handler interface {
 
 // 路由分发器
 type Router struct {
-	handlers                    map[string]Handler // key: 路由前缀
+	handlers                    map[string]*registeredHandler // key: 路由前缀
 	protocolMismatchHandler     func(clientVersion string)
 	protocolMismatchHandlerOnce sync.Once
+	lifecycleMu                 sync.Mutex
+	stopping                    bool
+	pending                     sync.WaitGroup
+}
+
+type registeredHandler struct {
+	Handler
+	waitOnStop bool
 }
 
 // 创建路由分发器
 func New() *Router {
 	return &Router{
-		handlers: make(map[string]Handler),
+		handlers: make(map[string]*registeredHandler),
 	}
 }
 
 // 注册处理器
 func (r *Router) RegisterHandler(handler Handler) {
+	r.register(handler, true)
+}
+
+// RegisterRuntimeHandler 用于可能等待设备、原生调用或网络的运行时请求。
+// 这些请求不负责持久化用户编辑，退出时由对应服务清理，不阻塞保存请求排空。
+func (r *Router) RegisterRuntimeHandler(handler Handler) {
+	r.register(handler, false)
+}
+
+func (r *Router) register(handler Handler, waitOnStop bool) {
+	entry := &registeredHandler{Handler: handler, waitOnStop: waitOnStop}
 	prefixes := handler.GetRoutePrefix()
 	for _, prefix := range prefixes {
-		r.handlers[prefix] = handler
+		r.handlers[prefix] = entry
 		logger.Debug("Router", "注册路由处理器: %s", prefix)
 	}
 }
@@ -56,6 +75,17 @@ func (r *Router) SetProtocolMismatchHandler(handler func(clientVersion string)) 
 // 路由分发
 func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	path := msg.Path
+	r.lifecycleMu.Lock()
+	if r.stopping {
+		r.lifecycleMu.Unlock()
+		return
+	}
+	handler := r.findHandler(path)
+	if handler != nil && handler.waitOnStop {
+		r.pending.Add(1)
+		defer r.pending.Done()
+	}
+	r.lifecycleMu.Unlock()
 
 	// 处理版本握手
 	if path == PathHandshake {
@@ -64,7 +94,6 @@ func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	}
 
 	// 查找匹配的处理器
-	handler := r.findHandler(path)
 	if handler == nil {
 		logger.Warn("Router", "未找到路由处理器: %s", path)
 		r.sendError(conn, errors.NewInvalidRequestError("未知的路由: "+path))
@@ -82,8 +111,17 @@ func (r *Router) Route(msg models.Message, conn *server.Connection) {
 	}
 }
 
+// Stop 拒绝新请求，并等待已经接受的文件、配置、PI 和模板保存完成。
+// 必须在启动进程退出期限之前调用，不能因设备重连超时而截断文件写入。
+func (r *Router) Stop() {
+	r.lifecycleMu.Lock()
+	r.stopping = true
+	r.lifecycleMu.Unlock()
+	r.pending.Wait()
+}
+
 // 查找匹配的处理器
-func (r *Router) findHandler(path string) Handler {
+func (r *Router) findHandler(path string) *registeredHandler {
 	// 精确匹配
 	if handler, ok := r.handlers[path]; ok {
 		return handler

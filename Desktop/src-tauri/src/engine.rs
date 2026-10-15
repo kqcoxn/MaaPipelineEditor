@@ -145,7 +145,7 @@ fn control(method: &str, route: &str) -> Result<Value, String> {
 pub fn status() -> Result<Value, String> {
     control("GET", "/status")
 }
-pub fn stop(id: &str, force: bool) -> Result<(), String> {
+pub fn stop(id: &str, force: bool, on_requested: impl FnOnce()) -> Result<(), String> {
     if id.is_empty() || !id.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err("实例身份无效".into());
     }
@@ -153,14 +153,32 @@ pub fn stop(id: &str, force: bool) -> Result<(), String> {
         "POST",
         &format!("/{}?id={id}", if force { "force" } else { "stop" }),
     )?;
-    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    on_requested();
+    // LB drains saves and bounds its final native cleanup. Keep a short outer
+    // deadline for transport / process failure instead of waiting for retries.
+    wait_for_stop(Duration::from_secs(10), force, || {
+        status().is_ok_and(|s| s["state"] == "stopped")
+    })
+}
+
+pub(crate) fn wait_for_stop(
+    timeout: Duration,
+    force: bool,
+    mut stopped: impl FnMut() -> bool,
+) -> Result<(), String> {
+    let deadline = std::time::Instant::now() + timeout;
     while std::time::Instant::now() < deadline {
-        if status().is_ok_and(|s| s["state"] == "stopped") {
+        if stopped() {
             return Ok(());
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    Err("正常停止超时，可选择强制结束".into())
+    Err(if force {
+        "强制结束超时，请查看 LocalBridge 日志"
+    } else {
+        "正常停止超时，LocalBridge 仍在清理；可继续等待或选择强制结束"
+    }
+    .into())
 }
 pub fn recover(app: &tauri::AppHandle) -> Result<(), String> {
     let binary = [

@@ -171,6 +171,8 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 	cm.mu.Unlock()
 
 	// 等待正在进行的连接或操作结束后再销毁底层实例。
+	started := time.Now()
+	logger.Info("MFW", "正在断开控制器，等待进行中的操作结束: %s", controllerID)
 	if err := destroyController(info); err != nil {
 		cm.mu.Lock()
 		cm.controllers[controllerID] = info
@@ -178,6 +180,6 @@ func (cm *ControllerManager) DisconnectController(controllerID string) error {
 		return fmt.Errorf("断开控制器失败: %w", err)
 	}
 
-	logger.Info("MFW", "控制器已断开: %s", controllerID)
+	logger.Info("MFW", "控制器已断开: %s，耗时 %s", controllerID, time.Since(started).Round(time.Millisecond))
 	return nil
 }

@@ -161,7 +161,7 @@ func printBanner() {
 }
 
 // 启动服务
-func runServer(cmd *cobra.Command, args []string) error {
+func runServer(cmd *cobra.Command, args []string) (resultErr error) {
 	if showVersion {
 		fmt.Println(Version)
 		return nil
@@ -183,7 +183,14 @@ func runServer(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	defer func() { installLock.Close(); service.Close() }()
+	var shutdownStarted time.Time
+	defer func() {
+		installLock.Close()
+		service.Close()
+		if !shutdownStarted.IsZero() {
+			logger.Info("Main", "Local Bridge 服务清理完成，耗时 %s", time.Since(shutdownStarted).Round(time.Millisecond))
+		}
+	}()
 	if err := watchOwner(service); err != nil {
 		return fmt.Errorf("隔离桌面托管输入失败: %w", err)
 	}
@@ -299,9 +306,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 	// 创建 MFW 服务
 	mfwSvc := mfw.NewService()
 	defer func() {
-		if err := mfwSvc.Shutdown(); err != nil {
-			logger.Error("Main", "MFW 服务关闭失败: %v", err)
-		}
+		shutdownFrameworkForExit(mfwSvc.Shutdown, resultErr)
 	}()
 	defer fileSvc.Stop()
 	// 初始化 MFW 服务
@@ -449,12 +454,12 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// 注册 MFW 协议处理器
 	mfwHandler := mfwProtocol.NewMFWHandler(mfwSvc)
-	rt.RegisterHandler(mfwHandler)
+	rt.RegisterRuntimeHandler(mfwHandler)
 
 	// 注册 Utility 协议处理器
 	utilityHandler := utilityProtocol.NewUtilityHandler(mfwSvc, cfg.EffectiveRoot(), diagnosticRecorder)
-	rt.RegisterHandler(utilityHandler)
-	rt.RegisterHandler(recorderProtocol.NewHandler(recorder.NewService(mfwSvc, resSvc)))
+	rt.RegisterRuntimeHandler(utilityHandler)
+	rt.RegisterRuntimeHandler(recorderProtocol.NewHandler(recorder.NewService(mfwSvc, resSvc)))
 
 	// 注册 Config 协议处理器
 	configHandler := configProtocol.NewConfigHandler()
@@ -464,12 +469,12 @@ func runServer(cmd *cobra.Command, args []string) error {
 	rt.RegisterHandler(piHandler)
 	interfaceRunner := interfaceRunService.New(piSvc, mfwSvc, eventBus, Version)
 	defer interfaceRunner.Close()
-	rt.RegisterHandler(projectInterfaceProtocol.NewRunHandler(interfaceRunner, eventBus, wsServer))
+	rt.RegisterRuntimeHandler(projectInterfaceProtocol.NewRunHandler(interfaceRunner, eventBus, wsServer))
 
 	// 注册 debug-vNext 协议处理器
 	debugHandler := debugapi.NewHandler(mfwSvc, cfg.EffectiveRoot(), piSvc, Version)
 	defer debugHandler.Close()
-	rt.RegisterHandler(debugHandler)
+	rt.RegisterRuntimeHandler(debugHandler)
 
 	// 注册 Resource 协议处理器
 	resourceHandler := resourceProtocol.NewHandler(resSvc, eventBus, wsServer, cfg.EffectiveRoot())
@@ -477,7 +482,7 @@ func runServer(cmd *cobra.Command, args []string) error {
 
 	// 注册 AI 代理协议处理器。业务入口可以暂时没有，但传输基础设施保持可用。
 	aiHandler := aiProtocol.NewAIHandler()
-	rt.RegisterHandler(aiHandler)
+	rt.RegisterRuntimeHandler(aiHandler)
 
 	// 设置消息处理器
 	wsServer.SetMessageHandler(rt.Route)
@@ -514,16 +519,18 @@ func runServer(cmd *cobra.Command, args []string) error {
 	}
 
 	// 退出
+	shutdownStarted = time.Now()
+	service.RequestStop()
 	logger.Info("Main", "正在关闭 Local Bridge 服务...")
 
 	wsServer.Stop()
+	rt.Stop()
 
 	if protocolMismatchClientVersion != "" {
 		printProtocolMismatchUpdateNotice(protocolMismatchClientVersion)
 		return nil
 	}
 
-	logger.Info("Main", "Local Bridge 已退出")
 	return serverFailure
 }
 

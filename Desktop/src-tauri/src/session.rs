@@ -1,3 +1,6 @@
+mod lifecycle;
+pub use lifecycle::{aborted, complete, finish, monitor, request_close, show_launcher, stop};
+
 use crate::{
     engine,
     settings::{binary_name, engine_dir},
@@ -135,6 +138,7 @@ pub fn start(app: &tauri::AppHandle, root: String) -> Result<(), String> {
         child,
         id: ready["id"].as_str().unwrap_or_default().into(),
         root,
+        stop_reason: None,
         #[cfg(windows)]
         _job: job,
     });
@@ -149,127 +153,4 @@ pub fn start(app: &tauri::AppHandle, root: String) -> Result<(), String> {
     crate::logs::record(app, "编辑器已启动，LocalBridge 已就绪");
     let _ = app.emit_to("launcher", "session-changed", true);
     Ok(())
-}
-pub fn request_close(app: &tauri::AppHandle, exit: bool) {
-    let state = app.state::<State>();
-    if exit {
-        state.exiting.store(true, Ordering::SeqCst)
-    }
-    if let Some(window) = app.get_webview_window("renderer") {
-        if !state.closing.swap(true, Ordering::SeqCst) {
-            let _ = window.emit("desktop-close-request", ());
-        }
-    } else if state.session.lock().unwrap().is_none() {
-        app.exit(0)
-    }
-}
-pub fn finish(app: &tauri::AppHandle, accept: bool) -> Result<(), String> {
-    let state = app.state::<State>();
-    if !accept {
-        state.closing.store(false, Ordering::SeqCst);
-        state.exiting.store(false, Ordering::SeqCst);
-        return Ok(());
-    }
-    let id = state.session.lock().unwrap().as_ref().map(|s| s.id.clone());
-    if let Some(id) = id {
-        if let Err(err) = engine::stop(&id, false) {
-            state.closing.store(false, Ordering::SeqCst);
-            show_launcher(app);
-            let _ = app.emit_to("launcher", "session-error", err.clone());
-            return Err(err);
-        }
-    }
-    if let Some(mut session) = state.session.lock().unwrap().take() {
-        let _ = session.child.wait();
-    }
-    if let Some(window) = app.get_webview_window("renderer") {
-        let _ = window.destroy();
-    }
-    state.closing.store(false, Ordering::SeqCst);
-    let should_exit =
-        state.exiting.load(Ordering::SeqCst) || state.settings.lock().unwrap().exit_after_editor;
-    crate::logs::record(app, "编辑会话已结束，LocalBridge 已停止");
-    if should_exit {
-        state.busy.store(false, Ordering::SeqCst);
-        app.exit(0)
-    } else {
-        show_launcher(app);
-        let _ = app.emit_to("launcher", "session-changed", false);
-    }
-    Ok(())
-}
-pub fn show_launcher(app: &tauri::AppHandle) {
-    if let Some(window) = app.get_webview_window("launcher") {
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
-}
-pub fn monitor(app: tauri::AppHandle) {
-    std::thread::spawn(move || loop {
-        std::thread::sleep(Duration::from_secs(3));
-        let state = app.state::<State>();
-        let dead = {
-            let mut session = state.session.lock().unwrap();
-            session
-                .as_mut()
-                .is_some_and(|s| matches!(s.child.try_wait(), Ok(Some(_))))
-        };
-        if dead && !state.closing.load(Ordering::SeqCst) {
-            crate::logs::record(&app, "LocalBridge 意外退出");
-            state.session.lock().unwrap().take();
-            if let Some(window) = app.get_webview_window("renderer") {
-                let _ = window.destroy();
-            }
-            show_launcher(&app);
-            let _ = app.emit_to(
-                "launcher",
-                "session-error",
-                "mpelb 意外退出，请检查日志后重试",
-            );
-        }
-        if state.session.lock().unwrap().is_some()
-            && now().saturating_sub(state.heartbeat.load(Ordering::SeqCst)) > 120
-        {
-            show_launcher(&app);
-            let _ = app.emit_to(
-                "launcher",
-                "session-error",
-                "编辑器长时间未响应，可在环境管理中结束服务后重试",
-            );
-            state.heartbeat.store(now(), Ordering::SeqCst);
-        }
-    });
-}
-
-pub fn aborted(app: tauri::AppHandle) {
-    crate::logs::record(&app, "编辑器异常关闭，正在清理 LocalBridge");
-    tauri::async_runtime::spawn_blocking(move || {
-        let state = app.state::<State>();
-        if state.closing.swap(true, Ordering::SeqCst) {
-            return;
-        }
-        let id = state.session.lock().unwrap().as_ref().map(|s| s.id.clone());
-        if let Some(id) = id {
-            match engine::stop(&id, false) {
-                Ok(()) => {
-                    if let Some(mut session) = state.session.lock().unwrap().take() {
-                        let _ = session.child.wait();
-                    }
-                    if let Some(window) = app.get_webview_window("renderer") {
-                        let _ = window.destroy();
-                    }
-                }
-                Err(err) => {
-                    let _ = app.emit_to("launcher", "session-error", err);
-                }
-            }
-        }
-        state.closing.store(false, Ordering::SeqCst);
-        show_launcher(&app);
-        let _ = app.emit_to(
-            "launcher",
-            "session-error",
-            "编辑器窗口意外关闭，已请求停止服务；未保存内容可从项目缓存恢复",
-        );
-    });
 }

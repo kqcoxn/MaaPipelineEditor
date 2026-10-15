@@ -1,7 +1,7 @@
 use crate::{
     engine, session,
     settings::{self, Project, Settings},
-    state::{now, Operation, State},
+    state::{now, Operation, State, StopReason},
 };
 use serde_json::{json, Value};
 use std::sync::atomic::Ordering;
@@ -229,20 +229,24 @@ pub async fn stop_conflict(
     authorize(&window, "launcher")?;
     work(app, move |app| {
         let state = app.state::<State>();
-        let own = state.session.lock().unwrap().is_some();
+        let own = state
+            .session
+            .lock()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|s| s.id == id);
         if own && !force {
             session::request_close(app, false);
             return Ok(());
         }
-        engine::stop(&id, force)?;
+        let reason = if force {
+            StopReason::Forced
+        } else {
+            StopReason::EditorClosed
+        };
+        session::stop(app, &id, reason)?;
         if own {
-            state.session.lock().unwrap().take();
-            if let Some(w) = app.get_webview_window("renderer") {
-                let _ = w.destroy();
-            }
-            state.closing.store(false, Ordering::SeqCst);
-            state.exiting.store(false, Ordering::SeqCst);
-            session::show_launcher(app);
+            session::complete(app, reason)?;
         }
         Ok(())
     })
