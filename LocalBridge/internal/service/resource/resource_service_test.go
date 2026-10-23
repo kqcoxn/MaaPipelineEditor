@@ -67,6 +67,18 @@ func TestServiceUnlimitedResourceScanDepth(t *testing.T) {
 }
 
 func TestServicePublishesImageChanges(t *testing.T) {
+	for _, replace := range []bool{false, true} {
+		name := "overwrite"
+		if replace {
+			name = "replace via temporary file"
+		}
+		t.Run(name, func(t *testing.T) {
+			testServicePublishesImageChanges(t, replace)
+		})
+	}
+}
+
+func testServicePublishesImageChanges(t *testing.T, replace bool) {
 	_ = logger.Init("ERROR", "", false)
 	root := t.TempDir()
 	imagePath := filepath.Join(root, "assets", "resource", "base", "image", "menu.png")
@@ -78,7 +90,7 @@ func TestServicePublishesImageChanges(t *testing.T) {
 	}
 
 	bus := eventbus.New()
-	changes := make(chan models.ResourceImageChangedData, 1)
+	changes := make(chan models.ResourceImageChangedData, 10)
 	bus.Subscribe(eventbus.EventResourceImageChanged, func(event eventbus.Event) {
 		change, ok := event.Data.(models.ResourceImageChangedData)
 		if ok {
@@ -92,19 +104,39 @@ func TestServicePublishesImageChanges(t *testing.T) {
 	}
 	defer service.Stop()
 
-	if err := os.WriteFile(imagePath, []byte("new"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// 连续覆盖同一路径，确认替换文件后监听仍然有效。
+	for _, content := range []string{"new", "newer"} {
+		writePath := imagePath
+		if replace {
+			writePath += ".crswap"
+		}
+		if err := os.WriteFile(writePath, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if replace {
+			if err := os.Rename(writePath, imagePath); err != nil {
+				t.Fatal(err)
+			}
+		}
 
-	select {
-	case change := <-changes:
-		if change.Type != "modified" {
-			t.Fatalf("change type = %q, want modified", change.Type)
+		select {
+		case change := <-changes:
+			if (!replace && change.Type != "modified") || (replace && change.Type != "created" && change.Type != "modified") {
+				t.Fatalf("unexpected image change type: %q", change.Type)
+			}
+			if change.RelativePath != "menu.png" {
+				t.Fatalf("relative path = %q, want menu.png", change.RelativePath)
+			}
+			path, _, found := service.FindImage(change.RelativePath)
+			if !found {
+				t.Fatal("changed image was not found")
+			}
+			data, err := os.ReadFile(path)
+			if err != nil || string(data) != content {
+				t.Fatalf("changed image = %q, error = %v, want %q", data, err, content)
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("timed out waiting for image change")
 		}
-		if change.RelativePath != "menu.png" {
-			t.Fatalf("relative path = %q, want menu.png", change.RelativePath)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for image change")
 	}
 }

@@ -126,7 +126,7 @@ export class ResourceProtocol extends BaseProtocol {
       clearTimeout(pending.timer);
       this.templateSaves.delete(data.request_id);
       if (data.success) {
-        if (data.image) this.commitImageResponses([data.image]);
+        if (data.image) this.handleImageChanged(data.image);
         pending.resolve();
       } else pending.reject(new Error(data.message || "模板保存失败"));
     });
@@ -260,6 +260,17 @@ export class ResourceProtocol extends BaseProtocol {
     }
 
     return this.imageRequestScheduler.request(relativePaths);
+  }
+
+  /** 保存完成后重新读取指定图片，并阻止保存前的请求覆盖新缓存。 */
+  public refreshImages(relativePaths: string[]): boolean {
+    if (!this.wsClient) return false;
+
+    const paths = [...new Set(relativePaths.filter((path) => path.trim() !== ""))];
+    this.imageRequestScheduler.resolvePaths(paths);
+    const store = useLocalFileStore.getState();
+    paths.forEach((path) => store.removeImageCache(path));
+    return this.requestImages(paths);
   }
 
   /**

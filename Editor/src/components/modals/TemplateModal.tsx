@@ -20,7 +20,7 @@ import {
   type CanvasRenderProps,
   type ViewportProps,
 } from "./ScreenshotModalBase";
-import { mfwProtocol } from "../../services/server";
+import { mfwProtocol, resourceProtocol } from "../../services/server";
 import {
   resolveNegativeROI,
   type Rectangle,
@@ -88,8 +88,10 @@ export const TemplateModal = memo(
         const fileName = pendingFileNameRef.current;
 
         if (data.success && roi) {
+          resourceProtocol.refreshImages([data.relative_path]);
           onConfirm(data.relative_path, greenMask, roi);
         } else if (roi && fileName) {
+          resourceProtocol.refreshImages([fileName]);
           message.warning("无法自动确定路径，已填充文件名，请手动调整");
           onConfirm(fileName, greenMask, roi);
         }
@@ -471,9 +473,7 @@ export const TemplateModal = memo(
           pendingFileNameRef.current = filename;
 
           // 请求后端解析相对路径
-          setTimeout(() => {
-            mfwProtocol.requestResolveImagePath(filename);
-          }, 500);
+          mfwProtocol.requestResolveImagePath(filename);
         } catch (err: any) {
           if (err.name !== "AbortError") {
             message.error("保存失败: " + err.message);
@@ -501,7 +501,7 @@ export const TemplateModal = memo(
           mfwProtocol.requestResolveImagePath(defaultFilename);
         }, 500);
       }
-    }, [rectangle, hasGreenMask]);
+    }, [rectangle, hasGreenMask, uploaded]);
 
     // 重置状态
     const handleReset = useCallback(() => {

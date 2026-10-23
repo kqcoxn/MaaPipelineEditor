@@ -234,6 +234,57 @@ describe("ResourceProtocol image requests", () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:old");
   });
 
+  it("主动刷新只重新读取目标图片，旧批次晚到不能覆盖新图", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    protocol.requestImages(["menu.png", "other.png"]);
+    await vi.advanceTimersByTimeAsync(50);
+    const oldRequestId = server.sent[0].data.request_id;
+    server.deliver("/lte/image", {
+      success: true, relative_path: "menu.png", base64: btoa("old"),
+    });
+
+    protocol.refreshImages(["menu.png"]);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(server.sent[1]).toMatchObject({
+      path: "/etl/get_images", data: { relative_paths: ["menu.png"] },
+    });
+    server.deliver("/lte/images", {
+      request_id: server.sent[1].data.request_id,
+      images: [{ success: true, relative_path: "menu.png", base64: btoa("new") }],
+    });
+    server.deliver("/lte/images", {
+      request_id: oldRequestId,
+      images: [
+        { success: true, relative_path: "menu.png", base64: btoa("old") },
+        { success: true, relative_path: "other.png", base64: btoa("other") },
+      ],
+    });
+
+    expect(useLocalFileStore.getState().getImageCache("menu.png")?.dataUrl).toBe("data:image/png;base64,bmV3");
+    expect(useLocalFileStore.getState().getImageCache("other.png")?.dataUrl).toBe(`data:image/png;base64,${btoa("other")}`);
+    expect(useLocalFileStore.getState().pendingImageRequests.size).toBe(0);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:a");
+  });
+
+  it("模板保存回执更新图片后，旧请求不能恢复保存前的缓存", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    protocol.requestImage("menu.png");
+    await vi.advanceTimersByTimeAsync(50);
+    const oldRequestId = server.sent[0].data.request_id;
+    const saved = protocol.saveTemplateImage("menu.png", "/project/image/menu.png", "old", "new");
+    server.deliver("/lte/template_image_saved", {
+      request_id: server.sent[1].data.request_id, success: true,
+      image: { success: true, relative_path: "menu.png", base64: btoa("new") },
+    });
+    await saved;
+    server.deliver("/lte/images", {
+      request_id: oldRequestId,
+      images: [{ success: true, relative_path: "menu.png", base64: btoa("old") }],
+    });
+    expect(useLocalFileStore.getState().getImageCache("menu.png")?.dataUrl).toBe("data:image/png;base64,bmV3");
+    expect(useLocalFileStore.getState().pendingImageRequests.size).toBe(0);
+  });
+
   it("不完整响应也会结束整批 pending", async () => {
     protocol.requestImages(["a.png", "missing.png"]);
     await vi.advanceTimersByTimeAsync(50);

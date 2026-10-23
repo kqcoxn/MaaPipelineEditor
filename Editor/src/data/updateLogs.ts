@@ -137,6 +137,7 @@ export const updateLogs: UpdateLogItem[] = [
     updates: {
       perfs: ["完善 mpelb 关闭流程，优化退出速度"],
       fixes: [
+        "修复图片同路径替换后前端更新不及时的问题",
         "修正 mpelb 清理完成日志的记录时机，补充控制器断开耗时与异常退出状态",
       ],
       maafw: ["Go Binding 依赖升级至 v4 正式版，优化 lb 稳定性"],
