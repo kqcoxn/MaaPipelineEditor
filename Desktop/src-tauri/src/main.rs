@@ -18,6 +18,7 @@ mod settings;
 mod startup;
 mod state;
 mod update_cancel;
+mod update_commands;
 #[cfg(windows)]
 mod windows_job;
 
@@ -113,6 +114,7 @@ fn main() {
             commands::github_token_status,
             commands::save_github_token,
             commands::update_desktop,
+            update_commands::check_desktop_update,
             commands::cancel_update_check,
             commands::quit_desktop,
             commands::desktop_reply,

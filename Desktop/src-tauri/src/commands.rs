@@ -325,13 +325,15 @@ pub async fn release_versions(
 ) -> Result<crate::releases::VersionList, String> {
     authorize(&window, "launcher")?;
     tauri::async_runtime::spawn_blocking(move || {
+        let started = std::time::Instant::now();
         let result = crate::releases::load(&settings::data_dir(&app), force);
         match &result {
             Ok(list) => crate::logs::record(
                 &app,
                 &format!(
-                    "版本检查：{} 个可安装版本{}",
+                    "版本检查：{} 个可安装版本，耗时 {:.2} 秒{}",
                     list.versions.len(),
+                    started.elapsed().as_secs_f64(),
                     list.warning
                         .as_ref()
                         .map(|warning| format!("；{warning}"))
@@ -376,9 +378,10 @@ pub async fn update_desktop(
     window: WebviewWindow,
     app: tauri::AppHandle,
     on_progress: tauri::ipc::Channel<Value>,
+    cached: bool,
 ) -> Result<String, String> {
     authorize(&window, "launcher")?;
-    crate::desktop_update::run(app, on_progress).await
+    crate::desktop_update::run(app, on_progress, cached).await
 }
 
 #[tauri::command]

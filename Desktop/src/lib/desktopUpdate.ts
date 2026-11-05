@@ -3,6 +3,7 @@ import { parseInstallProgress, type InstallProgress } from "./installProgress";
 
 export async function updateDesktop(
   onProgress: (progress: InstallProgress) => void,
+  cached = false,
 ): Promise<string> {
   let active = true;
   const channel = new Channel<unknown>();
@@ -10,7 +11,10 @@ export async function updateDesktop(
     if (active) onProgress(parseInstallProgress(JSON.stringify(event)));
   };
   try {
-    return await invoke<string>("update_desktop", { onProgress: channel });
+    return await invoke<string>("update_desktop", {
+      onProgress: channel,
+      cached,
+    });
   } finally {
     // A queued channel message must not restore progress after failure or retry.
     active = false;

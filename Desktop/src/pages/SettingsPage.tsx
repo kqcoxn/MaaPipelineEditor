@@ -64,7 +64,7 @@ export function SettingsPage({ model: m }: { model: Model }) {
         {toggle(
           "autoCheckMpe",
           "自动检查 MPE 更新",
-          "启动、开启此项及结束编辑后检查 Editor 与 LB 新版；关闭后仍可在环境管理中手动检查。",
+          "每 24 小时在后台检查 Editor 与 LB 新版，不影响启动编辑器；关闭后仍可手动检查。",
         )}
         {toggle(
           "autoInstallMpe",
@@ -75,7 +75,7 @@ export function SettingsPage({ model: m }: { model: Model }) {
         {toggle(
           "autoUpdateDesktop",
           "自动检查并更新 Desktop",
-          "完成首次配置后，在启动、开启此项及结束编辑时检查并更新启动器；需编辑器与服务停止，与 MPE 更新设置独立。",
+          "完成首次配置后，每 24 小时在后台检查启动器新版，空闲时自动安装；与 MPE 更新开关独立。",
         )}
         <div className="setting-row">
           <span>

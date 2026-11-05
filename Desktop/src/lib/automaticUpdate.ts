@@ -1,4 +1,9 @@
-import { CHECK_CANCELLED, CHECK_TIMEOUT, UPDATE_CANCELLED, waitForCheck } from "./checkCancellation";
+import {
+  CHECK_CANCELLED,
+  CHECK_TIMEOUT,
+  UPDATE_CANCELLED,
+  waitForCheck,
+} from "./checkCancellation";
 import { invoke } from "@tauri-apps/api/core";
 import type { Snapshot, VersionList } from "../types";
 import type { NoticeKind } from "./feedback";
@@ -15,9 +20,9 @@ export function newer(a: string, b: string): boolean {
 
 export function automaticUpdateBlock(s: Snapshot): string | undefined {
   if (!s.settings.autoInstallMpe) return "MPE 自动安装已关闭";
-  if (!s.settings.onboardingDone) return "完成首次配置后检查更新";
+  if (!s.settings.onboardingDone) return "完成首次配置后安装更新";
   if (s.running || s.service.state !== "stopped")
-    return "编辑器或服务运行中，停止后检查更新";
+    return "编辑器或服务运行中，停止后安装更新";
 }
 
 export async function updateEnvironment(
@@ -26,7 +31,7 @@ export async function updateEnvironment(
   onStatus: (status: string) => void,
   onNotice: (notice: string, kind?: NoticeKind) => void = () => {},
   allowInstall = true,
-  check?: { signal: AbortSignal; complete: () => void },
+  check?: { signal: AbortSignal; complete: () => void; failed?: () => void },
 ): Promise<string> {
   onStatus("正在联网检查 MPE 更新");
   let result: VersionList;
@@ -34,17 +39,32 @@ export async function updateEnvironment(
     const request = invoke<VersionList>("release_versions", { force: true });
     result = await (check ? waitForCheck(request, check.signal) : request);
     if (check?.signal.aborted)
-      return check.signal.reason === CHECK_TIMEOUT ? CHECK_TIMEOUT : CHECK_CANCELLED;
+      return check.signal.reason === CHECK_TIMEOUT
+        ? CHECK_TIMEOUT
+        : CHECK_CANCELLED;
     check?.complete();
     onVersions(result);
   } catch (error) {
     check?.complete();
     if (check?.signal.aborted)
-      return check.signal.reason === CHECK_TIMEOUT ? CHECK_TIMEOUT : CHECK_CANCELLED;
+      return check.signal.reason === CHECK_TIMEOUT
+        ? CHECK_TIMEOUT
+        : CHECK_CANCELLED;
+    check?.failed?.();
     const message = `MPE 版本检查失败：${String(error)}`;
     onNotice(message, "error");
     return message;
   }
+  return applyEnvironmentUpdate(s, result, onStatus, onNotice, allowInstall);
+}
+
+export async function applyEnvironmentUpdate(
+  s: Snapshot,
+  result: VersionList,
+  onStatus: (status: string) => void,
+  onNotice: (notice: string, kind?: NoticeKind) => void = () => {},
+  allowInstall = true,
+): Promise<string> {
   if (result.stale) {
     const message = "MPE 联网检查失败，保留缓存版本列表，不自动安装";
     onNotice(message, "action");
@@ -91,38 +111,4 @@ export async function updateEnvironment(
     `${found}，正在下载并更新`,
   );
   return installed ? `MPE 已更新至 ${installed.version}` : UPDATE_CANCELLED;
-}
-
-export async function runAutomaticUpdates(
-  s: Snapshot,
-  environment: () => Promise<unknown>,
-  desktop: () => Promise<unknown>,
-  target: "all" | "mpe" | "desktop" = "all",
-  cancelled: () => boolean = () => false,
-) {
-  const failures: unknown[] = [];
-  // Upgrade the host first so environment installation uses its latest logic.
-  // A successful desktop update restarts the app without returning here.
-  if (
-    !cancelled() &&
-    target !== "mpe" &&
-    s.settings.autoUpdateDesktop &&
-    s.settings.onboardingDone &&
-    !s.running &&
-    s.service.state === "stopped"
-  ) {
-    try {
-      await desktop();
-    } catch (error) {
-      failures.push(error);
-    }
-  }
-  if (!cancelled() && target !== "desktop" && s.settings.autoCheckMpe) {
-    try {
-      await environment();
-    } catch (error) {
-      failures.push(error);
-    }
-  }
-  if (failures.length) throw failures[0];
 }

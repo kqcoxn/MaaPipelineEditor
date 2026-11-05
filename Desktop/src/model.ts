@@ -4,7 +4,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Settings, Snapshot, Homepage, VersionList } from "./types";
 import { bundledHomepage, preferCurrentHomepage } from "./lib/homepage";
-import { runAutomaticUpdates, updateEnvironment } from "./lib/automaticUpdate";
+import {
+  applyEnvironmentUpdate,
+  newer,
+  updateEnvironment,
+} from "./lib/automaticUpdate";
+import { BackgroundUpdates } from "./lib/backgroundUpdates";
+import { UpdateHistory } from "./lib/updateHistory";
 import { updateDesktop } from "./lib/desktopUpdate";
 import { installEnvironment } from "./lib/environmentInstall";
 import {
@@ -22,6 +28,9 @@ import {
 export const openLink = (url: string) => invoke("open_link", { url });
 export function useLauncher() {
   const [snapshot, setSnapshot] = useState<Snapshot>();
+  const currentSnapshot = useRef<Snapshot | undefined>(undefined);
+  const background = useRef<BackgroundUpdates | undefined>(undefined);
+  const [history] = useState(() => new UpdateHistory());
   const [busy, setBusy] = useState(false);
   const [installationProgress, setInstallationProgress] =
     useState<InstallProgress>({ text: "" });
@@ -40,26 +49,21 @@ export function useLauncher() {
   const cancellationPending = useRef(false);
   const operationEpoch = useRef(0);
   const checkController = useRef<AbortController | undefined>(undefined);
-  const checksCancelled = useRef(false);
   const cancelCheck = async () => {
     if (cancellationPending.current) return;
+    background.current?.cancel();
     const epoch = operationEpoch.current;
-    // Stop the automatic chain immediately, even if the cancel IPC reply arrives
-    // after the update command has already completed.
-    checksCancelled.current = true;
     cancellationPending.current = true;
     setCancelling(true);
     setCanCancelCheck(false);
     if (checkController.current) {
-      checksCancelled.current = true;
       checkController.current.abort();
       setCanCancelCheck(false);
     } else {
       try {
         const cancelled = await invoke<boolean>("cancel_update_check");
         if (epoch !== operationEpoch.current || !gate.current) return;
-        if (cancelled) checksCancelled.current = true;
-        else {
+        if (!cancelled) {
           cancellationPending.current = false;
           setCancelling(false);
         }
@@ -73,9 +77,11 @@ export function useLauncher() {
   };
   const refresh = useCallback(async () => {
     const next = await invoke<Snapshot>("snapshot");
+    currentSnapshot.current = next;
+    history.setRevision(next.desktopRevision);
     setSnapshot(next);
     return next;
-  }, []);
+  }, [history]);
   const run = useCallback(
     async (
       action: () => Promise<unknown>,
@@ -102,12 +108,14 @@ export function useLauncher() {
         setBusy(false);
         gate.current = false;
         setInstallationProgress({ text: "" });
+        background.current?.resume();
       }
     },
     [refresh],
   );
   const loadEnvironmentVersions = useCallback(
     async (s: Snapshot, allowInstall: boolean) => {
+      background.current?.supersede("mpe");
       const controller = new AbortController();
       checkController.current = controller;
       setCanCancelCheck(true);
@@ -122,6 +130,7 @@ export function useLauncher() {
         return await updateEnvironment(
           s,
           (result) => {
+            history.recordMpe(result);
             setVersions(result.versions);
             setVersionInfo(result);
             setVersionsLoading(false);
@@ -129,53 +138,122 @@ export function useLauncher() {
           setUpdateStatus,
           (message, kind) => setNotice(message, kind, "environment"),
           allowInstall,
-          { signal: controller.signal, complete },
+          {
+            signal: controller.signal,
+            complete,
+            failed: () => history.fail("mpe"),
+          },
         );
       } finally {
-        if (controller.signal.aborted) checksCancelled.current = true;
+        if (controller.signal.aborted) {
+          history.fail("mpe");
+        }
         complete();
         setVersionsLoading(false);
       }
     },
-    [],
+    [history],
   );
-  const checkDesktopUpdate = useCallback(async () => {
-    clearFeedback("desktop");
-    setDesktopUpdateStatus("正在检查桌面端更新");
-    setDesktopUpdateProgress({ text: "正在检查桌面端更新" });
-    try {
-      const status = await updateDesktop((progress) => {
-        setCanCancelCheck(
-          !cancellationPending.current && progress.cancellable === true,
-        );
-        setDesktopUpdateProgress(progress);
-        setDesktopUpdateStatus(progress.text);
-      });
-      if (status === UPDATE_CANCELLED) checksCancelled.current = true;
-      setDesktopUpdateStatus(status);
+  const checkDesktopUpdate = useCallback(
+    async (cached = false) => {
+      if (!cached) background.current?.supersede("desktop");
       clearFeedback("desktop");
-    } catch (error) {
-      setDesktopUpdateStatus(`桌面端更新失败：${String(error)}`);
-      setError(`桌面端更新失败：${String(error)}`, "desktop");
-    } finally {
-      setCanCancelCheck(false);
-      setDesktopUpdateProgress(undefined);
-    }
-  }, []);
-  const automatic = useCallback(
-    async (s: Snapshot, target: "all" | "mpe" | "desktop" = "all") => {
-      await run(() => {
-        checksCancelled.current = false;
-        return runAutomaticUpdates(
-          s,
-          async () => setUpdateStatus(await loadEnvironmentVersions(s, true)),
-          checkDesktopUpdate,
-          target,
-          () => checksCancelled.current,
-        );
-      }, "environment");
+      setDesktopUpdateStatus("正在检查桌面端更新");
+      setDesktopUpdateProgress({ text: "正在检查桌面端更新" });
+      try {
+        const status = await updateDesktop((progress) => {
+          setCanCancelCheck(
+            !cancellationPending.current && progress.cancellable === true,
+          );
+          setDesktopUpdateProgress(progress);
+          setDesktopUpdateStatus(progress.text);
+        }, cached);
+        if (status === UPDATE_CANCELLED) history.fail("desktop");
+        else history.recordDesktop(false);
+        setDesktopUpdateStatus(status);
+        clearFeedback("desktop");
+        return status;
+      } catch (error) {
+        setDesktopUpdateStatus(`桌面端更新失败：${String(error)}`);
+        setError(`桌面端更新失败：${String(error)}`, "desktop");
+        history.fail("desktop");
+        throw error;
+      } finally {
+        setCanCancelCheck(false);
+        setDesktopUpdateProgress(undefined);
+      }
     },
-    [run, loadEnvironmentVersions, checkDesktopUpdate],
+    [history],
+  );
+  if (!background.current) {
+    background.current = new BackgroundUpdates(history, {
+      snapshot: () => currentSnapshot.current,
+      refresh,
+      busy: () => gate.current,
+      run: (action) => run(action, "environment"),
+      checkMpe: (force) => invoke<VersionList>("release_versions", { force }),
+      checkDesktop: (cached) =>
+        invoke<boolean>("check_desktop_update", { cached }),
+      installDesktop: () => checkDesktopUpdate(true),
+      installMpe: async (s, list) => {
+        const status = await applyEnvironmentUpdate(
+          s,
+          list,
+          setUpdateStatus,
+          (message, kind) => setNotice(message, kind, "environment"),
+        );
+        setUpdateStatus(status);
+        return status;
+      },
+      onMpe: (list) => {
+        setVersions(list.versions);
+        setVersionInfo(list);
+        const s = currentSnapshot.current;
+        if (s)
+          void applyEnvironmentUpdate(
+            s,
+            list,
+            setUpdateStatus,
+            (message, kind) => {
+              if (
+                kind === "action" &&
+                !list.stale &&
+                s.settings.autoCheckMpe &&
+                list.versions[0] &&
+                newer(list.versions[0], s.environment.version)
+              )
+                setNotice(message, kind, "environment");
+            },
+            false,
+          ).then(setUpdateStatus);
+      },
+      onDesktop: (available) =>
+        setDesktopUpdateStatus(
+          available
+            ? "发现桌面端更新，空闲时自动安装"
+            : "未发现可用的桌面端更新",
+        ),
+      onChecking: (target) => {
+        if (target === "desktop")
+          setDesktopUpdateStatus("正在后台检查桌面端更新，可启动编辑器");
+        else setUpdateStatus("正在后台检查 MPE 更新，可启动编辑器");
+      },
+      onError: (target, error) => {
+        const message = `后台更新失败：${String(error)}；保留当前版本，稍后重试`;
+        if (target === "desktop") setDesktopUpdateStatus(message);
+        else setUpdateStatus(message);
+      },
+    });
+  }
+  const automatic = useCallback(
+    async (
+      _s: Snapshot,
+      target: "all" | "mpe" | "desktop" = "all",
+      force = false,
+    ) => {
+      await background.current?.request(target, force);
+    },
+    [],
   );
   useEffect(() => {
     let disposed = false;
@@ -217,6 +295,7 @@ export function useLauncher() {
       .catch((e) => setError(String(e)));
     return () => {
       disposed = true;
+      background.current?.stop();
       disposers.forEach((off) => off());
     };
   }, [refresh, automatic]);
@@ -244,6 +323,7 @@ export function useLauncher() {
               : mpeEnabled
                 ? "mpe"
                 : "desktop",
+            true,
           ),
         )
         .catch((e) => setError(String(e)));
@@ -270,15 +350,17 @@ export function useLauncher() {
     updateStatus,
     desktopUpdateStatus,
     desktopUpdateProgress,
-    checkDesktopUpdate,
+    checkDesktopUpdate: () => checkDesktopUpdate(false),
     run,
     save,
     refresh,
     checkVersions,
-    installEnvironment: (version: string) =>
-      installEnvironment(version, setUpdateStatus, (message, kind) =>
+    installEnvironment: (version: string) => {
+      background.current?.supersede("mpe");
+      return installEnvironment(version, setUpdateStatus, (message, kind) =>
         setNotice(message, kind, "environment"),
-      ),
+      );
+    },
     setNotice,
     setError,
   };

@@ -8,19 +8,15 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::{ipc::Channel, Manager};
-use tauri_plugin_updater::UpdaterExt;
+use tauri_plugin_updater::{Update, UpdaterExt};
 
-pub async fn run(app: tauri::AppHandle, on_progress: Channel<Value>) -> Result<String, String> {
-    let state = app.state::<State>();
-    let _operation = Operation::acquire(&state)?;
-    if state.session.lock().unwrap().is_some() {
-        return Err("结束编辑后才能更新 MPE Desktop".into());
-    }
+// Discovery is read-only and must never acquire the editor's operation lock.
+async fn fetch(app: &tauri::AppHandle) -> Result<Option<Update>, String> {
     if option_env!("MPE_UPDATER_PUBLIC_KEY")
         .unwrap_or("")
         .is_empty()
     {
-        return Ok("此构建未配置正式更新签名".into());
+        return Ok(None);
     }
     let updater = app
         .updater_builder()
@@ -36,6 +32,59 @@ pub async fn run(app: tauri::AppHandle, on_progress: Channel<Value>) -> Result<S
         .map_err(|e| e.to_string())?
         .build()
         .map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+    match update {
+        Some(update)
+            if crate::desktop_release::needs_update(
+                &update.raw_json,
+                crate::desktop_release::revision(),
+            )? =>
+        {
+            Ok(Some(update))
+        }
+        _ => Ok(None),
+    }
+}
+
+async fn load(app: &tauri::AppHandle, cached: bool) -> Result<Option<Update>, String> {
+    let state = app.state::<State>();
+    tokio::time::timeout(Duration::from_secs(30), async {
+        let mut pending = state.desktop_update.lock().await;
+        if !cached || pending.is_none() {
+            *pending = fetch(app).await?;
+        }
+        Ok(pending.clone())
+    })
+    .await
+    .map_err(|_| "桌面端检测超时，请检查网络后重试".to_string())?
+}
+
+pub async fn check(app: &tauri::AppHandle, cached: bool) -> Result<bool, String> {
+    Ok(load(app, cached).await?.is_some())
+}
+
+pub async fn run(
+    app: tauri::AppHandle,
+    on_progress: Channel<Value>,
+    cached: bool,
+) -> Result<String, String> {
+    let state = app.state::<State>();
+    let _operation = Operation::acquire(&state)?;
+    if state.session.lock().unwrap().is_some() {
+        return Err("结束编辑后才能更新 MPE Desktop".into());
+    }
+    let service = tauri::async_runtime::spawn_blocking(engine::status)
+        .await
+        .map_err(|e| e.to_string())??;
+    if service["state"] != "stopped" {
+        return Err("已有服务运行，请先处理实例冲突".into());
+    }
+    if option_env!("MPE_UPDATER_PUBLIC_KEY")
+        .unwrap_or("")
+        .is_empty()
+    {
+        return Ok("此构建未配置正式更新签名".into());
+    }
     let scope = crate::update_cancel::Scope::new(&state.update_cancel);
     let (cancel, mut cancelled) = tokio::sync::oneshot::channel();
     scope
@@ -46,24 +95,22 @@ pub async fn run(app: tauri::AppHandle, on_progress: Channel<Value>) -> Result<S
     let checked = tokio::select! {
         biased;
         _ = &mut cancelled => return Ok(crate::update_cancel::CANCELLED.into()),
-        result = tokio::time::timeout(Duration::from_secs(30), updater.check()) => {
-            result.map_err(|_| "桌面端检测超时，请检查网络后重试".to_string())
-                .and_then(|result| result.map_err(|e| e.to_string()))
+        result = async {
+            if cached {
+                state.desktop_update.try_lock()
+                    .map_err(|_| "桌面端仍在检查更新，请稍后重试".to_string())?.clone()
+                    .map(Some).ok_or_else(|| "更新信息已失效，请重新检查桌面端更新".to_string())
+            } else {
+                load(&app, false).await
+            }
+        } => {
+            result
         }
     };
     if !scope.control.active() {
         return Ok(crate::update_cancel::CANCELLED.into());
     }
     if let Some(update) = checked? {
-        if !crate::desktop_release::needs_update(
-            &update.raw_json,
-            crate::desktop_release::revision(),
-        )? {
-            if !scope.control.finish()? {
-                return Ok(crate::update_cancel::CANCELLED.into());
-            }
-            return Ok("MPE Desktop 已是最新修订版".into());
-        }
         let started = Instant::now();
         let mut downloaded = 0_u64;
         let mut last_report = None;

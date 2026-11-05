@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{path::Path, sync::Mutex};
 
-const TTL: u64 = 3600;
+const TTL: u64 = 24 * 3600;
 static LOCK: Mutex<()> = Mutex::new(());
 
 pub fn notes(version: &str) -> Result<String, String> {

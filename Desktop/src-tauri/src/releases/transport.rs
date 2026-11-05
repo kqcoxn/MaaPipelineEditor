@@ -1,8 +1,12 @@
 use super::Index;
 use crate::{engine, state::now};
 use reqwest::blocking::{Client, Response};
-use serde_json::{json, Value};
+#[cfg(test)]
+use serde_json::json;
+use serde_json::Value;
 use std::{io::Read, path::Path, time::Duration};
+#[cfg(test)]
+mod tests;
 
 const SITE: &str = "https://mpe.codax.site/landing/mpe-versions.json";
 const API: &str = "https://api.github.com/repos/kqcoxn/MaaPipelineEditor/releases";
@@ -99,10 +103,19 @@ fn parse(value: Value) -> Result<Index, String> {
 pub(super) fn static_index() -> Result<Index, String> {
     let client = engine::client()?;
     let mirror = format!("{}/latest/download/mpe-versions.json", engine::RELEASES);
-    // Compare publication timestamps: the site may be deployed after the release.
-    let site = public_json(&client, SITE).and_then(parse);
-    let release = public_json(&client, &mirror).and_then(parse);
-    newest(site, release)
+    static_index_from(&client, SITE, &mirror)
+}
+fn static_index_from(client: &Client, site: &str, release: &str) -> Result<Index, String> {
+    // Both sources must be compared: the site may be deployed after the release.
+    // Share the connection pool and overlap requests instead of adding their latency.
+    std::thread::scope(|scope| {
+        let site = scope.spawn(|| public_json(client, site).and_then(parse));
+        let release = public_json(client, release).and_then(parse);
+        let site = site
+            .join()
+            .unwrap_or_else(|_| Err("站点版本查询异常".into()));
+        newest(site, release)
+    })
 }
 pub(super) fn github(dir: &Path, token: &str) -> Result<Index, String> {
     let retry_path = dir.join("github-retry.json");
@@ -121,73 +134,71 @@ pub(super) fn github(dir: &Path, token: &str) -> Result<Index, String> {
         .build()
         .map_err(|_| "无法创建 GitHub 客户端")?;
     let public = engine::client()?;
-    let mut entries = Vec::new();
-    for page in 1..=100 {
-        let response = api
-            .get(API)
-            .query(&[("per_page", 100), ("page", page)])
-            .bearer_auth(token)
-            .header("Accept", "application/vnd.github+json")
-            .send()
-            .map_err(|_| "GitHub 版本查询失败")?;
-        let status = response.status().as_u16();
-        if status != 200 {
-            if status == 403 || status == 429 {
-                let seconds = |name: &str| {
-                    response
-                        .headers()
-                        .get(name)
-                        .and_then(|v| v.to_str().ok())
-                        .and_then(|v| v.parse::<u64>().ok())
-                };
-                let until = seconds("x-ratelimit-reset")
-                    .unwrap_or(0)
-                    .max(now().saturating_add(seconds("retry-after").unwrap_or(60)));
-                let _ = std::fs::write(&retry_path, until.to_string());
-            }
-            return Err(match status {
-                401 => "GitHub Token 无效或已过期".into(),
-                403 | 429 => "GitHub 请求受限或 Token 权限不足".into(),
-                _ => format!("GitHub 版本查询失败（HTTP {status}）"),
-            });
-        }
-        let releases = json_response(response)?;
-        let releases = releases.as_array().ok_or("GitHub 版本列表格式无效")?;
-        for release in releases {
-            if release["draft"] != false || release["prerelease"] != false {
-                continue;
-            }
-            let Some(tag) = release["tag_name"].as_str() else {
-                continue;
+    github_index(&api, API, &retry_path, token, |url| {
+        public_json(&public, url).and_then(parse)
+    })
+}
+fn github_index(
+    api: &Client,
+    api_url: &str,
+    retry_path: &Path,
+    token: &str,
+    fetch_index: impl FnOnce(&str) -> Result<Index, String>,
+) -> Result<Index, String> {
+    let response = api
+        .get(format!("{api_url}/latest"))
+        .bearer_auth(token)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .map_err(|_| "GitHub 版本查询失败")?;
+    let status = response.status().as_u16();
+    if status != 200 {
+        if status == 403 || status == 429 {
+            let seconds = |name: &str| {
+                response
+                    .headers()
+                    .get(name)
+                    .and_then(|v| v.to_str().ok())
+                    .and_then(|v| v.parse::<u64>().ok())
             };
-            let Some(version) = tag.strip_prefix('v') else {
-                continue;
-            };
-            let Ok(parsed) = semver::Version::parse(version) else {
-                continue;
-            };
-            if !parsed.pre.is_empty() || !parsed.build.is_empty() {
-                continue;
-            }
-            if !release["assets"]
-                .as_array()
-                .is_some_and(|a| a.iter().any(|a| a["name"] == "mpe-manifest.json"))
-            {
-                continue;
-            }
-            let url = format!("{}/download/{tag}/mpe-manifest.json", engine::RELEASES);
-            // A transient failure must not silently remove a version from the cached list.
-            let manifest = public_json(&public, &url)?;
-            if manifest["version"] != version {
-                return Err("GitHub 配套清单版本不符".into());
-            }
-            entries.push(json!({"manifestUrl":url, "manifest":manifest}));
+            let until = seconds("x-ratelimit-reset")
+                .unwrap_or(0)
+                .max(now().saturating_add(seconds("retry-after").unwrap_or(60)));
+            let _ = std::fs::write(&retry_path, until.to_string());
         }
-        if releases.len() < 100 {
-            return parse(json!({"schemaVersion":1, "generatedAt":now(), "releases":entries}));
-        }
+        return Err(match status {
+            401 => "GitHub Token 无效或已过期".into(),
+            403 | 429 => "GitHub 请求受限或 Token 权限不足".into(),
+            _ => format!("GitHub 版本查询失败（HTTP {status}）"),
+        });
     }
-    Err("GitHub 版本列表超过查询上限".into())
+    let release = json_response(response)?;
+    let url = release_index_url(&release)?;
+    // CI already validates and aggregates every supported historical manifest.
+    // Download that index once instead of fetching a manifest for every release.
+    fetch_index(&url)
+}
+fn release_index_url(release: &Value) -> Result<String, String> {
+    let tag = release["tag_name"].as_str().ok_or("GitHub 发布版本无效")?;
+    let version = tag
+        .strip_prefix('v')
+        .and_then(|v| semver::Version::parse(v).ok())
+        .filter(|v| v.pre.is_empty() && v.build.is_empty())
+        .ok_or("GitHub 发布版本无效")?;
+    if release["draft"] != false || release["prerelease"] != false {
+        return Err("GitHub 发布不是正式版本".into());
+    }
+    if !release["assets"]
+        .as_array()
+        .is_some_and(|assets| assets.iter().any(|a| a["name"] == "mpe-versions.json"))
+    {
+        return Err("GitHub 发布缺少完整版本索引".into());
+    }
+    // Derive the public URL from the validated tag; never forward the token.
+    Ok(format!(
+        "{}/download/v{version}/mpe-versions.json",
+        engine::RELEASES
+    ))
 }
 
 pub(super) fn newest(

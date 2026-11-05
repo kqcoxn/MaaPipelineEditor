@@ -23,7 +23,7 @@ impl Drop for Directory {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
-fn fixture(version: &str) -> Index {
+pub(super) fn fixture(version: &str) -> Index {
     let artifact = json!({"url":"https://example.com/resource", "sha256":"a".repeat(64)});
     serde_json::from_value(json!({"schemaVersion":1,"generatedAt":100,"releases":[{
         "manifestUrl":format!("{}/download/v{version}/mpe-manifest.json", engine::RELEASES),
@@ -39,7 +39,7 @@ fn fetched(version: &str) -> Result<(Index, String, Option<String>), String> {
 fn cache_ttl_manual_refresh_and_invalidated_credentials() {
     let dir = Directory::new();
     resolve(&dir.0, false, 100, || fetched("1.9.0")).unwrap();
-    let result = resolve(&dir.0, false, 200, || {
+    let result = resolve(&dir.0, false, 100 + 23 * 3600, || {
         panic!("fresh cache should avoid network")
     })
     .unwrap();
@@ -57,7 +57,7 @@ fn cache_ttl_manual_refresh_and_invalidated_credentials() {
 fn offline_and_malformed_responses_preserve_last_valid_cache() {
     let dir = Directory::new();
     resolve(&dir.0, false, 100, || fetched("1.9.0")).unwrap();
-    let stale = resolve(&dir.0, false, 4000, || Err("offline".into())).unwrap();
+    let stale = resolve(&dir.0, false, 100 + TTL, || Err("offline".into())).unwrap();
     assert!(stale.stale);
     assert_eq!(stale.checked_at, 100);
     let mut invalid = fixture("1.10.0");

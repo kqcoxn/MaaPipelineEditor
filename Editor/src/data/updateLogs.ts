@@ -131,11 +131,14 @@ export const nextPreview: ForecastSection = {
 export const updateLogs: UpdateLogItem[] = [
   {
     version: "2.1.1",
-    date: "2026-10",
-    type: "major",
+    date: "2026-11-5",
+    type: "perf",
     maafwVersion: "5.15.0",
     updates: {
-      perfs: ["完善 mpelb 关闭流程，优化退出速度"],
+      perfs: [
+        "完善 mpelb 关闭流程，优化退出速度",
+        "优化桌面端更细检测逻辑与速度",
+      ],
       fixes: [
         "修复图片同路径替换后前端更新不及时的问题",
         "修正 mpelb 清理完成日志的记录时机，补充控制器断开耗时与异常退出状态",
