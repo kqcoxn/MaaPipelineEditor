@@ -256,7 +256,7 @@ export const recoFieldSchema: Record<string, FieldType> = {
     key: "custom_recognition_param",
     type: FieldTypeEnum.Any,
     default: {},
-    desc: `识别参数，任意类型，会通过 MaaCustomRecognitionCallback.custom_recognition_param 传出。可选，默认空 json，即 {} 。`,
+    desc: `识别参数，任意类型，会通过 MaaCustomRecognitionCallback.custom_recognition_param 传出。可选，默认 null。回调可在 out_detail 写入 {"$all": [{"box": [x, y, w, h], "detail": 任意值}], "$filtered": [...]} 返回多个结果；只提供一个结果数组时，另一个使用相同内容。通过 index 选择结果，越界视为无结果。`,
   },
   customRoi: {
     key: "roi",

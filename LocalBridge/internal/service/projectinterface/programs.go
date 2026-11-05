@@ -9,32 +9,65 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/paths"
 )
 
 func RuntimeEnvironment(plan *RuntimePlan, clientVersion, frameworkVersion string) map[string]string {
 	controller, _ := json.Marshal(plan.Controller)
 	resource, _ := json.Marshal(plan.Resource)
-	return map[string]string{"PI_INTERFACE_VERSION": "v2.5.0", "PI_CLIENT_NAME": "MPE", "PI_CLIENT_VERSION": clientVersion, "PI_CLIENT_LANGUAGE": plan.Language, "PI_CLIENT_MAAFW_VERSION": frameworkVersion, "PI_VERSION": plan.ProjectVersion, "PI_CONTROLLER": string(controller), "PI_RESOURCE": string(resource)}
+	return map[string]string{
+		"PI_INTERFACE_VERSION":    "v2.11.0",
+		"PI_CLIENT_NAME":          "MPE",
+		"PI_CLIENT_VERSION":       clientVersion,
+		"PI_CLIENT_LANGUAGE":      plan.Language,
+		"PI_CLIENT_MAAFW_VERSION": frameworkVersion,
+		"PI_VERSION":              plan.ProjectVersion,
+		"PI_CONTROLLER":           string(controller),
+		"PI_RESOURCE":             string(resource),
+		"PI_USER_DATA_DIR":        paths.GetDataDir(),
+	}
 }
-func applicablePrograms(doc map[string]any, controller, resource string) []map[string]any {
+
+type pretaskProgram struct {
+	ID         string
+	Definition map[string]any
+}
+
+func pretaskPrograms(doc map[string]any) []pretaskProgram {
 	values := objectArray(doc["pretask"])
 	if value, ok := doc["pretask"].(map[string]any); ok {
 		values = []map[string]any{value}
 	}
-	result := []map[string]any{}
-	for _, value := range values {
-		if optionApplicable(value, controller, resource) {
-			result = append(result, value)
+	result := []pretaskProgram{}
+	for index, value := range values {
+		id, _ := value["name"].(string)
+		if id == "" {
+			id = fmt.Sprintf("#%d", index)
+		}
+		result = append(result, pretaskProgram{ID: id, Definition: value})
+	}
+	return result
+}
+func applicablePrograms(doc map[string]any, controller, resource string, enabled map[string]bool) []pretaskProgram {
+	result := []pretaskProgram{}
+	for _, program := range pretaskPrograms(doc) {
+		if selected, exists := enabled[program.ID]; exists && !selected {
+			continue
+		}
+		if optionApplicable(program.Definition, controller, resource) {
+			result = append(result, program)
 		}
 	}
 	return result
 }
 func (s *ProjectSnapshot) HasPretasks(plan *RuntimePlan) bool {
-	return len(applicablePrograms(s.Document, plan.ControllerName, plan.ResourceName)) > 0
+	return len(applicablePrograms(s.Document, plan.ControllerName, plan.ResourceName, plan.PretaskEnabled)) > 0
 }
-func (s *ProjectSnapshot) RunPretasks(ctx context.Context, plan *RuntimePlan, emit func(string)) error {
+func (s *ProjectSnapshot) RunPretasks(ctx context.Context, plan *RuntimePlan, emit func(string), env map[string]string) error {
 	definitions := objectMap(s.Document["option"])
-	for _, program := range applicablePrograms(s.Document, plan.ControllerName, plan.ResourceName) {
+	for _, selected := range applicablePrograms(s.Document, plan.ControllerName, plan.ResourceName, plan.PretaskEnabled) {
+		program := selected.Definition
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -45,14 +78,15 @@ func (s *ProjectSnapshot) RunPretasks(ctx context.Context, plan *RuntimePlan, em
 		args := append([]string{}, stringSlice(program["args"])...)
 		refs := stringSlice(program["option"])
 		if len(refs) > 0 {
-			values, active, _, diagnostics := resolveOptions(definitions, refs, plan.ControllerName, fmt.Sprint(plan.Controller["type"]), plan.ResourceName, objectMap(plan.OptionValues["pretask"]))
+			provided := objectMap(objectMap(plan.OptionValues["pretask"])[selected.ID])
+			values, active, _, diagnostics := resolveOptions(definitions, refs, plan.ControllerName, fmt.Sprint(plan.Controller["type"]), plan.ResourceName, provided)
 			if hasErrorDiagnostics(diagnostics) {
 				return fmt.Errorf("预任务选项无效")
 			}
 			input := map[string]any{}
 			for name := range active {
 				input[name] = values[name]
-				if raw, ok := objectMap(plan.OptionValues["pretask"])[name]; ok {
+				if raw, ok := provided[name]; ok {
 					input[name] = raw
 				}
 			}
@@ -67,6 +101,7 @@ func (s *ProjectSnapshot) RunPretasks(ctx context.Context, plan *RuntimePlan, em
 		}
 		cmd := exec.CommandContext(ctx, executable, args...)
 		cmd.Dir = plan.InterfaceRoot
+		cmd.Env = mergeEnvironment(env)
 		output := &programOutput{emit: emit}
 		cmd.Stdout = output
 		cmd.Stderr = output

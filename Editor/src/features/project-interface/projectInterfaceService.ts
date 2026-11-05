@@ -48,6 +48,7 @@ export function initializeProjectInterface(): () => void {
         purpose: channel === "home" ? "interface" : "debug", requestId: contexts[channel].requestId!, revision: snapshot.revision, language: snapshot.language || "zh_cn",
         controllerName: preferences.controllerName, resourceName: preferences.resourceName, taskName,
         optionValues: scopedValues(preferences, taskName),
+        pretaskEnabled: preferences.pretaskEnabled,
         agentEnabled: channel === "debug" ? state.agentEnabled : undefined, agentOverrides: channel === "debug" ? state.agentOverrides : undefined,
       });
       if (!sent) store.setState(s => ({ contexts: { ...s.contexts, [channel]: { pending: false, error: "无法发送 PI 配置解析请求" } } }));

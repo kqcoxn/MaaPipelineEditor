@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	maa "github.com/MaaXYZ/maa-framework-go/v4"
+
 	"github.com/google/uuid"
 	pi "github.com/kqcoxn/MaaPipelineEditor/LocalBridge/internal/service/projectinterface"
 )
@@ -19,7 +21,7 @@ type Preparation struct {
 }
 
 func preparationKey(plan *pi.RuntimePlan) string {
-	raw, _ := json.Marshal([]any{plan.ProjectID, plan.Revision, plan.ControllerName, plan.ResourceName, plan.OptionValues["pretask"]})
+	raw, _ := json.Marshal([]any{plan.ProjectID, plan.Revision, plan.ControllerName, plan.ResourceName, plan.OptionValues["pretask"], plan.PretaskEnabled})
 	hash := sha256.Sum256(raw)
 	return hex.EncodeToString(hash[:])
 }
@@ -79,7 +81,11 @@ func (s *Service) Prepare(ctx context.Context, req pi.ContextRequest) (prepared 
 		close(done)
 	}()
 	s.bus.Publish(EventState, state)
-	if err = snapshot.RunPretasks(ctx, plan, s.log); err != nil {
+	frameworkVersion := ""
+	if s.mfw.IsInitialized() {
+		frameworkVersion = maa.Version()
+	}
+	if err = snapshot.RunPretasks(ctx, plan, s.log, pi.RuntimeEnvironment(plan, s.version, frameworkVersion)); err != nil {
 		return nil, err
 	}
 	if ctx.Err() != nil {

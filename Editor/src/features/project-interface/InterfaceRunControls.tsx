@@ -6,7 +6,7 @@ import { useWSStore } from "@/stores/connection/wsStore";
 import { useProjectInterfaceStore } from "./projectInterfaceStore";
 import { environmentSignature, prepareInterfaceProject, startInterfaceRun, stopInterfaceRun, useInterfaceRunStore } from "./interfaceRunStore";
 import { isInterfaceRunning, runStatusLabels } from "./interfaceRunTypes";
-import { taskUnavailableReason } from "./projectInterfaceState";
+import { hasSelectedPretasks } from "./pretaskState";
 import styles from "./InterfaceRunControls.module.less";
 
 export function InterfaceRunControls() {
@@ -24,8 +24,7 @@ export function InterfaceRunControls() {
   }, [active]);
   const seconds = run?.startedAt ? Math.max(0, Math.floor((now - Date.parse(run.startedAt)) / 1000)) : 0;
   const elapsed = Number.isFinite(seconds) ? `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}` : "—";
-  const programs = Array.isArray(snapshot?.document.pretask) ? snapshot.document.pretask : snapshot?.document.pretask ? [snapshot.document.pretask] : [];
-  const hasPretasks = programs.some(program => !taskUnavailableReason(program, preferences.controllerName, preferences.resourceName));
+  const hasPretasks = hasSelectedPretasks(snapshot, preferences);
   const prepared = preparation?.signature === environmentSignature();
   const completed = run?.items.filter(item => item.status === "completed").length ?? 0;
   const current = run?.items.find(item => item.status === "running");

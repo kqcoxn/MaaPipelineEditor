@@ -10,6 +10,7 @@ mod engine;
 mod exports;
 mod log_text;
 mod logs;
+mod path_picker;
 mod releases;
 mod resources;
 mod session;
@@ -120,6 +121,7 @@ fn main() {
             commands::desktop_heartbeat,
             commands::desktop_save_path,
             exports::desktop_save_archive,
+            path_picker::desktop_pick_path,
             logs::list_logs,
             logs::read_log,
             logs::export_logs,

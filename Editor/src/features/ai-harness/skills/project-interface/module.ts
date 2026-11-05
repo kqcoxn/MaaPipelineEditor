@@ -5,7 +5,8 @@ export const piReference: Record<string, string> = {
   导入: 'import 中 task、preset、group、pretask、setting 追加；option 后导入的同名定义覆盖前面的定义；global_option 追加去重。同名定义不代表可以任意修改其中一份。',
   覆盖顺序: '任务自身 pipeline_override 先应用，再按 global_option、resource.option、controller.option、task.option 解析覆盖。预任务选项只生成程序参数，不参与 Pipeline 覆盖。对象合并和数组替换应由实际解析工具确认，不能把静态关系描述成执行路径。',
   选项: 'select/switch 选择一个 case；checkbox 按 cases 的定义顺序应用被选分支，与勾选先后无关。嵌套选项只随适用且选中的父分支参与。controller/resource 限制不满足时，选项及子分支不生效。',
-  输入: 'input.inputs 声明输入字段；pipeline_override 用 {字段名} 占位，pipeline_type 可声明 string/int/bool。修改保留表达式，不能把解析值回写为常量。password 字段实际值不进入 AI 上下文。hotkey 由控制器类型决定键码。',
+  输入: 'input.inputs 声明输入字段；input_type 可为 text/file/directory，只影响控件，字段值始终是字符串。路径保留操作系统原生格式，允许手工输入；浏览器端退化为文本框。pipeline_override 用 {字段名} 占位，pipeline_type 可声明 string/int/bool。修改保留表达式，不能把解析值回写为常量。password 字段实际值不进入 AI 上下文。hotkey 由控制器类型决定键码。',
+  预设: 'preset.controller 限制适用控制器。task 和 pretask 的条目均可配置 name、enabled（默认 true）、option。声明 preset.pretask 时未列出的预任务不勾选；省略时保留当前预任务勾选与选项。未知预任务忽略；预任务仍按顶层 import 合并后的顺序执行，controller/resource 过滤照常生效。被引用的预任务必须有唯一 name。密码不要写入预设。',
   草稿与校验: '默认纳入当前 PI 草稿及明确属于资源的 Pipeline 草稿，磁盘模式可显式选择。resolve_pi_configuration 仅解析 PI，未加载框架，不提供框架默认值或真实运行结果。apply_pi_changes 仅加入草稿，保存使用编辑器。',
 };
 export const piSkillsModule: HarnessModule = { skills: [

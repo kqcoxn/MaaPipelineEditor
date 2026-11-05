@@ -1,4 +1,5 @@
 import type { OptionScope, OptionValues, ProjectInterfaceSnapshot, ScopedOptionValues } from "./types";
+import { projectPretasks } from "./pretaskState";
 
 export interface ProjectPreferences {
   controllerName: string;
@@ -6,15 +7,25 @@ export interface ProjectPreferences {
   taskName: string;
   checkedTaskNames?: string[];
   taskOrder?: string[];
+  pretaskEnabled?: Record<string, boolean>;
   values: Record<string, OptionValues>;
 }
 
 export const emptyPreferences = (): ProjectPreferences => ({ controllerName: "", resourceName: "", taskName: "", values: {} });
 export const scopeKey = (scope: OptionScope, preferences: ProjectPreferences, taskName: string) =>
-  JSON.stringify([scope, scope === "task" ? taskName : scope === "resource" ? preferences.resourceName : scope === "controller" ? preferences.controllerName : ""]);
+  JSON.stringify([scope, scope === "task" || scope === "pretask" ? taskName : scope === "resource" ? preferences.resourceName : scope === "controller" ? preferences.controllerName : ""]);
 
 export function scopedValues(preferences: ProjectPreferences, taskName: string): ScopedOptionValues {
-  return Object.fromEntries((["global", "resource", "controller", "task", "pretask"] as const).map(scope => [scope, preferences.values[scopeKey(scope, preferences, taskName)] ?? {}])) as ScopedOptionValues;
+  const result = Object.fromEntries((["global", "resource", "controller", "task"] as const).map(scope => [scope, preferences.values[scopeKey(scope, preferences, taskName)] ?? {}])) as ScopedOptionValues;
+  const pretasks: Array<[string, OptionValues]> = [];
+  for (const [key, value] of Object.entries(preferences.values)) {
+    try {
+      const [scope, name] = JSON.parse(key);
+      if (scope === "pretask") pretasks.push([name, value]);
+    } catch { /* Ignore malformed cache keys. */ }
+  }
+  result.pretask = Object.fromEntries(pretasks);
+  return result;
 }
 
 function cacheKey(address: string, projectId: string) { return `mpe_pi_project_v1:${JSON.stringify([address, projectId])}`; }
@@ -40,13 +51,14 @@ export function sanitizeOptionValues(values: OptionValues, definitions: Record<s
 export function reconcilePreferences(preferences: ProjectPreferences, snapshot: ProjectInterfaceSnapshot, stripPasswords = false): ProjectPreferences {
   const values: ProjectPreferences["values"] = {};
   const definitions = snapshot.document.option ?? {};
+  const programs = projectPretasks(snapshot);
   for (const [key, raw] of Object.entries(preferences.values ?? {})) {
     try {
       const [scope, name] = JSON.parse(key) as [OptionScope, string];
       if (!["global", "resource", "controller", "task", "pretask"].includes(scope)) continue;
       const source = scope === "task" ? snapshot.document.task : scope === "resource" ? snapshot.document.resource : snapshot.document.controller;
-      const owner = source?.find(item => item.name === name);
-      if (scope !== "global" && scope !== "pretask" && !owner) continue;
+      const owner = scope === "pretask" ? programs.find(item => item.id === name) : source?.find(item => item.name === name);
+      if (scope !== "global" && !owner) continue;
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
       const reachable: typeof definitions = {};
       const visit = (references: unknown) => {
@@ -59,10 +71,7 @@ export function reconcilePreferences(preferences: ProjectPreferences, snapshot: 
         }
       };
       // Retain inactive branches, but discard options no longer referenced by this scope.
-      if (scope === "pretask") {
-        const programs = Array.isArray(snapshot.document.pretask) ? snapshot.document.pretask : snapshot.document.pretask ? [snapshot.document.pretask] : [];
-        programs.forEach(program => visit((program as Record<string, unknown>).option));
-      } else visit(scope === "global" ? snapshot.document.global_option : owner?.option);
+      visit(scope === "global" ? snapshot.document.global_option : owner?.option);
       values[key] = sanitizeOptionValues(raw, reachable, stripPasswords);
     } catch { /* Discard malformed cache entries. */ }
   }
@@ -71,7 +80,8 @@ export function reconcilePreferences(preferences: ProjectPreferences, snapshot: 
   const order = [...new Set((preferences.taskOrder ?? []).filter(name => names.has(name)))];
   tasks.forEach(task => { if (!order.includes(task.name)) order.push(task.name); });
   const checked = [...new Set((preferences.checkedTaskNames ?? tasks.filter(task => task.default_check === true).map(task => task.name)).filter(name => names.has(name)))];
-  return { ...preferences, values, taskOrder: order, checkedTaskNames: checked };
+  const pretaskEnabled = Object.fromEntries(programs.map(program => [program.id, preferences.pretaskEnabled?.[program.id] !== false]));
+  return { ...preferences, values, taskOrder: order, checkedTaskNames: checked, pretaskEnabled };
 }
 
 export function loadProjectPreferences(address: string, snapshot: ProjectInterfaceSnapshot): ProjectPreferences {
@@ -85,6 +95,7 @@ export function loadProjectPreferences(address: string, snapshot: ProjectInterfa
       checkedTaskNames: Array.isArray(raw.checkedTaskNames) ? raw.checkedTaskNames.filter((name: unknown): name is string => typeof name === "string") : undefined,
       taskOrder: Array.isArray(raw.taskOrder) ? raw.taskOrder.filter((name: unknown): name is string => typeof name === "string") : undefined,
       values: raw.values && typeof raw.values === "object" ? raw.values : {},
+      pretaskEnabled: raw.pretaskEnabled && typeof raw.pretaskEnabled === "object" && !Array.isArray(raw.pretaskEnabled) ? raw.pretaskEnabled : undefined,
     }, snapshot, true);
   } catch { return reconcilePreferences(emptyPreferences(), snapshot); }
 }

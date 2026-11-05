@@ -1,13 +1,13 @@
 import { useShallow } from "zustand/shallow";
 import { useProjectInterfaceStore as pi } from "./projectInterfaceStore";
-import { asObjectArray } from "./projectInterfaceState";
+import { asObjectArray, compatibleResources } from "./projectInterfaceState";
 import { applyTaskPreset } from "./projectTaskQueue";
 import styles from "./ProjectTaskWorkspace.module.less";
 
 export function ProjectTaskNavigation({ group, onGroupChange }: { group: string; onGroupChange: (group: string) => void }) {
   const { snapshot, preferences } = pi(useShallow(s => ({ snapshot: s.snapshot, preferences: s.preferences })));
   const tasks = snapshot?.document.task ?? [];
-  const presets = asObjectArray(snapshot?.document.preset);
+  const presets = compatibleResources(asObjectArray(snapshot?.document.preset), preferences.controllerName);
   return <nav className={styles.navigation} aria-label="任务分组与预设">
     <section>
       <h2>任务分组</h2>

@@ -46,6 +46,15 @@ func indexEditor(project *EditorProject) {
 		for name := range objectMap(data["option"]) {
 			add("option", name, "/option/"+escapePointer(name))
 		}
+		for i, program := range pretaskPrograms(data) {
+			if name, _ := program.Definition["name"].(string); name != "" {
+				pointer := fmt.Sprintf("/pretask/%d", i)
+				if _, single := data["pretask"].(map[string]any); single {
+					pointer = "/pretask"
+				}
+				add("pretask", name, pointer)
+			}
+		}
 		var walk func(any, string)
 		ref := func(kind, name, pointer string) {
 			project.References = append(project.References, EditorIndexItem{Kind: kind, Name: name, File: doc.Path, Pointer: pointer, Effective: doc.Imported})
@@ -73,6 +82,11 @@ func indexEditor(project *EditorProject) {
 					if strings.HasPrefix(pointer, "/preset/") && key == "name" && strings.Contains(pointer, "/task/") {
 						if name, ok := child.(string); ok {
 							ref("task", name, p)
+						}
+					}
+					if strings.HasPrefix(pointer, "/preset/") && key == "name" && strings.Contains(pointer, "/pretask/") {
+						if name, ok := child.(string); ok {
+							ref("pretask", name, p)
 						}
 					}
 					if strings.HasPrefix(pointer, "/preset/") && key == "option" {
@@ -105,7 +119,7 @@ func validateEditorReferences(project *EditorProject, merged map[string]any) {
 	for _, r := range project.References {
 		if r.Effective && !known[r.Kind+":"+r.Name] {
 			severity := "error"
-			if r.Kind == "translation" {
+			if r.Kind == "translation" || r.Kind == "pretask" {
 				severity = "warning"
 			}
 			project.Diagnostics = append(project.Diagnostics, editorDiagnostic(r.File, r.Pointer, severity, "引用不存在: "+r.Kind+" · "+r.Name))

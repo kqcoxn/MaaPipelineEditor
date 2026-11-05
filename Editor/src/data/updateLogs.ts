@@ -133,14 +133,19 @@ export const updateLogs: UpdateLogItem[] = [
     version: "2.1.1",
     date: "2026-10",
     type: "major",
-    maafwVersion: "5.14.3",
+    maafwVersion: "5.15.0",
     updates: {
       perfs: ["完善 mpelb 关闭流程，优化退出速度"],
       fixes: [
         "修复图片同路径替换后前端更新不及时的问题",
         "修正 mpelb 清理完成日志的记录时机，补充控制器断开耗时与异常退出状态",
       ],
-      maafw: ["Go Binding 依赖升级至 v4 正式版，优化 lb 稳定性"],
+      maafw: [
+        "适配 Custom 识别 index 选择多结果",
+        "支持 PI 预设配置预任务及控制器过滤，输入选项支持文件和文件夹选择",
+        "为 Agent 与预任务子进程提供 PI_USER_DATA_DIR 用户数据目录",
+        "Go Binding 依赖升级至 v4 正式版，优化 lb 稳定性",
+      ],
     },
   },
   {

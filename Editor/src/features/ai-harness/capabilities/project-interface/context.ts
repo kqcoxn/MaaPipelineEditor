@@ -26,7 +26,7 @@ export function draftStamp() {
 }
 export function currentConfiguration() {
   const { preferences } = useProjectInterfaceStore.getState();
-  return { purpose: 'interface' as const, taskName: preferences.taskName, controllerName: preferences.controllerName, resourceName: preferences.resourceName, language: 'zh_cn', optionValues: scopedValues(preferences, preferences.taskName) };
+  return { purpose: 'interface' as const, taskName: preferences.taskName, controllerName: preferences.controllerName, resourceName: preferences.resourceName, language: 'zh_cn', optionValues: scopedValues(preferences, preferences.taskName), pretaskEnabled: preferences.pretaskEnabled };
 }
 export function piQueryInput(mode: PiDataMode, configuration: PiQuery['configuration'] = currentConfiguration()): PiQuery {
   const pi = usePiEditorStore.getState();

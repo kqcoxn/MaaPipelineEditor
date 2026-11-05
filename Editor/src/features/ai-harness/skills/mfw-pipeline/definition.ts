@@ -73,7 +73,7 @@ const pipelineGuideSections: Readonly<Record<string, string>> = Object.freeze({
   "算法类型/NeuralNetworkDetect": `目标检测。字段：roi、roi_offset；labels: string[]；model: string，必选，路径相对 model/detect；expected: int | string | (int | string)[]，字符串为 labels 中的标签名；threshold: number | number[]，默认 0.3；order_by: Horizontal | Vertical | Score | Area | Random | Expected；index: int。`,
   "算法类型/And": `逻辑与，所有子识别命中才成功。all_of: (string | object)[]，必选，字符串引用其他节点的识别配置，对象为内联 v1/v2 识别；box_index: int，默认 0；sub_name: string，可供后续子识别通过 roi 引用。`,
   "算法类型/Or": `逻辑或，按顺序执行子识别，第一个命中后停止。any_of: (string | object)[]，必选；字符串引用节点识别配置，对象为内联 v1/v2 识别。`,
-  "算法类型/Custom": `自定义识别。custom_recognition: string，必选；custom_recognition_param: any，默认 null；roi；roi_offset。参数通过已注册的自定义识别回调处理。`,
+  "算法类型/Custom": `自定义识别。custom_recognition: string，必选；custom_recognition_param: any，默认 null；roi；roi_offset；index: int，默认 0，支持负数，越界视为无结果。回调可在 out_detail 返回 {"$all":[{"box":[x,y,w,h],"detail":任意值}],"$filtered":[...]}；只提供一个数组时另一个默认相同。顺序由回调决定，不支持 order_by。参数通过已注册的自定义识别回调处理。`,
   动作类型: `可用动作：DoNothing、Click、LongPress、Swipe、MultiSwipe、TouchDown、TouchMove、TouchUp、Scroll、ClickKey、LongPressKey、KeyDown、KeyUp、InputText、StartApp、StopApp、StopTask、Command、Shell、Screencap、Custom。读取对应子章节获取字段。`,
   "动作类型/DoNothing": `不执行任何操作，无额外字段。`,
   "动作类型/Click": `点击。target: true | string | [x,y] | [x,y,w,h]，默认 true；target_offset: [x,y,w,h]；contact: uint，默认 0；pressure: int，默认 1。target 为 true 时使用当前识别 box，字符串可引用节点或锚点。`,

@@ -149,6 +149,20 @@ func (l *loader) validateSemantics(entryPath, interfaceRoot string, doc map[stri
 	result = append(result, duplicateNameDiagnostics(entryPath, "/task", objectArray(doc["task"]))...)
 	result = append(result, duplicateNameDiagnostics(entryPath, "/controller", controllers)...)
 	result = append(result, duplicateNameDiagnostics(entryPath, "/resource", resources)...)
+	pretaskNames := map[string]int{}
+	for _, program := range pretaskPrograms(doc) {
+		if name, _ := program.Definition["name"].(string); name != "" {
+			pretaskNames[name]++
+		}
+	}
+	for i, preset := range objectArray(doc["preset"]) {
+		for j, item := range objectArray(preset["pretask"]) {
+			name, _ := item["name"].(string)
+			if pretaskNames[name] > 1 {
+				result = append(result, Diagnostic{Severity: "error", Category: "reference", Code: "pi.preset.pretask_ambiguous", Message: "预设引用的预任务名称不唯一: " + name, File: entryPath, Pointer: fmt.Sprintf("/preset/%d/pretask/%d/name", i, j)})
+			}
+		}
+	}
 
 	for index, resource := range resources {
 		for _, name := range stringSlice(resource["controller"]) {

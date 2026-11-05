@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { InterfaceRunControls } from "./InterfaceRunControls";
 import { useInterfaceRunStore } from "./interfaceRunStore";
@@ -20,6 +20,20 @@ it("shows the checked queue before any run exists", () => {
   const queue = screen.getByRole("list", { name: "待运行序列" });
   expect(within(queue).getByText(/任务乙/)).toBeTruthy();
   expect(within(queue).queryByText(/任务甲/)).toBeNull();
+});
+it("requires preparation only for checked compatible pretasks", () => {
+  setup();
+  useWSStore.setState({ connected: true });
+  const snapshot = pi.getState().snapshot!;
+  pi.setState({ snapshot: { ...snapshot, document: { ...snapshot.document, pretask: [
+    { name: "prepare", exec: "python" }, { name: "other", exec: "python", controller: ["other"] },
+  ] } } });
+  render(<InterfaceRunControls />);
+  expect((screen.getByRole("button", { name: /开始运行/ }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: /准备项目（连接设备前）/ })).toBeTruthy();
+  act(() => pi.getState().setPretaskEnabled("prepare", false));
+  expect(screen.queryByRole("button", { name: /准备项目（连接设备前）/ })).toBeNull();
+  expect((screen.getByRole("button", { name: /开始运行/ }) as HTMLButtonElement).disabled).toBe(false);
 });
 it("offers stop while waiting for the start acknowledgement", () => {
   setup();

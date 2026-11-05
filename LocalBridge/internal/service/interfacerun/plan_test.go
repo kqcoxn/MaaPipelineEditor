@@ -49,6 +49,11 @@ func TestPreparationKeyIgnoresTaskButTracksEnvironment(t *testing.T) {
 	if preparationKey(a) != preparationKey(&b) {
 		t.Fatal("task browsing invalidates preparation")
 	}
+	b.PretaskEnabled = map[string]bool{"prepare": false}
+	if preparationKey(a) == preparationKey(&b) {
+		t.Fatal("pretask deselection did not invalidate preparation")
+	}
+	b.PretaskEnabled = nil
 	b.Revision = "new"
 	if preparationKey(a) == preparationKey(&b) {
 		t.Fatal("stale preparation accepted")

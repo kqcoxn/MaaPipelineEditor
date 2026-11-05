@@ -2,6 +2,12 @@ package projectinterface
 
 import "fmt"
 
+type optionScope struct {
+	name  string
+	refs  []string
+	owner string
+}
+
 // Each PI scope has its own values, including when the same option is used by
 // more than one scope. Only active branches contribute to the runtime override.
 func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, controllerType, resourceName string, traces ...*optionTrace) (map[string]any, []OptionGroup, map[string]any, []map[string]any, []Diagnostic) {
@@ -20,14 +26,6 @@ func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, 
 	values := map[string]any{}
 	groups := []OptionGroup{}
 	var overrides []map[string]any
-	pretaskRefs := []string{}
-	for _, program := range applicablePrograms(doc, controllerName, resourceName) {
-		for _, ref := range stringSlice(program["option"]) {
-			if !containsString(pretaskRefs, ref) {
-				pretaskRefs = append(pretaskRefs, ref)
-			}
-		}
-	}
 	appendPipelineOverride(&overrides, task["pipeline_override"], nil)
 	for _, trace := range traces {
 		trace.scope = "task-own"
@@ -37,23 +35,26 @@ func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, 
 			traceEvent(traces, "", fmt.Sprintf("/task/%d/pipeline_override", i), task["pipeline_override"], nil, true, "")
 		}
 	}
-	for _, scope := range []struct {
-		name string
-		refs []string
-	}{
-		{"global", stringSlice(doc["global_option"])},
-		{"resource", stringSlice(resource["option"])},
-		{"controller", stringSlice(controller["option"])},
-		{"task", stringSlice(task["option"])},
-		{"pretask", pretaskRefs},
-	} {
-		if scope.name == "pretask" && req.Purpose != "interface" {
-			continue
+	scopes := []optionScope{
+		{"global", stringSlice(doc["global_option"]), ""},
+		{"resource", stringSlice(resource["option"]), ""},
+		{"controller", stringSlice(controller["option"]), ""},
+		{"task", stringSlice(task["option"]), ""},
+	}
+	if req.Purpose == "interface" {
+		values["pretask"] = map[string]any{}
+		for _, program := range applicablePrograms(doc, controllerName, resourceName, req.PretaskEnabled) {
+			scopes = append(scopes, optionScope{"pretask", stringSlice(program.Definition["option"]), program.ID})
 		}
+	}
+	for _, scope := range scopes {
 		for _, trace := range traces {
 			trace.scope = scope.name
 		}
 		provided := objectMap(req.OptionValues[scope.name])
+		if scope.owner != "" {
+			provided = objectMap(provided[scope.owner])
+		}
 		current, active, scopeOverrides, scopeDiagnostics := resolveOptions(definitions, scope.refs, controllerName, controllerType, resourceName, provided, traces...)
 		for i := range scopeDiagnostics {
 			scopeDiagnostics[i].Data = map[string]any{"scope": scope.name}
@@ -79,8 +80,12 @@ func resolveTaskOptions(doc map[string]any, req ContextRequest, controllerName, 
 				current[name] = fields
 			}
 		}
-		values[scope.name] = current
-		groups = append(groups, OptionGroup{Scope: scope.name, Nodes: optionTree(scope.refs, active, current, map[string]bool{})})
+		if scope.owner != "" {
+			objectMap(values[scope.name])[scope.owner] = current
+		} else {
+			values[scope.name] = current
+		}
+		groups = append(groups, OptionGroup{Scope: scope.name, Owner: scope.owner, Nodes: optionTree(scope.refs, active, current, map[string]bool{})})
 	}
 	return task, groups, values, overrides, diagnostics
 }

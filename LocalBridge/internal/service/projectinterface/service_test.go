@@ -584,12 +584,26 @@ func TestSchemaAllowsProjectInterfaceExtensionFields(t *testing.T) {
 		"option": map[string]any{
 			"demo": map[string]any{
 				"type": "input", "lebel": "兼容字段",
-				"inputs": []any{map[string]any{"name": "value", "pipeline_type": "string"}},
+				"inputs": []any{map[string]any{"name": "value", "pipeline_type": "string", "input_type": "file"}},
 			},
 		},
 	}
 	if err := schema.Validate(document); err != nil {
 		t.Fatalf("Project Interface extension fields should be accepted: %v", err)
+	}
+	document["pretask"] = map[string]any{"name": "prepare", "exec": "python", "option": []any{"demo"}}
+	document["preset"] = []any{map[string]any{"name": "preset", "controller": []any{"c"}, "pretask": []any{map[string]any{"name": "prepare", "enabled": false, "option": map[string]any{"demo": map[string]any{"value": "C:\\配置.json"}}}}}}
+	if err := schema.Validate(document); err != nil {
+		t.Fatalf("new PI fields rejected: %v", err)
+	}
+	input := objectArray(objectMap(objectMap(document["option"])["demo"])["inputs"])[0]
+	input["input_type"] = "directory"
+	if err := schema.Validate(document); err != nil {
+		t.Fatal(err)
+	}
+	input["input_type"] = "invalid"
+	if err := schema.Validate(document); err == nil {
+		t.Fatal("unknown input_type accepted")
 	}
 }
 

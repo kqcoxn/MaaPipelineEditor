@@ -75,6 +75,7 @@ type ContextRequest struct {
 	ControllerName string                          `json:"controllerName"`
 	ResourceName   string                          `json:"resourceName"`
 	OptionValues   map[string]any                  `json:"optionValues,omitempty"`
+	PretaskEnabled map[string]bool                 `json:"pretaskEnabled,omitempty"`
 	AgentEnabled   map[string]bool                 `json:"agentEnabled,omitempty"`
 	AgentOverrides map[string]AgentCommandOverride `json:"agentOverrides,omitempty"`
 }
@@ -101,6 +102,7 @@ type OptionNode struct {
 
 type OptionGroup struct {
 	Scope string       `json:"scope"`
+	Owner string       `json:"owner,omitempty"`
 	Nodes []OptionNode `json:"nodes"`
 }
 
@@ -124,6 +126,7 @@ type RuntimePlan struct {
 	Resource          map[string]any   `json:"resource"`
 	ResourcePaths     []string         `json:"resourcePaths"`
 	OptionValues      map[string]any   `json:"optionValues,omitempty"`
+	PretaskEnabled    map[string]bool  `json:"pretaskEnabled,omitempty"`
 	PipelineOverrides []map[string]any `json:"pipelineOverrides,omitempty"`
 	Agents            []AgentPlan      `json:"agents,omitempty"`
 }

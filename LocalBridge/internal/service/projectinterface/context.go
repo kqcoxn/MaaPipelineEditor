@@ -102,7 +102,7 @@ func (s *ProjectSnapshot) ResolveContext(req ContextRequest, traces ...*optionTr
 		Language: localized.Language, ProjectRoot: s.ProjectRoot, InterfaceRoot: s.InterfaceRoot, ProjectVersion: version,
 		ControllerName: controllerName, ResourceName: resourceName,
 		Controller: cloneMap(controller), Resource: cloneMap(resource), ResourcePaths: paths,
-		OptionValues: values, PipelineOverrides: overrides, Agents: agents,
+		OptionValues: values, PretaskEnabled: req.PretaskEnabled, PipelineOverrides: overrides, Agents: agents,
 	}, nil
 }
 

@@ -26,7 +26,8 @@ interface ProjectInterfaceActions {
   selectTask: (name: string) => void;
   selectDebugTask: (name: string) => void;
   setMode: (mode: ProjectInterfaceState["mode"]) => void;
-  setOptionValue: (scope: OptionScope, name: string, value: unknown, channel: ContextChannel) => void;
+  setOptionValue: (scope: OptionScope, name: string, value: unknown, channel: ContextChannel, owner?: string) => void;
+  setPretaskEnabled: (id: string, enabled: boolean) => void;
   resetTask: () => void;
   setAgentEnabled: (id: string, enabled: boolean) => void;
   setAgentOverride: (id: string, override?: ProjectInterfaceAgentOverride) => void;
@@ -41,8 +42,9 @@ export const useProjectInterfaceStore = create<ProjectInterfaceState & ProjectIn
   selectTask: (taskName) => set(s => ({ preferences: { ...s.preferences, taskName }, generation: s.generation + 1 })),
   selectDebugTask: (debugTaskName) => set(s => ({ debugTaskName, generation: s.generation + 1 })),
   setMode: (mode) => set({ mode }),
-  setOptionValue: (scope, name, value, channel) => set(s => {
-    const key = scopeKey(scope, s.preferences, channel === "home" ? s.preferences.taskName : s.debugTaskName);
+  setPretaskEnabled: (id, enabled) => set(s => ({ preferences: { ...s.preferences, pretaskEnabled: { ...s.preferences.pretaskEnabled, [id]: enabled } }, generation: s.generation + 1 })),
+  setOptionValue: (scope, name, value, channel, owner) => set(s => {
+    const key = scopeKey(scope, s.preferences, scope === "pretask" ? owner ?? "" : channel === "home" ? s.preferences.taskName : s.debugTaskName);
     return { preferences: { ...s.preferences, values: { ...s.preferences.values, [key]: { ...s.preferences.values[key], [name]: value } } }, generation: s.generation + 1 };
   }),
   resetTask: () => set(s => {

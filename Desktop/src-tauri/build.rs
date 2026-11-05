@@ -52,6 +52,7 @@ fn main() {
             "desktop_heartbeat",
             "desktop_save_path",
             "desktop_save_archive",
+            "desktop_pick_path",
             "list_logs",
             "read_log",
             "export_logs",

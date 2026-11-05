@@ -27,7 +27,7 @@ function ChildrenEditor({ tab, pointer, kind }: { tab: PiTab; pointer: string; k
         <TextField tab={tab} pointer={p + '/description'} label="说明" multiline />
         {kind === 'cases' ? <><ReferenceField tab={tab} pointer={p + '/option'} kind="option" label="子选项" /><OverrideField tab={tab} pointer={p + '/pipeline_override'} /></> : <>
           {!item.password && <TextField tab={tab} pointer={p + '/default'} label="默认值" />}
-          {kind === 'inputs' && <><ChoiceField tab={tab} pointer={p + '/pipeline_type'} label="数据类型" options={['string', 'int', 'bool']} /><TextField tab={tab} pointer={p + '/verify'} label="校验正则" regex /><TextField tab={tab} pointer={p + '/pattern_msg'} label="校验提示" /><BoolField tab={tab} pointer={p + '/password'} label="密码输入" /></>}
+          {kind === 'inputs' && <><ChoiceField tab={tab} pointer={p + '/input_type'} label="输入控件" options={['text', 'file', 'directory']} /><ChoiceField tab={tab} pointer={p + '/pipeline_type'} label="数据类型" options={['string', 'int', 'bool']} /><TextField tab={tab} pointer={p + '/verify'} label="校验正则" regex /><TextField tab={tab} pointer={p + '/pattern_msg'} label="校验提示" /><BoolField tab={tab} pointer={p + '/password'} label="密码输入" /></>}
         </>}
         <Button danger onClick={() => store.getState().patch(tab.path, p, undefined)}>删除</Button>
       </div></details>;
@@ -89,6 +89,7 @@ export function ObjectForm({ tab }: { tab: PiTab }) {
       {kind === 'controller' && <FormSection title="控制器配置"><ChoiceField tab={tab} pointer={pointer + '/type'} label="控制器类型" options={['Adb', 'Win32', 'PlayCover', 'WlRoots', 'Gamepad']} />{reference('option', '控制器选项')}<NumberField tab={tab} pointer={pointer + '/display_short_side'} label="短边分辨率" /><JsonField tab={tab} pointer={pointer + '/attach_resource_path'} label="附加资源路径" /><JsonField tab={tab} pointer={pointer + '/' + String(value.type ?? 'adb').toLowerCase()} label="控制器参数" /></FormSection>}
       {kind === 'resource' && <FormSection title="资源配置"><JsonField tab={tab} pointer={pointer + '/path'} label="资源路径（按加载顺序）" />{reference('controller', '适用控制器')}{reference('option', '资源选项')}</FormSection>}
       {kind === 'group' && <FormSection title="分组配置"><BoolField tab={tab} pointer={pointer + '/default_expand'} label="默认展开" /></FormSection>}
+      {kind === 'preset' && <FormSection title="预设配置">{reference('controller', '适用控制器')}<JsonField tab={tab} pointer={pointer + '/task'} label="任务预设" /><JsonField tab={tab} pointer={pointer + '/pretask'} label="预任务预设" /></FormSection>}
       <details className={styles.disclosure}><summary>当前对象源码 · 其他字段</summary><div className={styles.disclosureBody}><JsonField key={pointer} tab={tab} pointer={pointer} label="对象源码" /></div></details>
     </>}
     {!pointer && tab.kind === 'fragment' && <Typography.Text type="secondary">当前文件未选择任务或选项。通过左侧新建或选择对象。</Typography.Text>}

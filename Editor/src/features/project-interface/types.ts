@@ -86,6 +86,7 @@ export interface ProjectInterfaceContextRequest {
   resourceName: string;
   taskName?: string;
   optionValues: ScopedOptionValues;
+  pretaskEnabled?: Record<string, boolean>;
   agentEnabled?: Record<string, boolean>;
   agentOverrides?: Record<string, ProjectInterfaceAgentOverride>;
 }
@@ -93,7 +94,7 @@ export interface ProjectInterfaceRuntimePlan {
   requestId: string;
   taskName?: string;
   entry?: string;
-  optionGroups?: Array<{ scope: OptionScope; nodes: ProjectInterfaceOptionNode[] }>;
+  optionGroups?: Array<{ scope: OptionScope; owner?: string; nodes: ProjectInterfaceOptionNode[] }>;
   diagnostics?: ProjectInterfaceDiagnostic[];
   contextId: string;
   projectId: string;

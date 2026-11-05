@@ -24,12 +24,12 @@ const responseTimeout = "等待运行服务响应超时，正在重新读取运�
 
 export function environmentSignature() {
   const { snapshot, preferences } = pi.getState();
-  return JSON.stringify([snapshot?.projectId, snapshot?.revision, preferences.controllerName, preferences.resourceName, scopedValues(preferences, "").pretask]);
+  return JSON.stringify([snapshot?.projectId, snapshot?.revision, preferences.controllerName, preferences.resourceName, scopedValues(preferences, "").pretask, preferences.pretaskEnabled]);
 }
 function contextRequest(taskName: string, requestId: string): ProjectInterfaceContextRequest {
   const { snapshot, preferences } = pi.getState();
   if (!snapshot || !useWSStore.getState().connected) throw new Error("请先连接 LocalBridge 并加载项目");
-  return { purpose: "interface", requestId, revision: snapshot.revision, language: snapshot.language, controllerName: preferences.controllerName, resourceName: preferences.resourceName, taskName, optionValues: scopedValues(preferences, taskName) };
+  return { purpose: "interface", requestId, revision: snapshot.revision, language: snapshot.language, controllerName: preferences.controllerName, resourceName: preferences.resourceName, taskName, optionValues: scopedValues(preferences, taskName), pretaskEnabled: preferences.pretaskEnabled };
 }
 function request(kind: Pending["kind"], send: (id: string) => boolean, runId?: string) {
   const state = useInterfaceRunStore.getState();

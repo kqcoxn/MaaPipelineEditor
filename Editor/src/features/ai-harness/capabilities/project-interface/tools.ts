@@ -11,7 +11,7 @@ import type { PiOperation, PiQuery, PiQueryResult } from './types';
 
 const mode = { type: 'string', enum: ['draft','disk'] };
 const names = { type: 'array', items: { type: 'string' }, maxItems: 100 };
-const configuration = { type: 'object', properties: { taskName: { type: 'string' }, controllerName: { type: 'string' }, resourceName: { type: 'string' }, optionValues: { type: 'object' } }, additionalProperties: false };
+const configuration = { type: 'object', properties: { taskName: { type: 'string' }, controllerName: { type: 'string' }, resourceName: { type: 'string' }, optionValues: { type: 'object' }, pretaskEnabled: { type: 'object', additionalProperties: { type: 'boolean' } } }, additionalProperties: false };
 const definition = (name: string, description: string, properties: Record<string, unknown> = {}, required: string[] = []): ToolDefinition => ({ name, description, inputSchema: { type: 'object', properties, required, additionalProperties: false } });
 export const piToolDefinitions: ToolDefinition[] = [
   definition('read_pi_summary', '读取项目、任务/选项摘要、来源版本和草稿状态；默认包含草稿', { mode }),

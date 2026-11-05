@@ -62,6 +62,7 @@ export const objectHelp: Record<string, Record<string, PiFieldHelp>> = {
     pipeline_override: hint('最外层键是 Pipeline 节点名，可同时覆盖多个节点。仅当前分支激活时覆盖节点参数；多选时按 cases 定义顺序合并，与用户勾选顺序无关。', '{\n  "Start": { "next": "Finish" },\n  "Finish": { "enabled": true }\n}'),
   },
   inputs: {
+    input_type: hint('输入控件：text 为文本框，file 为文件选择器，directory 为文件夹选择器。值始终是字符串，允许手工输入路径；浏览器端使用文本框。'),
     name: hint('当前配置项内的输入字段标识；参数模板用 {字段名} 引用此值。', '次数'),
     default: hint('可选。填写字符串形式的初始值；即使 pipeline_type 为 int 或 bool，此处也填字符串。password 为 true 时禁止设置默认值。', '3'),
     pipeline_type: hint('输入值写入 pipeline_override 时的目标类型：string 字符串、int 整数、bool 布尔值。'),
@@ -96,9 +97,14 @@ export const objectHelp: Record<string, Record<string, PiFieldHelp>> = {
     name: hint('分组唯一标识符，任务通过 group 列表引用此名称；修改时使用上方“重命名”。'),
     default_expand: hint('可选，默认 true。决定客户端初次展示时是否展开该任务分组。'),
   },
-  preset: { name: hint('预设唯一标识符，用于区分不同的任务勾选状态和选项快照。') },
+  preset: {
+    name: hint('预设唯一标识符，用于区分不同的任务勾选状态和选项快照。'),
+    controller: hint('可选。仅在列表中指定的控制器下提供此预设；省略或空数组不限制。'),
+    task: hint('按顺序配置任务 name、enabled（默认 true）和 option 值；未列出的任务不勾选。密码字段不要写入预设。'),
+    pretask: hint('配置预任务 name、enabled（默认 true）和 option 值。声明此数组时，未列出的预任务不勾选；省略时保留当前预任务配置。执行仍按顶层 pretask 顺序。'),
+  },
   setting: { name: hint('设置分区唯一标识符，用作分区锚点和内部键。') },
-  pretask: { name: hint('编辑器用于区分前置任务的名称；执行程序和参数请在当前对象源码中配置 exec 与 args。') },
+  pretask: { name: hint('预任务标识符。供 preset.pretask 引用时必须设置且在导入合并后唯一；执行程序和参数在当前对象源码中配置 exec 与 args。') },
 };
 
 export const sourceHelp: Record<string, PiFieldHelp> = {

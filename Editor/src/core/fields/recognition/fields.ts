@@ -55,10 +55,11 @@ export const recoFields: Record<string, FieldsType> = {
     params: [
       recoFieldSchema.customRecognition,
       recoFieldSchema.customRecognitionParam,
+      recoFieldSchema.index,
       recoFieldSchema.customRoi,
       recoFieldSchema.roiOffset,
     ],
-    desc: "执行通过 MaaResourceRegisterCustomRecognition 接口传入的识别器句柄。",
+    desc: '执行注册的自定义识别器。支持通过 $all / $filtered 返回多个结果，由 index 选择；结果顺序由回调决定，不支持 order_by。',
   },
   FeatureMatch: {
     params: [

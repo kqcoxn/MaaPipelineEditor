@@ -786,22 +786,11 @@ func (h *Handler) preparePIAgent(ctx context.Context, plan *projectinterface.Run
 }
 
 func (h *Handler) projectInterfaceEnvironment(plan *projectinterface.RuntimePlan) map[string]string {
-	controller, _ := json.Marshal(plan.Controller)
-	resource, _ := json.Marshal(plan.Resource)
 	frameworkVersion := ""
 	if h.service.IsInitialized() {
 		frameworkVersion = maa.Version()
 	}
-	return map[string]string{
-		"PI_INTERFACE_VERSION":    "v2.5.0",
-		"PI_CLIENT_NAME":          "MPE",
-		"PI_CLIENT_VERSION":       h.clientVersion,
-		"PI_CLIENT_LANGUAGE":      plan.Language,
-		"PI_CLIENT_MAAFW_VERSION": frameworkVersion,
-		"PI_VERSION":              plan.ProjectVersion,
-		"PI_CONTROLLER":           string(controller),
-		"PI_RESOURCE":             string(resource),
-	}
+	return projectinterface.RuntimeEnvironment(plan, h.clientVersion, frameworkVersion)
 }
 
 func controllerIDFromOptions(options map[string]interface{}) string {

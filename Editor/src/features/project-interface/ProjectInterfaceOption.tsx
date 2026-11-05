@@ -3,6 +3,7 @@ import { Typography, Checkbox, Switch, Input, Select, Tooltip } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
 import { formatHotkey, toggleStringSelection } from "./projectInterfaceState";
 import styles from "./ProjectInterfaceOptions.module.less";
+import { ProjectPathInput } from "./ProjectPathInput";
 const { Text } = Typography;
 
 function OptionHelp({ text, label }: { text?: string; label: string }) {
@@ -54,7 +55,9 @@ export function ProjectInterfaceOption({ name, definition, value, onChange, subo
       const fieldName = String(field.name);
       return <div key={fieldName} className={styles.inputField}><div className={styles.inputStack}>
         <div className={styles.labelWithHelp}><label className={styles.fieldLabel} htmlFor={`${fieldId}-${fieldName}`}>{String(field.label ?? field.name)}</label><OptionHelp text={typeof field.description === "string" ? field.description : undefined} label={String(field.label ?? field.name)} /></div>
-        <Input className={styles.control} id={`${fieldId}-${fieldName}`}
+        {type === "input" && (field.input_type === "file" || field.input_type === "directory") ? <ProjectPathInput
+          id={`${fieldId}-${fieldName}`} label={String(field.label ?? field.name)} kind={field.input_type} password={field.password === true}
+          value={String(values[fieldName] ?? "")} onChange={path => onChange({ ...values, [fieldName]: path })} /> : <Input className={styles.control} id={`${fieldId}-${fieldName}`}
         type={field.password === true ? "password" : "text"}
         autoComplete={field.password === true ? "new-password" : undefined}
         value={String(values[fieldName] ?? "")}
@@ -69,7 +72,7 @@ export function ProjectInterfaceOption({ name, definition, value, onChange, subo
           const hotkey = formatHotkey(event);
           if (hotkey) onChange({ ...values, [fieldName]: hotkey });
         }}
-      /></div></div>;
+      />}</div></div>;
     })}</div></div>;
   }
   return <div className={styles.fieldRow}>{heading}<Select id={fieldId} aria-label={label} className={styles.control} value={typeof value === "string" ? value : undefined} onChange={onChange} options={cases.map((item) => ({ value: String(item.name), label: String(item.label ?? item.name) }))} /></div>;

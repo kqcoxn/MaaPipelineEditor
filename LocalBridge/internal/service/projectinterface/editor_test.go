@@ -340,3 +340,38 @@ func TestEditorSchemaDiagnosticsLocateImportedSource(t *testing.T) {
 		t.Fatal(p.Diagnostics)
 	}
 }
+
+func TestEditorIndexesImportedPresetPretasks(t *testing.T) {
+	s, _ := editorFixture(t)
+	p, _ := s.ReadEditor(EditorRequest{})
+	a, b := editorDoc(t, p, "tasks/a.json"), editorDoc(t, p, "tasks/b.json")
+	p, err := s.ReadEditor(EditorRequest{Changes: []EditorChange{
+		{Path: a.Path, Content: `{"pretask":{"name":"prepare","exec":"python"}}`},
+		{Path: b.Path, Content: `{"preset":[{"name":"daily","controller":["adb"],"pretask":[{"name":"prepare"},{"name":"missing"}]}]}`},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundDefinition, foundReference, ignoredMissing := false, false, false
+	for _, d := range p.Definitions {
+		if d.Kind == "pretask" && d.Name == "prepare" && d.File == a.Path && d.Pointer == "/pretask" && d.Effective {
+			foundDefinition = true
+		}
+	}
+	for _, r := range p.References {
+		if r.Kind == "pretask" && r.Name == "prepare" && r.File == b.Path && r.Pointer == "/preset/0/pretask/0/name" {
+			foundReference = true
+		}
+	}
+	for _, d := range p.Diagnostics {
+		if d.Severity == "error" {
+			t.Fatalf("valid preset blocked: %#v", p.Diagnostics)
+		}
+		if d.File == b.Path && d.Pointer == "/preset/0/pretask/1/name" && d.Severity == "warning" {
+			ignoredMissing = true
+		}
+	}
+	if !foundDefinition || !foundReference || !ignoredMissing {
+		t.Fatalf("preset references not indexed: %#v", p)
+	}
+}

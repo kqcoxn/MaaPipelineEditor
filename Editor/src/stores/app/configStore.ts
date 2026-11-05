@@ -64,7 +64,7 @@ export const globalConfig = {
   dev: true,
   version: `2.1.1`,
   betaIteration: 1,
-  mfwVersion: "5.14.3",
+  mfwVersion: "5.15.0",
   protocolVersion: "2.1.1",
 };
 
