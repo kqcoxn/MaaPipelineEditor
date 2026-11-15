@@ -5,6 +5,7 @@ import type { ControllerConnectionRequest } from "@/services/protocols/controlle
  * 设备类型
  */
 export type DeviceType =
+  | "ios"
   | "adb"
   | "win32"
   | "playcover"
@@ -25,6 +26,14 @@ export type ConnectionStatus =
 /**
  * ADB 设备信息
  */
+export interface IOSDevice {
+  udid: string;
+  name: string;
+  state: string;
+  connections: unknown[];
+  screencap_methods: string[];
+}
+
 export interface AdbDevice {
   adb_path: string;
   address: string;
@@ -90,6 +99,7 @@ export interface GamepadDevice {
  * 设备信息
  */
 export type DeviceInfo =
+  | Partial<IOSDevice>
   | Partial<AdbDevice>
   | Partial<Win32Window>
   | Partial<PlayCoverDevice>
@@ -110,6 +120,10 @@ interface MFWState {
   appliedConnection: ControllerConnectionRequest | null;
 
   // 设备列表
+  iosDevices: IOSDevice[];
+  iosDiscoveryPending: boolean;
+  iosDiscoveryError: string | null;
+  iosDiscoveryWarnings: unknown[];
   adbDevices: AdbDevice[];
   win32Windows: Win32Window[];
   linuxCompositors: LinuxCompositor[];
@@ -143,6 +157,10 @@ export const useMFWStore = create<MFWState>()((set) => ({
   controllerId: null,
   deviceInfo: null,
   appliedConnection: null,
+  iosDevices: [],
+  iosDiscoveryPending: false,
+  iosDiscoveryError: null,
+  iosDiscoveryWarnings: [],
   adbDevices: [],
   win32Windows: [],
   linuxCompositors: [],

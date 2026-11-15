@@ -8,6 +8,7 @@ type PersistedControllerConnection<T> = {
 };
 
 export type ControllerConnectionRequest =
+  | { type: "ios" } & PersistedControllerConnection<Parameters<MFWProtocol["createIOSController"]>[0]>
   | { type: "adb" } & PersistedControllerConnection<Parameters<MFWProtocol["createAdbController"]>[0]>
   | { type: "win32" } & PersistedControllerConnection<Parameters<MFWProtocol["createWin32Controller"]>[0]>
   | { type: "playcover" } & PersistedControllerConnection<Parameters<MFWProtocol["createPlayCoverController"]>[0]>

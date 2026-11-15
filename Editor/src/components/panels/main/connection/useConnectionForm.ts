@@ -39,9 +39,10 @@ export function useConnectionForm(availableTabs: ControllerTab[], applied: Contr
     isAdbManualMode: !!(form.manualAdbPath.trim() || form.manualAddress.trim()),
     setActiveTab: (activeTab: ControllerTab) => {
       tabDrafts.current[form.activeTab] = form;
-      setForm(tabDrafts.current[activeTab] || { ...defaultConnectionForm(activeTab),
+      setForm({ ...defaultConnectionForm(activeTab),
         customScreencap: activeTab === "adb" ? ADB_DEFAULT_SCREENCAP_METHODS : "FramePool",
         customInput: activeTab === "adb" ? ADB_DEFAULT_INPUT_METHODS : "SendMessageWithCursorPos",
+        ...tabDrafts.current[activeTab], activeTab,
       });
     },
     setSelectedAdbDevice: (device: ConnectionForm["selectedAdbDevice"]) => setForm(previous => ({ ...previous,
@@ -60,6 +61,7 @@ export function useConnectionForm(availableTabs: ControllerTab[], applied: Contr
     setManualAddress: (value: ConnectionForm["manualAddress"]) => update("manualAddress", value),
     setManualConfig: (value: ConnectionForm["manualConfig"]) => update("manualConfig", value),
     setManualName: (value: ConnectionForm["manualName"]) => update("manualName", value),
+    setIOS: (value: ConnectionForm["ios"]) => update("ios", value),
     setPlayCoverAddress: (value: ConnectionForm["playCoverAddress"]) => update("playCoverAddress", value),
     setPlayCoverUUID: (value: ConnectionForm["playCoverUUID"]) => update("playCoverUUID", value),
     setPlayCoverName: (value: ConnectionForm["playCoverName"]) => update("playCoverName", value),

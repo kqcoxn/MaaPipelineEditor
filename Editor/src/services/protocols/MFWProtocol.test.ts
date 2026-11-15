@@ -45,6 +45,34 @@ describe("MFWProtocol", () => {
     useMFWStore.getState().clearConnection();
   });
 
+  it("keeps IOS discovery failures separate from the applied controller", () => {
+    const protocol = new MFWProtocol();
+    const server = new FakeWebSocketServer();
+    protocol.register(server as unknown as LocalWebSocketServer);
+    useMFWStore.getState().setControllerInfo("ios", "existing", { udid: "phone" });
+    expect(protocol.refreshIOSDevices("USB", '{"server_port":0}')).toBe(true);
+    expect(protocol.refreshIOSDevices()).toBe(false);
+    expect(useMFWStore.getState().iosDiscoveryPending).toBe(true);
+    server.emit("/lte/mfw/ios_devices", { success: false, devices: [], warnings: ["xdb unavailable"], error: "server not running" });
+    expect(useMFWStore.getState()).toMatchObject({
+      controllerId: "existing", connectionStatus: "connected", iosDiscoveryPending: false,
+      iosDiscoveryError: "server not running", iosDiscoveryWarnings: ["xdb unavailable"],
+    });
+    protocol.unregister();
+  });
+
+  it("persists successful IOS parameters for reconnect without dropping explicit values", () => {
+    const protocol = new MFWProtocol();
+    const server = new FakeWebSocketServer();
+    protocol.register(server as unknown as LocalWebSocketServer);
+    const params = { udid: "iphone", connection: "Auto" as const, screencap_methods: ["ScreenshotService"], config: '{"max_fps":0,"wifi_address":"","shared_control":false}' };
+    protocol.connectController({ type: "ios", params });
+    server.emit("/lte/mfw/controller_created", { success: true, controller_id: "ios-1", type: "ios" });
+    expect(useMFWStore.getState().appliedConnection).toMatchObject({ type: "ios", params });
+    expect(JSON.parse(localStorage.getItem("mpe_last_controller")!)).toMatchObject({ type: "ios", params });
+    protocol.unregister();
+  });
+
   it("replaces and cleans up its LocalBridge status subscription", () => {
     const protocol = new MFWProtocol();
     const firstServer = new FakeWebSocketServer();

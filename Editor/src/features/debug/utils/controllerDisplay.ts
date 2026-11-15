@@ -14,7 +14,7 @@ export function getControllerDisplayName(
       ? ["window_name", "class_name", "hwnd"]
       : controllerType === "macos"
         ? ["window_name", "name", "window_id"]
-        : ["name", "address", "socket_path", "uuid"];
+        : ["name", "udid", "address", "socket_path", "uuid"];
   for (const key of keys) {
     const value = info[key];
     if (typeof value === "string" && value.trim() !== "") {

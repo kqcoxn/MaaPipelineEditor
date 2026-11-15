@@ -130,6 +130,23 @@ export const nextPreview: ForecastSection = {
 
 export const updateLogs: UpdateLogItem[] = [
   {
+    version: "2.1.2",
+    date: "2026-11-15",
+    type: "feature",
+    maafwVersion: "5.16.1",
+    updates: {
+      features: [
+        "🍎 新增 iOS 真机控制器，支持 iPhone / iPad 连接与调试",
+      ],
+      maafw: [
+        "支持 PI iOS 控制器配置",
+        "完善 macOS / PlayCover 应用启停与 iOS 输入说明",
+        "修正 JumpBack 错误处理说明",
+        "更新 Go Binding 依赖",
+      ],
+    },
+  },
+  {
     version: "2.1.1",
     date: "2026-11-5",
     type: "perf",

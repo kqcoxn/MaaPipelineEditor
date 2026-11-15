@@ -1,5 +1,5 @@
-github.com/MaaXYZ/maa-framework-go/v4 v4.0.0 h1:dqoJWyObIpQbyWUY/SW1y2z04SI1GgcX8EWPbVTDD20=
-github.com/MaaXYZ/maa-framework-go/v4 v4.0.0/go.mod h1:+0oBuMkS/6mPZ4pII5ggbO0j6UVIkZBLTk3IYEfcQ7w=
+github.com/MaaXYZ/maa-framework-go/v4 v4.0.1-0.20261113151720-24228d201a13 h1:b8pcnbEFK2Ax3OWS/bkVya3lLRYA6yMLjfR0E4cN1p4=
+github.com/MaaXYZ/maa-framework-go/v4 v4.0.1-0.20261113151720-24228d201a13/go.mod h1:+0oBuMkS/6mPZ4pII5ggbO0j6UVIkZBLTk3IYEfcQ7w=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

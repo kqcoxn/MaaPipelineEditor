@@ -860,7 +860,7 @@ func isCompleteTarget(target protocol.NodeTarget) bool {
 
 func isSupportedController(controllerType string) bool {
 	switch controllerType {
-	case "adb", "win32", "dbg":
+	case "adb", "ios", "win32", "dbg":
 		return true
 	default:
 		return false

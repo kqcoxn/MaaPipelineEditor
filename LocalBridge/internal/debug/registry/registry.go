@@ -45,6 +45,7 @@ func DefaultCapabilityManifest() protocol.CapabilityManifest {
 		Maa: protocol.MaaInfo{
 			MFWVersion: "unknown",
 			SupportedControllers: []string{
+				"ios",
 				"adb",
 				"win32",
 				"dbg",

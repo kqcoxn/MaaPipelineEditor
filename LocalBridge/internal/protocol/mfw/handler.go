@@ -41,6 +41,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 
 	// 检查 MFW 服务是否已初始化
 	if !h.service.IsInitialized() {
+		if path == "/etl/mfw/refresh_ios_devices" {
+			conn.Send(models.Message{Path: "/lte/mfw/ios_devices", Data: map[string]any{"success": false, "error": "MaaFramework 未初始化，请检查依赖安装和服务启动日志"}})
+			return nil
+		}
 		logger.Warn("MFW", "服务未初始化，拒绝请求")
 		logger.Error("MFW", "MaaFramework 未初始化，请检查服务初始化日志；依赖缺失时运行 'mpelb deps reinstall mfw' 后重启服务")
 		h.sendMFWError(conn, mfw.ErrCodeNotInitialized,
@@ -51,6 +55,10 @@ func (h *MFWHandler) Handle(msg models.Message, conn *server.Connection) *models
 
 	// 根据路由分发到不同的处理器
 	switch path {
+	case "/etl/mfw/refresh_ios_devices":
+		go h.handleRefreshIOSDevices(conn, msg)
+	case "/etl/mfw/create_ios_controller":
+		go h.handleCreateIOSController(conn, msg)
 	// 设备相关路由
 	case "/etl/mfw/refresh_adb_devices":
 		h.handleRefreshAdbDevices(conn, msg)

@@ -230,7 +230,7 @@ export function isDebugEntryAvailable(
 
 function resolveControllerType(): DebugRunProfile["controller"]["type"] {
   const controllerType = useMFWStore.getState().controllerType;
-  if (controllerType === "adb" || controllerType === "win32") {
+  if (controllerType === "adb" || controllerType === "ios" || controllerType === "win32") {
     return controllerType;
   }
   return "adb";
@@ -681,6 +681,7 @@ function isControllerType(
   value: unknown,
 ): value is DebugRunProfile["controller"]["type"] {
   return (
+    value === "ios" ||
     value === "adb" ||
     value === "win32" ||
     value === "dbg" ||

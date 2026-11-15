@@ -9,6 +9,7 @@ export const connections: ControllerConnectionRequest[] = [
   { type: "playcover", params: { address: "127.0.0.1:1717", uuid: "game.app", name: "Game" } },
   { type: "gamepad", params: { hwnd: "42", gamepad_type: "DualShock4", screencap_method: "FramePool" } },
   { type: "macos", params: { window_id: "42", screencap_method: "ScreenCaptureKit", input_method: "PostToPid" } },
+  { type: "ios", params: { udid: "iphone", connection: "WiFi", screencap_methods: ["ScreenshotService"], config: '{"wifi_address":"","shared_control":false,"max_fps":0}' } },
   { type: "linux", params: { socket_path: "", screencap_method: "PipeWire", input_method: "UInput", pw_node_id: 123, use_win32_vk_code: true, uinput_path: "/dev/uinput", uinput_screen_width: 1920, uinput_screen_height: 1080 } },
 ];
 
@@ -17,6 +18,17 @@ describe("controller connection form", () => {
     const restored = restoreConnectionForm(defaultConnectionForm("adb"), request);
     expect(buildConnectionRequest(restored)).toEqual(request);
     expect(sameControllerConnection(buildConnectionRequest(restored), request)).toBe(true);
+  });
+
+  it("rejects invalid IOS configuration before disconnecting the applied controller", () => {
+    const base = { ...defaultConnectionForm("ios"), ios: { udid: "phone", connection: "Auto" as const, screencap_methods: ["ScreenshotService"], config: "{}" } };
+    for (const config of ['[]', 'null', '{"max_fps":241}', '{"shared_control":null}', '{"wifi_port":0}', '{"unknown":true}', '{"max_bitrate":18446744073709551616}', '{"max_fps":1.0}', '{"max_fps":1e1}']) {
+      expect(buildConnectionRequest({ ...base, ios: { ...base.ios, config } })).toBeNull();
+    }
+    const config = '{"max_bitrate":18446744073709551615,"max_fps":0,"shared_control":false,"wifi_address":""}';
+    expect(buildConnectionRequest({ ...base, ios: { ...base.ios, config } })?.params).toHaveProperty("config", config);
+    expect(buildConnectionRequest({ ...base, ios: { ...base.ios, screencap_methods: [] } })).toBeNull();
+    expect(buildConnectionRequest({ ...base, ios: { ...base.ios, udid: " " } })).toBeNull();
   });
 
   it("distinguishes a pending keyboard change from the applied controller", () => {
@@ -43,7 +55,7 @@ describe("controller connection form", () => {
   it("prevents submitting incomplete method selections before disconnecting", () => {
     const adb = restoreConnectionForm(defaultConnectionForm("adb"), connections[0]);
     expect(buildConnectionRequest({ ...adb, customInput: [] })).toBeNull();
-    const linux = restoreConnectionForm(defaultConnectionForm("linux"), connections[5]);
+    const linux = restoreConnectionForm(defaultConnectionForm("linux"), connections[6]);
     expect(buildConnectionRequest({ ...linux, linuxOptions: { ...linux.linuxOptions, pw_node_id: undefined } })).toBeNull();
   });
 });

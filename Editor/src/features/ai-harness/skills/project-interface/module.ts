@@ -1,6 +1,7 @@
 import type { HarnessModule } from '../../core/types';
 
 export const piReference: Record<string, string> = {
+  iOS控制器: 'controller.type 为 IOS，ios 中可配置 udid、connection（Auto/USB/WiFi）、screencap（Stream|ScreenshotService）和 config。真机连接需 xdb Server 1.6.0+、配对和 DDI；config 的显式空字符串、false 和 0 都是覆盖值，不得丢弃。',
   项目结构: 'interface.json 声明任务、选项、资源、控制器、导入和翻译。task.entry 指向 Pipeline 节点，task.option 引用 option 字典。定义应写回其原始来源文件。',
   导入: 'import 中 task、preset、group、pretask、setting 追加；option 后导入的同名定义覆盖前面的定义；global_option 追加去重。同名定义不代表可以任意修改其中一份。',
   覆盖顺序: '任务自身 pipeline_override 先应用，再按 global_option、resource.option、controller.option、task.option 解析覆盖。预任务选项只生成程序参数，不参与 Pipeline 覆盖。对象合并和数组替换应由实际解析工具确认，不能把静态关系描述成执行路径。',

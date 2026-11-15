@@ -1,3 +1,5 @@
+import { ControllerTypeSelect } from "./connection/ControllerTypeSelect";
+import { IOSForm } from "./connection/IOSForm";
 import { useConnectionForm } from "./connection/useConnectionForm";
 import { buildConnectionRequest, defaultConnectionForm, restoreConnectionForm } from "./connection/connectionForm";
 import { sameControllerConnection } from "@/services/protocols/controllerConnection";
@@ -7,7 +9,6 @@ import { isInterfaceRunning } from "@/features/project-interface/interfaceRunTyp
 import { memo, useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Drawer,
-  Tabs,
   Button,
   Alert,
   Card,
@@ -19,11 +20,7 @@ import {
   ApiOutlined,
   DisconnectOutlined,
   CheckCircleOutlined,
-  DesktopOutlined,
-  MobileOutlined,
   SwapOutlined,
-  AppleOutlined,
-  RocketOutlined,
 } from "@ant-design/icons";
 import {
   useMFWStore,
@@ -76,6 +73,7 @@ const ConnectionPanelContent = memo(
     );
 
     const {
+      ios, setIOS,
       activeTab,
       selectedAdbDevice,
       selectedWin32Window,
@@ -130,7 +128,9 @@ const ConnectionPanelContent = memo(
     const [applyError, setApplyError] = useState<string | null>(null);
     const handleRefresh = useCallback(() => {
       setIsRefreshing(true);
-      if (activeTab === "adb") {
+      if (activeTab === "ios") {
+        mfwProtocol.refreshIOSDevices(ios.connection, ios.config);
+      } else if (activeTab === "adb") {
         mfwProtocol.refreshAdbDevices();
       } else if (activeTab === "win32") {
         mfwProtocol.refreshWin32Windows();
@@ -140,7 +140,7 @@ const ConnectionPanelContent = memo(
         mfwProtocol.refreshWin32Windows();
       }
       setTimeout(() => setIsRefreshing(false), 1000);
-    }, [activeTab]);
+    }, [activeTab, ios.connection, ios.config]);
 
     // 第一次打开时自动刷新设备列表，即使当前已有控制器连接
     useEffect(() => {
@@ -360,107 +360,17 @@ const ConnectionPanelContent = memo(
             isAdbManualMode={isAdbManualMode}
           />
 
-          {/* 设备类型选择 */}
-          <div style={{ padding: "0 24px" }}>
-            <Tabs
-              activeKey={activeTab}
-              onChange={(key) => {
-                const nextTab = key as
-                  | "adb"
-                  | "win32"
-                  | "playcover"
-                  | "gamepad"
-                  | "linux"
-                  | "macos";
-                setActiveTab(nextTab);
-              }}
-              items={[
-                ...(availableTabs.includes("adb")
-                  ? [
-                      {
-                        key: "adb",
-                        label: (
-                          <span>
-                            <MobileOutlined style={{ marginRight: 8 }} />
-                            ADB 设备
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(availableTabs.includes("win32")
-                  ? [
-                      {
-                        key: "win32",
-                        label: (
-                          <span>
-                            <DesktopOutlined style={{ marginRight: 8 }} />
-                            Win32 窗口
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(availableTabs.includes("playcover")
-                  ? [
-                      {
-                        key: "playcover",
-                        label: (
-                          <span>
-                            <AppleOutlined style={{ marginRight: 8 }} />
-                            PlayCover
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(availableTabs.includes("gamepad")
-                  ? [
-                      {
-                        key: "gamepad",
-                        label: (
-                          <span>
-                            <RocketOutlined style={{ marginRight: 8 }} />
-                            Gamepad
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(availableTabs.includes("linux")
-                  ? [
-                      {
-                        key: "linux",
-                        label: (
-                          <span>
-                            <DesktopOutlined style={{ marginRight: 8 }} />
-                            Linux
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-                ...(availableTabs.includes("macos")
-                  ? [
-                      {
-                        key: "macos",
-                        label: (
-                          <span>
-                            <AppleOutlined style={{ marginRight: 8 }} />
-                            macOS 原生
-                          </span>
-                        ),
-                      },
-                    ]
-                  : []),
-              ]}
-              style={{ marginBottom: 0 }}
-            />
-          </div>
+          <ControllerTypeSelect
+            value={activeTab}
+            options={availableTabs}
+            onChange={setActiveTab}
+          />
 
           {/* 设备列表 */}
           <div style={{ flex: 1, overflow: "auto", padding: "16px 24px" }}>
-            {activeTab === "adb" ? (
+            {activeTab === "ios" ? (
+              <IOSForm value={ios} onChange={setIOS} />
+            ) : activeTab === "adb" ? (
               <AdbDeviceList
                 devices={adbDevices}
                 selectedDevice={selectedAdbDevice}

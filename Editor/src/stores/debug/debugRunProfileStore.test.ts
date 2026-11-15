@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { NodeTypeEnum } from "@/components/flow/nodes";
 import { useFlowStore, type PipelineNodeType } from "@/stores/flow";
+import { useMFWStore } from "@/stores/connection/mfwStore";
 import { useFileStore } from "@/stores/project/fileStore";
 import {
   isDebugEntryAvailable,
@@ -14,6 +15,7 @@ const initialFileState = {
 };
 
 afterEach(() => {
+  useMFWStore.getState().clearConnection();
   useFileStore.setState(initialFileState);
   useFlowStore.setState({ nodes: [], edges: [] });
 });
@@ -69,7 +71,8 @@ describe("debug profile entry recovery", () => {
     ).toBe(false);
   });
 
-  it("keeps the requested file when canvas node ids repeat across files", () => {
+  it.each(["adb", "ios"] as const)("keeps the live %s controller and requested file when canvas node ids repeat", controllerType => {
+    useMFWStore.getState().setControllerInfo(controllerType, "live-controller", { name: "test device" });
     const startNode = makePipelineNode("p_7", "task_stop");
     const liveNode = makePipelineNode("p_7", "failed");
     const startFile = {
@@ -106,6 +109,7 @@ describe("debug profile entry recovery", () => {
       .getState()
       .buildRunRequest("single-node-run", target);
 
+    expect(request.profile.controller).toMatchObject({ type: controllerType, options: { controllerId: "live-controller" } });
     expect(request.target).toEqual(target);
     expect(request.profile.entry).toEqual(target);
   });

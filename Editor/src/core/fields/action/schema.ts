@@ -143,7 +143,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.ObjectList,
     required: true,
     default: [{}],
-    desc: "多个滑动的数组。必选。swipes: list<object,> 多个滑动的数组。必选。 数组元素顺序没有影响，只基于 starting 确定顺序。 starting: uint 滑动起始时间，单位毫秒。可选，默认 0 。 MultiSwipe 额外字段，该滑动会在本 action 中第 starting 毫秒才开始。 begin: true | string | array<int, 2> | array<int, 4> 滑动起点。可选，默认 true 。值同 swipe-end。 begin_offset: array<int, 4> 在 begin 的基础上额外移动再作为起点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 end: true | string | array<int, 2> | array<int, 4> | list<true | string | array<int, 2> | array<int, 4>> 滑动终点。可选，默认 true 。值同 swipe-end。 💡 v4.5.x 版本新增支持 list，可用于添加滑动途径点！相较多次 swipe 的区别是多个 end 之间不会抬手，即一次折线滑动。 end_offset: array<int, 4> | list<array<int, 4>> 在 end 的基础上额外移动再作为终点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 duration: uint | list<uint,> 滑动持续时间，单位毫秒。可选，默认 200 。 end_hold: uint | list<uint,> 滑动到终点后，额外等待一定时间再抬起，单位 ms。可选，默认 0。 only_hover: bool 仅鼠标悬停移动，无按下/抬起动作。可选，默认 false。 contact: uint 触点编号，用于区分不同的触控点。可选，默认 0 。 Adb 控制器：表示手指编号（0 为第一根手指，1 为第二根手指，以此类推） Win32 控制器：表示鼠标按键编号（0 为左键，1 为右键，2 为中键，3 为 XBUTTON1，4 为 XBUTTON2） 注意：在 MultiSwipe 中，如果 contact 为 0，将使用该滑动在数组中的索引作为触点编号。",
+    desc: "多个滑动的数组。必选。swipes: list<object,> 多个滑动的数组。必选。 数组元素顺序没有影响，只基于 starting 确定顺序。 starting: uint 滑动起始时间，单位毫秒。可选，默认 0 。 MultiSwipe 额外字段，该滑动会在本 action 中第 starting 毫秒才开始。 begin: true | string | array<int, 2> | array<int, 4> 滑动起点。可选，默认 true 。值同 swipe-end。 begin_offset: array<int, 4> 在 begin 的基础上额外移动再作为起点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 end: true | string | array<int, 2> | array<int, 4> | list<true | string | array<int, 2> | array<int, 4>> 滑动终点。可选，默认 true 。值同 swipe-end。 💡 v4.5.x 版本新增支持 list，可用于添加滑动途径点！相较多次 swipe 的区别是多个 end 之间不会抬手，即一次折线滑动。 end_offset: array<int, 4> | list<array<int, 4>> 在 end 的基础上额外移动再作为终点，四个值分别相加。可选，默认 [0, 0, 0, 0] 。 duration: uint | list<uint,> 滑动持续时间，单位毫秒。可选，默认 200 。 end_hold: uint | list<uint,> 滑动到终点后，额外等待一定时间再抬起，单位 ms。可选，默认 0。 only_hover: bool 仅鼠标悬停移动，无按下/抬起动作。可选，默认 false。 contact: uint 触点编号，用于区分不同的触控点。可选，默认 0 。 Adb 控制器：表示手指编号（0 为第一根手指，1 为第二根手指，以此类推）；iOS 真机支持 0..4 五个触点。Win32 控制器：表示鼠标按键编号（0 为左键，1 为右键，2 为中键，3 为 XBUTTON1，4 为 XBUTTON2） 注意：在 MultiSwipe 中，如果 contact 为 0，将使用该滑动在数组中的索引作为触点编号。",
   },
 
   // 触控相关
@@ -152,7 +152,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     default: [1],
     step: 1,
-    desc: "触点编号，用于区分不同的触控点。可选，默认 0 。Adb 控制器：表示手指编号（0 为第一根手指，1 为第二根手指，以此类推） Win32 控制器：表示鼠标按键编号（0 为左键，1 为右键，2 为中键，3 为 XBUTTON1，4 为 XBUTTON2）",
+    desc: "触点编号，用于区分不同的触控点。可选，默认 0 。Adb 控制器：表示手指编号（0 为第一根手指，1 为第二根手指，以此类推）；iOS 真机支持 0..4 五个触点。Win32 控制器：表示鼠标按键编号（0 为左键，1 为右键，2 为中键，3 为 XBUTTON1，4 为 XBUTTON2）",
   },
   touchTarget: {
     key: "target",
@@ -170,7 +170,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.Int,
     default: [1],
     step: 1,
-    desc: "触控压力，范围取决于控制器实现。可选，默认 0 。",
+    desc: "触控压力，范围取决于控制器实现。可选，默认 0。iOS 控制器不支持压力，此值不影响注入结果。",
   },
 
   // 按键相关
@@ -180,7 +180,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     required: true,
     default: [1],
     step: 1,
-    desc: "要单击的键，仅支持对应控制器的虚拟按键码。必选。",
+    desc: "要单击的键，仅支持对应控制器的虚拟按键码。必选。iOS 使用映射后的 Android keycode，如 Home 3、锁屏 26、音量 24/25；未映射按键会失败。",
   },
   longPressKey: {
     key: "key",
@@ -204,7 +204,7 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.String,
     required: true,
     default: "",
-    desc: "要输入的文本，部分控制器仅支持 ascii 。必选。",
+    desc: "要输入的文本，部分控制器仅支持 ASCII。必选。iOS 仅接受美式键盘 ASCII、Tab 和换行；含中文等不支持的字符时整体失败，不通过剪贴板输入。",
   },
 
   // 应用相关
@@ -213,13 +213,13 @@ export const actionFieldSchema: Record<string, FieldType> = {
     type: FieldTypeEnum.String,
     required: true,
     default: "",
-    desc: "启动入口。必选。ADB 使用包名或 activity，例如 com.hypergryph.arknights。Win32 使用可执行文件命令行，可携带参数；含空格的程序路径需用双引号包裹。PlayCover 不支持启动应用。",
+    desc: "启动入口。必选。ADB 使用包名或 activity，例如 com.hypergryph.arknights。Win32 使用可执行文件命令行，可携带参数；含空格的程序路径需用双引号包裹。macOS 和 PlayCover 支持 .app 绝对路径或 bundle ID，建议填写绝对路径；iOS 真机填写 Bundle Identifier，例如 com.apple.mobilesafari。",
   },
   stopPackage: {
     key: "package",
     type: FieldTypeEnum.String,
     default: "",
-    desc: "要关闭的应用。ADB 填包名。Win32 填进程可执行文件名，例如 game.exe，将终止所有同名进程；留空时终止当前控制器窗口所属进程。",
+    desc: "要关闭的应用。ADB 填包名。Win32 填进程可执行文件名，例如 game.exe，将终止所有同名进程；留空时终止当前控制器窗口所属进程。macOS 填 .app 绝对路径或 bundle ID，请求应用退出；PlayCover 关闭当前连接的应用并忽略 package；iOS 真机填 Bundle Identifier。",
   },
 
   // 命令相关

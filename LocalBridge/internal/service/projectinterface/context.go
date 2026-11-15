@@ -419,7 +419,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 			if (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') {
 				return int(char), true
 			}
-		case "adb":
+		case "adb", "ios":
 			if char >= 'A' && char <= 'Z' {
 				return 29 + int(char-'A'), true
 			}
@@ -448,7 +448,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 			switch strings.ToLower(controllerType) {
 			case "win32":
 				return 0x6F + number, true
-			case "adb":
+			case "adb", "ios":
 				return 130 + number, true
 			case "linux":
 				return 58 + number, true
@@ -459,7 +459,7 @@ func virtualKeyCode(controllerType, key string) (int, bool) {
 	switch strings.ToLower(controllerType) {
 	case "win32":
 		table = map[string]int{"CTRL": 0x11, "SHIFT": 0x10, "ALT": 0x12, "ENTER": 0x0D, "ESC": 0x1B, "SPACE": 0x20, "TAB": 0x09, "BACKSPACE": 0x08, "DELETE": 0x2E, "UP": 0x26, "DOWN": 0x28, "LEFT": 0x25, "RIGHT": 0x27}
-	case "adb":
+	case "adb", "ios":
 		table = map[string]int{"CTRL": 113, "SHIFT": 59, "ALT": 57, "ENTER": 66, "ESC": 111, "SPACE": 62, "TAB": 61, "BACKSPACE": 67, "DELETE": 112, "UP": 19, "DOWN": 20, "LEFT": 21, "RIGHT": 22}
 	case "linux":
 		table = map[string]int{"CTRL": 29, "SHIFT": 42, "ALT": 56, "ENTER": 28, "ESC": 1, "SPACE": 57, "TAB": 15, "BACKSPACE": 14, "DELETE": 111, "UP": 103, "DOWN": 108, "LEFT": 105, "RIGHT": 106}

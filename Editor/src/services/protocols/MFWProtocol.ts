@@ -3,9 +3,11 @@ import { message } from "@/utils/ui/antdAppApi";
 
 import { BaseProtocol } from "./BaseProtocol";
 import type { LinuxControllerOptions } from "./linuxController";
+import type { IOSControllerOptions } from "./iosController";
 import type { LocalWebSocketServer } from "../server";
 import {
   useMFWStore,
+  type IOSDevice,
   type AdbDevice,
   type Win32Window,
   type PlayCoverDevice,
@@ -25,6 +27,7 @@ import { ControllerDisconnection } from "./controllerDisconnection";
 import type { ControllerConnectionRequest } from "./controllerConnection";
 
 type ControllerConnectionDevice =
+  | IOSDevice
   | AdbDevice
   | Win32Window
   | PlayCoverDevice
@@ -80,7 +83,7 @@ export class MFWProtocol extends BaseProtocol {
   private executeActionCallbacks: Array<(data: any) => void> = [];
   // 记录最后一次连接请求的设备信息
   private lastConnectionDevice: {
-    type: "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos";
+    type: "ios" | "adb" | "win32" | "playcover" | "gamepad" | "linux" | "macos";
     deviceInfo: Exclude<DeviceInfo, null>;
   } | null = null;
   private lastConnectionRequest: ControllerConnectionRequest | null = null;
@@ -102,6 +105,7 @@ export class MFWProtocol extends BaseProtocol {
     this.statusUnsubscribe?.();
     this.statusUnsubscribe = this.wsClient.onStatus((connected) => {
       if (!connected) {
+        useMFWStore.setState({ iosDiscoveryPending: false });
         this.disconnection.cancel("LocalBridge 连接已断开");
         this.screencapRequests.rejectAll("LocalBridge 连接已断开");
         this.clearControllerConnection();
@@ -109,6 +113,15 @@ export class MFWProtocol extends BaseProtocol {
         this.lastConnectionRequest = null;
         this.isAutoConnecting = false;
       }
+    });
+
+    this.wsClient.registerRoute("/lte/mfw/ios_devices", (data) => {
+      useMFWStore.setState({
+        iosDevices: Array.isArray(data.devices) ? data.devices : [],
+        iosDiscoveryPending: false,
+        iosDiscoveryError: data.success ? null : data.error || "iOS 设备发现失败",
+        iosDiscoveryWarnings: Array.isArray(data.warnings) ? data.warnings : [],
+      });
     });
 
     // 注册设备列表路由
@@ -184,6 +197,7 @@ export class MFWProtocol extends BaseProtocol {
   }
 
   override unregister(): void {
+    useMFWStore.setState({ iosDiscoveryPending: false });
     this.disconnection.cancel("MaaFramework 协议已注销");
     this.statusUnsubscribe?.();
     this.statusUnsubscribe = null;
@@ -685,9 +699,22 @@ export class MFWProtocol extends BaseProtocol {
     );
   }
 
-  /**
-   * 创建 PlayCover 控制器 (macOS 上运行 iOS 应用)
-   */
+  /** 按当前连接方式和服务端口发现真机，不修改已连接控制器。 */
+  public refreshIOSDevices(connection = "Auto", config = "{}"): boolean {
+    if (useMFWStore.getState().iosDiscoveryPending) return false;
+    useMFWStore.setState({ iosDiscoveryPending: true, iosDiscoveryError: null, iosDiscoveryWarnings: [] });
+    const sent = this.wsClient?.send("/etl/mfw/refresh_ios_devices", { connection, config }) ?? false;
+    if (!sent) useMFWStore.setState({ iosDiscoveryPending: false, iosDiscoveryError: "无法发送 iOS 设备发现请求" });
+    return sent;
+  }
+
+  public createIOSController(params: IOSControllerOptions): boolean {
+    const device = useMFWStore.getState().iosDevices.find(item => item.udid === params.udid);
+    return this.sendControllerConnection("/etl/mfw/create_ios_controller", { type: "ios", params },
+      device || { udid: params.udid, name: params.udid, state: "", connections: [], screencap_methods: params.screencap_methods });
+  }
+
+  /** 创建 PlayCover 控制器（macOS 上运行 iOS 应用）。 */
   public createPlayCoverController(params: {
     address: string;
     uuid: string;
@@ -783,6 +810,7 @@ export class MFWProtocol extends BaseProtocol {
   /** 手动连接与自动恢复共用同一份提交参数。 */
   public connectController(request: ControllerConnectionRequest): boolean {
     switch (request.type) {
+      case "ios": return this.createIOSController(request.params);
       case "adb": return this.createAdbController(request.params);
       case "win32": return this.createWin32Controller(request.params);
       case "playcover": return this.createPlayCoverController(request.params);

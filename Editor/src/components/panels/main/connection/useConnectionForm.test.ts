@@ -6,6 +6,13 @@ import type { ControllerConnectionRequest } from "@/services/protocols/controlle
 const applied: ControllerConnectionRequest = { type: "win32", params: { hwnd: "42", screencap_method: "FramePool", input_method: "Seize", keyboard_method: "Seize" } };
 describe("connection form drafts", () => {
   beforeEach(() => localStorage.clear());
+  it("fills required defaults when switching to a partial cached draft", () => {
+    localStorage.setItem("mpe_connection_form", JSON.stringify({ activeTab: "ios", drafts: { adb: { manualAddress: "127.0.0.1:5555" } } }));
+    const { result } = renderHook(() => useConnectionForm(["adb", "ios"], null));
+    act(() => result.current.setActiveTab("adb"));
+    expect(result.current.manualAddress).toBe("127.0.0.1:5555");
+    expect(result.current.ios).toMatchObject({ connection: "Auto", screencap_methods: ["Stream", "ScreenshotService"] });
+  });
   it("gives the actual connection precedence over stored drafts", () => {
     localStorage.setItem("mpe_connection_form", JSON.stringify({ drafts: { win32: { customKeyboard: "SendMessage" } } }));
     const { result } = renderHook(() => useConnectionForm(["adb", "win32"], applied));

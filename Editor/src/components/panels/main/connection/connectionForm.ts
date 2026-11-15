@@ -2,6 +2,7 @@ import type { AdbDevice, Win32Window, LinuxCompositor } from "@/stores/connectio
 import type { ControllerConnectionRequest } from "@/services/protocols/controllerConnection";
 import { defaultLinuxOptions, type LinuxControllerOptions } from "@/services/protocols/linuxController";
 import { MACOS_DEFAULT_METHODS } from "./utils";
+import { iosConfigError, type IOSControllerOptions } from "@/services/protocols/iosController";
 
 export type ControllerTab = ControllerConnectionRequest["type"];
 export const ADB_DEFAULT_SCREENCAP_METHODS = ["EncodeToFileAndPull", "Encode", "RawWithGzip", "MinicapDirect", "MinicapStream", "EmulatorExtras"];
@@ -9,6 +10,7 @@ export const ADB_DEFAULT_INPUT_METHODS = ["AdbShell", "MinitouchAndAdbKey", "Maa
 
 export interface ConnectionForm {
   activeTab: ControllerTab;
+  ios: IOSControllerOptions;
   selectedAdbDevice: AdbDevice | null;
   selectedWin32Window: Win32Window | null;
   selectedLinuxSocket: LinuxCompositor | null;
@@ -34,6 +36,7 @@ export interface ConnectionForm {
 
 export function defaultConnectionForm(activeTab: ControllerTab): ConnectionForm {
   return {
+    ios: { udid: "", connection: "Auto", screencap_methods: ["Stream", "ScreenshotService"], config: "{}" },
     activeTab, selectedAdbDevice: null, selectedWin32Window: null, selectedLinuxSocket: null,
     linuxSocketPath: "", manualAdbPath: "", manualAddress: "", manualConfig: "{}", manualName: "",
     playCoverAddress: "", playCoverUUID: "", playCoverName: "", gamepadType: "Xbox360",
@@ -47,6 +50,7 @@ export function defaultConnectionForm(activeTab: ControllerTab): ConnectionForm 
 export function restoreConnectionForm(form: ConnectionForm, request: ControllerConnectionRequest): ConnectionForm {
   const next = { ...form, activeTab: request.type };
   switch (request.type) {
+    case "ios": return { ...next, ios: { ...request.params } };
     case "adb": {
       const p = request.params;
       const info = request.deviceInfo as Partial<AdbDevice> | undefined;
@@ -83,6 +87,11 @@ const methods = (value: string | string[] | undefined, fallback: string[]) => va
 /** 与提交共用构造逻辑，避免“是否修改”和实际发送的参数不一致。 */
 export function buildConnectionRequest(f: ConnectionForm): ControllerConnectionRequest | null {
   switch (f.activeTab) {
+    case "ios": {
+      if (!f.ios.udid.trim() || f.ios.udid.includes("\0") || !f.ios.screencap_methods.length) return null;
+      if (iosConfigError(f.ios.config)) return null;
+      return { type: "ios", params: { ...f.ios, udid: f.ios.udid.trim(), config: f.ios.config.trim() ? f.ios.config : "{}" } };
+    }
     case "adb": {
       const manual = !!(f.manualAdbPath.trim() || f.manualAddress.trim());
       const device = f.selectedAdbDevice;

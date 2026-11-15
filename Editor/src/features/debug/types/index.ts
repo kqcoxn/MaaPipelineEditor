@@ -74,7 +74,7 @@ export type DebugProfileFeature =
   | "agent-run-profile";
 
 export type DebugAgentTransport = "identifier" | "tcp";
-export type DebugControllerType = "adb" | "win32" | "dbg" | "replay" | "record";
+export type DebugControllerType = "adb" | "ios" | "win32" | "dbg" | "replay" | "record";
 export type DebugSavePolicy = "sandbox" | "save-open-files" | "use-disk";
 export type DebugEventSource = "maafw" | "mpe" | "localbridge";
 export type DebugEventKind =

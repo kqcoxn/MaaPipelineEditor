@@ -45,6 +45,7 @@ const profileFeatureLabels: Record<string, string> = {
 };
 
 const controllerLabels: Record<string, string> = {
+  ios: "iOS 真机",
   adb: "安卓设备",
   win32: "Windows 窗口",
   dbg: "调试控制器",
